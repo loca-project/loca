@@ -1,0 +1,29 @@
+[
+  {
+    "manufacturer": "DJI",
+    "series": [
+      { "name": "Mavic", "models": ["Mavic 3 Pro", "Mavic 3 Classic", "Mavic 3"] },
+      { "name": "Air", "models": ["Air 3", "Air 2S"] },
+      { "name": "Mini", "models": ["Mini 4 Pro", "Mini 3", "Mini 2 SE"] },
+      { "name": "Avata", "models": ["Avata 2", "Avata"] },
+      { "name": "Osmo", "models": ["Osmo Pocket 3", "Osmo Action 5 Pro", "Osmo Action 4", "Osmo Mobile 6"] },
+      { "name": "Inspire", "models": ["Inspire 3"] }
+    ]
+  },
+  {
+    "manufacturer": "Zero Zero Robotics",
+    "series": [
+      { "name": "HOVERAir", "models": ["HOVERAir X1 Smart", "HOVERAir X1", "HOVERAir X1 PRO", "HOVERAir X1 PROMAX"] },
+      { "name": "V-Coptr", "models": ["V-Coptr Falcon"] }
+    ]
+  },
+  {
+    "manufacturer": "Sony",
+    "series": [
+      { "name": "Alpha", "models": ["a9 III", "a1", "a7R V", "a7 IV", "a7C II", "a7CR", "a6700"] },
+      { "name": "VLOGCAM", "models": ["ZV-E10 II", "ZV-E1", "ZV-1 II", "ZV-1F"] },
+      { "name": "Cinema Line", "models": ["FX6", "FX3", "FX30"] },
+      { "name": "Cyber-shot", "models": ["RX100 VII", "RX10 IV"] }
+    ]
+  }
+]

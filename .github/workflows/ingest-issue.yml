@@ -1,0 +1,98 @@
+# Issue を公開データに取り込む。データベースの代わりを務める唯一の書き込み経路。
+#
+# 反映の条件: メンテナが `approved` ラベルを付けたとき。
+# 誰でも Issue は立てられるが、地図に載るのは承認後（要件 3.8 の運用に相当）。
+#
+# 取り込みが成功したら publish.yml を直接呼ぶ。GITHUB_TOKEN による push は
+# 他のワークフローを起動しないため、deploy.yml には任せられない。
+name: Ingest issue
+
+on:
+  issues:
+    types: [labeled]
+
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    if: github.event.label.name == 'approved'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 種別を判定
+        id: kind
+        run: |
+          if [ "${{ contains(github.event.issue.labels.*.name, 'loca:marker') }}" = "true" ]; then
+            echo "kind=marker" >> "$GITHUB_OUTPUT"
+          elif [ "${{ contains(github.event.issue.labels.*.name, 'loca:request') }}" = "true" ]; then
+            echo "kind=request" >> "$GITHUB_OUTPUT"
+          else
+            echo "kind=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 取り込み
+        id: ingest
+        if: steps.kind.outputs.kind != ''
+        env:
+          LOCA_ISSUE_KIND: ${{ steps.kind.outputs.kind }}
+          LOCA_ISSUE_NUMBER: ${{ github.event.issue.number }}
+          LOCA_ISSUE_AUTHOR: ${{ github.event.issue.user.login }}
+          LOCA_ISSUE_BODY: ${{ github.event.issue.body }}
+        run: npm run data:ingest
+
+      - name: コミットして push
+        id: commit
+        if: steps.ingest.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "変更なし"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "data: issue #${{ github.event.issue.number }} を取り込み"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 結果を Issue に返す
+        if: always() && steps.kind.outputs.kind != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const ok = '${{ steps.ingest.outcome }}' === 'success';
+            const body = ok
+              ? '取り込みました。ビルドが終わり次第、地図へ反映されます。'
+              : '取り込みに失敗しました。ワークフローのログにある理由を確認して、内容を直してから `approved` ラベルを付け直してください。';
+            await github.rest.issues.createComment({
+              ...context.repo, issue_number: context.issue.number, body
+            });
+            if (ok) {
+              await github.rest.issues.update({
+                ...context.repo, issue_number: context.issue.number, state: 'closed'
+              });
+            }
+
+  # 取り込みで JSON が変わったときだけ公開しなおす
+  publish:
+    needs: ingest
+    if: needs.ingest.outputs.changed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish.yml

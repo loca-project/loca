@@ -1,0 +1,15 @@
+# リポジトリ内の改行は LF に統一する。
+#
+# Windows のローカルと GitHub Actions（Linux）で内容が変わらないようにするため。
+# これが無いと core.autocrlf の設定しだいで差分が出たり、
+# git add のたびに「LF will be replaced by CRLF」の警告が大量に出る。
+* text=auto eol=lf
+
+# バイナリは変換しない
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

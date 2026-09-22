@@ -1,0 +1,59 @@
+/* 外部 CDN に依存せず、すべてローカルの依存から読み込む（オフラインでも崩れないため） */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import 'maplibre-gl/dist/maplibre-gl.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --loca-surface: #ffffff;
+  --loca-bg: #f3f4f6;
+  --loca-text: #111827;
+  --loca-muted: #6b7280;
+  --loca-border: #e5e7eb;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background-color: var(--loca-bg);
+  color: var(--loca-text);
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #b8bec9;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8d94a1;
+}
+
+/* MapLibre のポップアップを Loca の見た目に寄せる */
+.maplibregl-popup-content {
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgb(15 23 42 / 18%);
+}
+
+.loca-pin {
+  filter: drop-shadow(0 2px 3px rgb(15 23 42 / 30%));
+}

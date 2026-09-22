@@ -1,0 +1,281 @@
+/**
+ * MapLibre GL JS + OpenFreeMap による地図アダプタ。
+ *
+ * OpenFreeMap は API キー不要・リクエスト数無制限・商用可のベクタタイル配信で、
+ * GitHub Pages のような静的配信からそのまま使える。
+ * スタイル URL は複数指定でき、読めなければ次の候補、最後は背景色だけの地図に落とす。
+ */
+
+import type { Map as MlMap, Marker as MlMarker, Popup as MlPopup } from 'maplibre-gl';
+import type { Bounds, LatLng } from '@/core/types';
+import type { InfoWindowOptions, MapPinOptions, MapPort, Unsubscribe } from '@/ports';
+import { JAPAN_BOUNDS, MAX_ZOOM, MIN_ZOOM, normalizeBounds } from '@/core/logic/geo';
+import { NEUTRAL_HEX } from '@/core/constants';
+import { appConfig } from '@/runtime/config';
+import { createPinElement } from './pinElement';
+import { setHealth } from '@/runtime/health';
+import {
+  RECT_FILL,
+  RECT_LINE,
+  RECT_SOURCE,
+  blankStyle,
+  boundsToFeatureCollection,
+} from './maplibreStyle';
+
+type MapLibreModule = typeof import('maplibre-gl');
+
+export class MapLibreAdapter implements MapPort {
+  readonly name = 'maplibre';
+
+  private map: MlMap | null = null;
+  private lib: MapLibreModule | null = null;
+  private pins = new Map<string, MlMarker>();
+  private ghost: MlMarker | null = null;
+  private popup: MlPopup | null = null;
+
+  private mapClickHandlers = new Set<(pos: LatLng) => void>();
+  private rectHandlers = new Set<(b: Bounds) => void>();
+  private drawing = false;
+  private dragStart: LatLng | null = null;
+
+  get isReady(): boolean {
+    return this.map !== null;
+  }
+
+  /** WebGL が無い環境では描画できないため、ここで判定して他の実装に譲る。 */
+  async probe(): Promise<boolean> {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+      return gl !== null;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * スタイル URL を先頭から順に試す。すべて失敗したら背景色だけの地図で継続する。
+   * 地図が真っ白になって操作不能になるのを避けるため。
+   */
+  private async resolveStyle(): Promise<string | ReturnType<typeof blankStyle>> {
+    for (const [index, url] of appConfig.map.styleUrls.entries()) {
+      try {
+        const res = await fetch(url, { method: 'GET' });
+        if (res.ok) {
+          if (index > 0) setHealth({ mapFallback: true });
+          return url;
+        }
+      } catch (e) {
+        console.warn(`[loca] 地図スタイルを取得できませんでした: ${url}`, e);
+      }
+    }
+    setHealth({ mapFallback: true, notice: '地図タイルを取得できないため簡易表示にしています。' });
+    return blankStyle();
+  }
+
+  async mount(container: HTMLElement): Promise<void> {
+    if (this.map) return;
+    this.lib = await import('maplibre-gl');
+
+    this.map = new this.lib.Map({
+      container,
+      style: (await this.resolveStyle()) as never,
+      bounds: [
+        [JAPAN_BOUNDS.west, JAPAN_BOUNDS.south],
+        [JAPAN_BOUNDS.east, JAPAN_BOUNDS.north],
+      ],
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+      // maxBounds は設定しない。
+      // 全世界（-180〜180）を渡すと MapLibre の制約計算が破綻し、
+      // 中心が経度 180 度・ズーム最大に飛ばされて何も描画されなくなる（実測で確認）。
+      // 要件 3.1 の「世界地図以外を表示させない」は minZoom と
+      // renderWorldCopies（既定 true）で足りる。
+    });
+
+    this.map.addControl(new this.lib.NavigationControl({ showCompass: false }), 'bottom-right');
+    await new Promise<void>((resolve) => {
+      this.map?.once('load', () => resolve());
+    });
+    this.setupRectangleLayer();
+    this.setupInteractions();
+  }
+
+  private setupRectangleLayer(): void {
+    const map = this.map;
+    if (!map) return;
+    map.addSource(RECT_SOURCE, { type: 'geojson', data: boundsToFeatureCollection(null) as never });
+    map.addLayer({
+      id: RECT_FILL,
+      type: 'fill',
+      source: RECT_SOURCE,
+      paint: { 'fill-color': '#2f7de1', 'fill-opacity': 0.12 },
+    });
+    map.addLayer({
+      id: RECT_LINE,
+      type: 'line',
+      source: RECT_SOURCE,
+      paint: { 'line-color': '#2f7de1', 'line-width': 2 },
+    });
+  }
+
+  private setupInteractions(): void {
+    const map = this.map;
+    if (!map) return;
+
+    map.on('click', (e) => {
+      if (this.drawing) return;
+      this.mapClickHandlers.forEach((h) => h({ lat: e.lngLat.lat, lng: e.lngLat.lng }));
+    });
+
+    map.on('mousedown', (e) => {
+      if (!this.drawing) return;
+      e.preventDefault();
+      this.dragStart = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+    });
+
+    map.on('mousemove', (e) => {
+      if (!this.drawing || !this.dragStart) return;
+      this.showRectangle(normalizeBounds(this.dragStart, { lat: e.lngLat.lat, lng: e.lngLat.lng }));
+    });
+
+    map.on('mouseup', (e) => {
+      if (!this.drawing || !this.dragStart) return;
+      const bounds = normalizeBounds(this.dragStart, { lat: e.lngLat.lat, lng: e.lngLat.lng });
+      this.dragStart = null;
+      this.setRectangleDrawing(false);
+      this.showRectangle(bounds);
+      this.rectHandlers.forEach((h) => h(bounds));
+    });
+  }
+
+  destroy(): void {
+    this.pins.forEach((m) => m.remove());
+    this.pins.clear();
+    this.ghost?.remove();
+    this.ghost = null;
+    this.popup?.remove();
+    this.popup = null;
+    this.map?.remove();
+    this.map = null;
+  }
+
+  setCenter(pos: LatLng, zoom?: number): void {
+    if (!this.map) return;
+    this.map.easeTo({ center: [pos.lng, pos.lat], zoom: zoom ?? this.map.getZoom(), duration: 600 });
+  }
+
+  fitBounds(bounds: Bounds, paddingPx = 48): void {
+    this.map?.fitBounds(
+      [
+        [bounds.west, bounds.south],
+        [bounds.east, bounds.north],
+      ],
+      { padding: paddingPx, duration: 600 },
+    );
+  }
+
+  getZoom(): number {
+    return this.map?.getZoom() ?? MIN_ZOOM;
+  }
+
+  /** ピンの全置き換え。消えたものだけ remove し、残るものは位置だけ更新する。 */
+  setPins(pins: MapPinOptions[]): void {
+    const map = this.map;
+    const lib = this.lib;
+    if (!map || !lib) return;
+
+    const nextIds = new Set(pins.map((p) => p.id));
+    for (const [id, marker] of this.pins) {
+      if (!nextIds.has(id)) {
+        marker.remove();
+        this.pins.delete(id);
+      }
+    }
+
+    for (const pin of pins) {
+      const existing = this.pins.get(pin.id);
+      if (existing) {
+        existing.setLngLat([pin.position.lng, pin.position.lat]);
+        continue;
+      }
+      const el = createPinElement({ color: pin.color, label: pin.label, ghost: pin.ghost });
+      el.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        pin.onClick?.();
+      });
+      const marker = new lib.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([pin.position.lng, pin.position.lat])
+        .addTo(map);
+      this.pins.set(pin.id, marker);
+    }
+  }
+
+  /** 仮マーカーは要件 3.2 により感情タグによらず一律グレー。 */
+  setGhostPin(position: LatLng | null): void {
+    const map = this.map;
+    const lib = this.lib;
+    if (!map || !lib) return;
+
+    if (!position) {
+      this.ghost?.remove();
+      this.ghost = null;
+      return;
+    }
+    if (!this.ghost) {
+      const el = createPinElement({ color: NEUTRAL_HEX, ghost: true });
+      // addTo の前に座標を与えないと MapLibre 側で参照エラーになる
+      this.ghost = new lib.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([position.lng, position.lat])
+        .addTo(map);
+      return;
+    }
+    this.ghost.setLngLat([position.lng, position.lat]);
+  }
+
+  openInfoWindow(options: InfoWindowOptions): void {
+    const map = this.map;
+    const lib = this.lib;
+    if (!map || !lib) return;
+    this.closeInfoWindow();
+    this.popup = new lib.Popup({ offset: 38, closeButton: true, maxWidth: '320px' })
+      .setLngLat([options.position.lng, options.position.lat])
+      .setHTML(options.html)
+      .addTo(map);
+    if (options.onClose) this.popup.on('close', options.onClose);
+  }
+
+  closeInfoWindow(): void {
+    this.popup?.remove();
+    this.popup = null;
+  }
+
+  onMapClick(cb: (pos: LatLng) => void): Unsubscribe {
+    this.mapClickHandlers.add(cb);
+    return () => {
+      this.mapClickHandlers.delete(cb);
+    };
+  }
+
+  setRectangleDrawing(enabled: boolean): void {
+    this.drawing = enabled;
+    const map = this.map;
+    if (!map) return;
+    map.getCanvas().style.cursor = enabled ? 'crosshair' : '';
+    if (enabled) map.dragPan.disable();
+    else map.dragPan.enable();
+  }
+
+  onRectangleDrawn(cb: (b: Bounds) => void): Unsubscribe {
+    this.rectHandlers.add(cb);
+    return () => {
+      this.rectHandlers.delete(cb);
+    };
+  }
+
+  showRectangle(bounds: Bounds | null): void {
+    const source = this.map?.getSource(RECT_SOURCE);
+    if (!source || !('setData' in source)) return;
+    (source as { setData: (d: unknown) => void }).setData(boundsToFeatureCollection(bounds));
+  }
+}

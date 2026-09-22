@@ -1,0 +1,16 @@
+# main に push すると GitHub Pages に公開する。
+# 「1 回のコマンドでアップロード」の実体はこれ（中身は publish.yml）。
+name: Deploy on push
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    uses: ./.github/workflows/publish.yml

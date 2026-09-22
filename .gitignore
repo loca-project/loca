@@ -1,0 +1,15 @@
+# --- 依存・ビルド成果物 ---
+node_modules/
+dist/
+
+# --- 秘密情報 ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# --- OS / エディタ ---
+Thumbs.db
+desktop.ini
+.DS_Store

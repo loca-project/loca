@@ -1,0 +1,53 @@
+# ビルドして GitHub Pages に公開する共通ワークフロー。
+#
+# 単体では起動せず、deploy.yml（push 時）と ingest-issue.yml（取り込み後）から呼ばれる。
+# 分けている理由: GITHUB_TOKEN による push は他のワークフローを起動しないという
+# GitHub の再帰防止仕様があるため、取り込み側から直接この処理を呼ぶ必要がある。
+name: Publish
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      # 取り込み直後に呼ばれた場合、イベント発火時点の SHA は古い。
+      # 既定ブランチの最新を明示的に取得する。
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          # 投稿導線の向き先。リポジトリ名から自動で決まる
+          VITE_GITHUB_REPO: ${{ github.repository }}
+      - run: npm run verify
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

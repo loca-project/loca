@@ -1,0 +1,27 @@
+/** 表示整形。ロケール差で壊れないよう用途を限定して持つ。 */
+
+export function formatCount(n?: number): string {
+  if (n == null) return '-';
+  return n.toLocaleString('ja-JP');
+}
+
+export function formatDate(value?: string | number): string {
+  if (!value) return '-';
+  const d = typeof value === 'number' ? new Date(value) : new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+export function formatDateTime(value?: string | number): string {
+  if (!value) return '-';
+  const d = typeof value === 'number' ? new Date(value) : new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${formatDate(d.getTime())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** テンプレート中の {key} を置換する。i18n の簡易差し込み用。 */
+export function interpolate(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`));
+}

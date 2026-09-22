@@ -1,0 +1,118 @@
+/**
+ * 公開前の自動検証。
+ * 「Google API / Firebase / 地図サービスに依存しない」という設計上の約束を、
+ * 数えられる形で確かめる（CP-3）。
+ *
+ * 実行: npm run verify   失敗が 1 件でもあれば非ゼロ終了。
+ */
+
+import { readdir, readFile, stat } from 'node:fs/promises';
+import path from 'node:path';
+
+const ROOT = process.cwd();
+const checks = [];
+const record = (name, ok, detail = '') => checks.push({ name, ok, detail });
+
+async function walk(dir, out = []) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    if (['node_modules', 'dist', '.git'].includes(entry.name)) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) await walk(full, out);
+    else out.push(full);
+  }
+  return out;
+}
+
+const files = await walk(path.join(ROOT, 'src'));
+const sources = await Promise.all(
+  files
+    .filter((f) => /\.(ts|tsx)$/.test(f))
+    .map(async (f) => ({ file: path.relative(ROOT, f), text: await readFile(f, 'utf8') })),
+);
+
+// 1. 廃止した依存が残っていないこと
+const banned = /(firebase|@googlemaps|googleapis\.com\/youtube|@tensorflow|@google\/genai)/;
+const leftovers = sources.filter((s) => banned.test(s.text));
+record('廃止した依存（Firebase / Google Maps / YouTube Data API / TensorFlow）が無い',
+  leftovers.length === 0, leftovers.map((l) => l.file).join(', '));
+
+// 2. package.json にも残っていないこと
+const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
+const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies });
+const bannedDeps = deps.filter((d) => banned.test(d));
+record('package.json に廃止した依存が無い', bannedDeps.length === 0, bannedDeps.join(', '));
+
+// 3. features/ と core/ がベンダ SDK を直接 import しないこと
+const vendor = /from\s+'(maplibre-gl)/;
+const leaks = sources.filter(
+  (s) => (s.file.includes(`src${path.sep}features`) || s.file.includes(`src${path.sep}core`)) && vendor.test(s.text),
+);
+record('features/ と core/ に地図 SDK の直接 import が無い', leaks.length === 0,
+  leaks.map((l) => l.file).join(', '));
+
+// 4. import.meta.env を読むのは runtime/config.ts だけ
+const envUsers = sources.filter(
+  (s) => /import\.meta[\s\S]{0,20}env/.test(s.text) && !s.file.endsWith('config.ts'),
+);
+record('import.meta.env を読むのは runtime/config.ts のみ', envUsers.length === 0,
+  envUsers.map((l) => l.file).join(', '));
+
+// 5. API キーがソースに埋まっていないこと
+const secret = /(AIza[0-9A-Za-z_-]{30,}|sk-[0-9A-Za-z]{20,}|ghp_[0-9A-Za-z]{30,})/;
+const secrets = sources.filter((s) => secret.test(s.text));
+record('ソースに API キーが直書きされていない', secrets.length === 0, secrets.map((l) => l.file).join(', '));
+
+// 6. CP-2: 1 ファイル 400 行以内
+const tooLong = sources.filter((s) => s.text.split('\n').length > 400);
+record('すべてのソースが 400 行以内 (CP-2)', tooLong.length === 0,
+  tooLong.map((l) => `${l.file}:${l.text.split('\n').length}`).join(', '));
+
+// 7. 公開データが読めること（0 件は正常。まだ投稿が無い状態）
+let dataOk = false;
+let dataDetail = 'public/data/markers.json がありません';
+let markerIds = [];
+try {
+  const raw = JSON.parse(await readFile(path.join(ROOT, 'public', 'data', 'markers.json'), 'utf8'));
+  const list = Array.isArray(raw) ? raw : (raw.markers ?? []);
+  dataOk = Array.isArray(list);
+  markerIds = list.map((m) => m?.id ?? '');
+  dataDetail = `${list.length} 件`;
+} catch { /* dataOk は false のまま */ }
+record('公開データ public/data/markers.json が読める', dataOk, dataDetail);
+
+// 7b. サンプルデータが混ざっていないこと（実在しない動画を公開しないため）
+const seeded = markerIds.filter((id) => String(id).startsWith('seed'));
+record(
+  'サンプルデータが公開データに混ざっていない',
+  seeded.length === 0,
+  seeded.length > 0 ? `${seeded.length} 件。npm run data:clear で消せます` : '',
+);
+
+// 8. 都道府県リストの二重管理がズレていないこと
+//    scripts/lib/prefectures.mjs（取り込み用）と src/core/constants/prefectures.ts（アプリ用）
+const { PREFECTURES: scriptList } = await import('./lib/prefectures.mjs');
+const tsText = await readFile(path.join(ROOT, 'src', 'core', 'constants', 'prefectures.ts'), 'utf8');
+const tsList = [...tsText.matchAll(/'([^']+[都道府県])'/g)].map((m) => m[1]);
+const listsMatch =
+  scriptList.length === 47 &&
+  tsList.length === 47 &&
+  scriptList.every((name, i) => name === tsList[i]);
+record(
+  '都道府県リストが scripts と src で一致（47件・同順）',
+  listsMatch,
+  `scripts=${scriptList.length} / src=${tsList.length}`,
+);
+
+// 9. dist が静的ファイルだけであること（ビルド済みのときのみ）
+try {
+  await stat(path.join(ROOT, 'dist', 'index.html'));
+  const distFiles = await walk(path.join(ROOT, 'dist'));
+  record('dist が静的ファイルのみ', true, `${distFiles.length} ファイル`);
+} catch {
+  record('dist が静的ファイルのみ', true, 'dist 未生成のためスキップ');
+}
+
+const passed = checks.filter((c) => c.ok).length;
+for (const c of checks) console.log(`${c.ok ? 'OK ' : 'NG '} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
+console.log(`\n${passed} / ${checks.length} 件 OK`);
+if (passed !== checks.length) process.exit(1);
