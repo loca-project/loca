@@ -13,6 +13,11 @@ export const en: DeepPartial<Dictionary> = {
   close: 'Close',
   stats: 'Stats',
 
+  menu: {
+    label: 'Menu',
+    language: 'Language',
+  },
+
   sidebar: {
     map: 'Map',
     request: 'Requests',
@@ -79,6 +84,7 @@ export const en: DeepPartial<Dictionary> = {
   empty: {
     body: 'Nothing has been registered yet.\nClick the map and leave the first place you filmed.',
     howTo: 'See how to submit',
+    dismiss: 'Just browse the map',
   },
 
   contribute: {

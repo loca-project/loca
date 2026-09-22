@@ -6,6 +6,11 @@ export const ja = {
   close: '閉じる',
   stats: '統計',
 
+  menu: {
+    label: 'メニュー',
+    language: '言語',
+  },
+
   sidebar: {
     map: '地図',
     request: 'リクエスト',
@@ -72,6 +77,7 @@ export const ja = {
   empty: {
     body: 'まだ 1 件も登録がありません。\n地図をクリックして、あなたが撮った場所と動画を最初の 1 件として残してください。',
     howTo: '投稿のしかたを見る',
+    dismiss: '地図を見る',
   },
 
   contribute: {

@@ -7,6 +7,8 @@ body:
     attributes:
       value: |
         1 アカウントあたりの熱量の合計は **5 まで**です。超過分は自動で差し戻されます。
+
+        > サイトの投稿ボタンから開いた場合、下の項目はすでに入力されています。
   - type: input
     id: lat
     attributes:
@@ -19,34 +21,43 @@ body:
       label: 経度
     validations:
       required: true
-  - type: dropdown
+  # dropdown はクエリパラメータで事前入力できないため input にしている。
+  # 値の検査は取り込み時に行う。
+  - type: input
     id: heat
     attributes:
       label: 熱量
-      options: ["1", "2", "3", "4", "5"]
+      description: 1〜5 の整数
+      placeholder: "1"
     validations:
       required: true
   - type: input
     id: season
     attributes:
       label: 季節
+      description: 任意
   - type: input
     id: time-of-day
     attributes:
       label: 撮影時間帯
+      description: 任意
   - type: input
     id: atmosphere
     attributes:
       label: 撮影雰囲気
+      description: 任意
   - type: input
     id: manufacturer
     attributes:
       label: メーカー
+      description: 任意
   - type: input
     id: series
     attributes:
       label: シリーズ
+      description: 任意
   - type: input
     id: model
     attributes:
       label: モデル
+      description: 任意

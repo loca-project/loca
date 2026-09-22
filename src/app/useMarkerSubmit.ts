@@ -70,21 +70,25 @@ export function useMarkerSubmit() {
         const meta = metaResult.value;
         const place = placeResult.status === 'fulfilled' ? placeResult.value : null;
 
-        const opened = openIssueForm('marker', {
-          'video-url': `https://www.youtube.com/watch?v=${videoId}`,
-          lat: lat.toFixed(6),
-          lng: lng.toFixed(6),
-          'tag-action': ctx.form.tagAction,
-          'tag-atmosphere': ctx.form.tagAtmosphere,
-          'tag-emotion': ctx.form.tagEmotion,
-          manufacturer: ctx.form.manufacturer,
-          series: ctx.form.series,
-          model: ctx.form.model,
-          // 確認しやすいよう、取得済みの情報も本文に載せる
-          'checked-title': meta.title,
-          'checked-channel': meta.channelTitle,
-          'checked-place': place ? `${place.prefecture} ${place.city}`.trim() : '',
-        });
+        // 一覧で見分けられるよう、地名と動画タイトルからタイトルを組み立てる
+        const placeLabel = place ? `${place.prefecture} ${place.city}`.trim() : '';
+        const summary = [placeLabel, meta.title].filter(Boolean).join(' / ');
+
+        const opened = openIssueForm(
+          'marker',
+          {
+            'video-url': `https://www.youtube.com/watch?v=${videoId}`,
+            lat: lat.toFixed(6),
+            lng: lng.toFixed(6),
+            'tag-action': ctx.form.tagAction,
+            'tag-atmosphere': ctx.form.tagAtmosphere,
+            'tag-emotion': ctx.form.tagEmotion,
+            manufacturer: ctx.form.manufacturer,
+            series: ctx.form.series,
+            model: ctx.form.model,
+          },
+          summary,
+        );
 
         if (!opened) return { ok: false, message: t.contribute.notConfigured };
         return { ok: true, message: t.contribute.openedBody };

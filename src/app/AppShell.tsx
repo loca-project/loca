@@ -103,17 +103,21 @@ export default function AppShell() {
   const handleSubmitRequest = useCallback(() => {
     if (!app.tempPos) return;
     const f = app.requestForm;
-    const opened = openIssueForm('request', {
-      lat: app.tempPos.lat.toFixed(6),
-      lng: app.tempPos.lng.toFixed(6),
-      heat: String(f.heat),
-      season: f.season,
-      'time-of-day': f.timeOfDay,
-      atmosphere: f.atmosphere,
-      manufacturer: f.manufacturer,
-      series: f.series,
-      model: f.model,
-    });
+    const opened = openIssueForm(
+      'request',
+      {
+        lat: app.tempPos.lat.toFixed(6),
+        lng: app.tempPos.lng.toFixed(6),
+        heat: String(f.heat),
+        season: f.season,
+        'time-of-day': f.timeOfDay,
+        atmosphere: f.atmosphere,
+        manufacturer: f.manufacturer,
+        series: f.series,
+        model: f.model,
+      },
+      `${app.tempPos.lat.toFixed(4)}, ${app.tempPos.lng.toFixed(4)} 熱量${f.heat}`,
+    );
     if (!opened) {
       toast.error(t.contribute.notConfigured);
       return;
@@ -135,12 +139,16 @@ export default function AppShell() {
         .map((id) => REPORT_REASONS.find((r) => r.id === id)?.labelKey ?? id)
         .map((key) => t.reportReasons[key as keyof typeof t.reportReasons] ?? key);
 
-      const opened = openIssueForm('report', {
-        'marker-id': app.selectedMarker.id,
-        'video-url': app.selectedMarker.youtubeUrl,
-        reasons: labels.join('\n'),
-        detail,
-      });
+      const opened = openIssueForm(
+        'report',
+        {
+          'marker-id': app.selectedMarker.id,
+          'video-url': app.selectedMarker.youtubeUrl,
+          reasons: labels.join('\n'),
+          detail,
+        },
+        app.selectedMarker.title ?? app.selectedMarker.id,
+      );
       if (!opened) {
         toast.error(t.contribute.notConfigured);
         return;

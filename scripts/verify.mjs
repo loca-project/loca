@@ -103,7 +103,72 @@ record(
   `scripts=${scriptList.length} / src=${tsList.length}`,
 );
 
-// 9. dist が静的ファイルだけであること（ビルド済みのときのみ）
+// 9. Issue フォームが事前入力できる型になっていること
+//    GitHub は dropdown と checkboxes をクエリパラメータで埋められない（input/textarea のみ）。
+//    ここを間違えると、サイトで選んだ値が Issue に反映されない。
+//    同意チェック（agreement）は本人が能動的に入れるべきなので checkboxes のままでよい。
+const PREFILLABLE = new Set(['input', 'textarea']);
+const ALLOW_NON_PREFILLABLE = new Set(['agreement']);
+const templateDir = path.join(ROOT, '.github', 'ISSUE_TEMPLATE');
+const templateFiles = (await readdir(templateDir)).filter((f) => f !== 'config.yml');
+
+/** 自前の最小パーサ。`- type:` で始まる項目ごとに type / id / label を拾う。 */
+function parseFields(text) {
+  const fields = [];
+  let current = null;
+  for (const line of text.split('\n')) {
+    const type = /^\s*- type:\s*(\S+)/.exec(line);
+    if (type) {
+      if (current) fields.push(current);
+      current = { type: type[1], id: '', label: '' };
+      continue;
+    }
+    if (!current) continue;
+    const id = /^\s{4}id:\s*(\S+)/.exec(line);
+    if (id) current.id = id[1];
+    // attributes 直下の label のみ（options 内の label は字下げが深い）
+    const label = /^\s{6}label:\s*(.+)$/.exec(line);
+    if (label) current.label = label[1].trim();
+  }
+  if (current) fields.push(current);
+  return fields;
+}
+
+const badFields = [];
+const allLabels = { marker: [], request: [] };
+for (const file of templateFiles) {
+  const fields = parseFields(await readFile(path.join(templateDir, file), 'utf8'));
+  for (const f of fields) {
+    if (f.type === 'markdown') continue;
+    if (!PREFILLABLE.has(f.type) && !ALLOW_NON_PREFILLABLE.has(f.id)) {
+      badFields.push(`${file}:${f.id || '(id無し)'}=${f.type}`);
+    }
+    if (f.label && PREFILLABLE.has(f.type)) {
+      if (file.startsWith('marker')) allLabels.marker.push(f.label);
+      if (file.startsWith('request')) allLabels.request.push(f.label);
+    }
+  }
+}
+record(
+  'Issue フォームの項目が事前入力できる型になっている',
+  badFields.length === 0,
+  badFields.join(', '),
+);
+
+// 10. テンプレートの見出しが取り込み側の対応表と一致していること
+//     ずれると、その項目だけ黙って空のまま取り込まれる。
+const { MARKER_LABELS, REQUEST_LABELS } = await import('./lib/validate.mjs');
+const missing = [
+  ...allLabels.marker.filter((l) => !(l in MARKER_LABELS)).map((l) => `marker:${l}`),
+  ...allLabels.request.filter((l) => !(l in REQUEST_LABELS)).map((l) => `request:${l}`),
+];
+record(
+  'Issue フォームの見出しが取り込み側の対応表に揃っている',
+  missing.length === 0,
+  missing.join(', '),
+);
+
+// 11. dist が静的ファイルだけであること（ビルド済みのときのみ）
 try {
   await stat(path.join(ROOT, 'dist', 'index.html'));
   const distFiles = await walk(path.join(ROOT, 'dist'));

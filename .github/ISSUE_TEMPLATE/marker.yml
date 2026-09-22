@@ -7,7 +7,10 @@ body:
     attributes:
       value: |
         登録する YouTube URL は、**ご自身が制作し正当な権利を保有するコンテンツ**に限ります。
-        送信すると自動チェックが走り、問題がなければ数分で地図に反映されます。
+        送信すると自動チェックが走り、問題がなければ管理者の承認後に地図へ反映されます。
+
+        > サイトの投稿ボタンから開いた場合、下の項目はすでに入力されています。
+        > 内容を確認して、最後の確認事項にチェックを入れて送信してください。
   - type: input
     id: video-url
     attributes:
@@ -29,44 +32,36 @@ body:
       placeholder: "139.692000"
     validations:
       required: true
-  - type: dropdown
+
+  # 以下 3 つは選択式にしたいところだが、GitHub の Issue フォームは
+  # dropdown をクエリパラメータで事前入力できない（input と textarea のみ）。
+  # サイトから開いたときに入力済みにするため、あえて input にしている。
+  # 値の妥当性は取り込み時（scripts/lib/validate.mjs）に厳密に検査する。
+  - type: input
     id: tag-action
     attributes:
       label: 行動への影響
-      options:
-        - 訪問/地域紹介
-        - 映像制作
-        - お祭り/イベント
-        - 機器/技術紹介
+      description: "次のいずれか: 訪問/地域紹介 ／ 映像制作 ／ お祭り/イベント ／ 機器/技術紹介"
+      placeholder: 訪問/地域紹介
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: tag-atmosphere
     attributes:
       label: 動画の雰囲気
-      options:
-        - 明るい
-        - 真面目
-        - 落ち着いた
-        - 緊張
-        - 幻想的
-        - スマート
+      description: "次のいずれか: 明るい ／ 真面目 ／ 落ち着いた ／ 緊張 ／ 幻想的 ／ スマート"
+      placeholder: 明るい
     validations:
       required: true
-  - type: dropdown
+  - type: input
     id: tag-emotion
     attributes:
       label: 感情の核
-      options:
-        - 喜び
-        - 興奮
-        - 癒し
-        - 驚き
-        - 恐怖
-        - 悲しみ
-        - 希望
+      description: "次のいずれか: 喜び ／ 興奮 ／ 癒し ／ 驚き ／ 恐怖 ／ 悲しみ ／ 希望"
+      placeholder: 喜び
     validations:
       required: true
+
   - type: input
     id: manufacturer
     attributes:
@@ -82,6 +77,8 @@ body:
     attributes:
       label: モデル
       description: 任意
+
+  # 同意は本人が能動的に行う必要があるため、事前入力できない checkboxes のままにする。
   - type: checkboxes
     id: agreement
     attributes:
