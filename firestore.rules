@@ -1,0 +1,166 @@
+rules_version = '2';
+
+// Loca の Firestore セキュリティルール（ADR 0010）。
+// 権限はすべてここで守る。クライアントの判定は表示の切り替えにしか使わない（決定 5）。
+// ここに無いコレクションは、どこにも一致しないので読み書きとも拒否される。
+//
+// 時刻はすべて Firestore の Timestamp で持ち、書き込み時は serverTimestamp() を使う
+// （rules では request.time と一致する）。epoch ms への変換はアダプタが行う。
+//
+// 確かめ方: npm run test:rules（エミュレータで tests/rules/ を実行する）
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- 共通 ----
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function docPath(collection, id) {
+      return /databases/$(database)/documents/$(collection)/$(id);
+    }
+
+    function isAdmin() {
+      return signedIn() && exists(docPath('admins', request.auth.uid));
+    }
+
+    // ブラックリストの利用者はログインできても書き込めない（要件 5.x、判定 △）
+    function canWrite() {
+      return signedIn() && !exists(docPath('blacklist', request.auth.uid));
+    }
+
+    function optString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function reqString(data, key, minLen, maxLen) {
+      return data[key] is string && data[key].size() >= minLen && data[key].size() <= maxLen;
+    }
+
+    // ---- 利用者単位のレートリミット（要件 1.3）----
+    // マーカーを書くときは、同じバッチで rateLimits/{uid} を
+    // { lastWriteAt: serverTimestamp(), target: <マーカー ID> } に更新させる。
+    // target が 1 つなので、1 回の書き込みで作れるマーカーは 1 件に限られる。
+
+    function stampedFor(markerId) {
+      let stamp = getAfter(docPath('rateLimits', request.auth.uid)).data;
+      return stamp.lastWriteAt == request.time && stamp.target == markerId;
+    }
+
+    function validStamp(uid) {
+      let d = request.resource.data;
+      return canWrite()
+        && request.auth.uid == uid
+        && d.keys().hasOnly(['lastWriteAt', 'target'])
+        && d.lastWriteAt == request.time
+        && reqString(d, 'target', 1, 128);
+    }
+
+    match /rateLimits/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if validStamp(uid);
+      // 直前の書き込みから 6 秒以上あける（10 回/分に相当）
+      allow update: if validStamp(uid)
+        && request.time > resource.data.lastWriteAt + duration.value(6, 's');
+      // 消して間隔をリセットさせない
+      allow delete: if false;
+    }
+
+    // ---- マーカー ----
+
+    function validTags(t) {
+      return t is map
+        && t.keys().hasOnly(['action', 'atmosphere', 'emotion'])
+        && t.keys().hasAll(['action', 'atmosphere', 'emotion'])
+        && reqString(t, 'action', 0, 40)
+        && reqString(t, 'atmosphere', 0, 40)
+        && reqString(t, 'emotion', 0, 40);
+    }
+
+    function validEquipment(e) {
+      return e is map
+        && e.keys().hasOnly(['manufacturer', 'series', 'model'])
+        && e.keys().hasAll(['manufacturer', 'series', 'model'])
+        && reqString(e, 'manufacturer', 0, 80)
+        && reqString(e, 'series', 0, 80)
+        && reqString(e, 'model', 0, 80);
+    }
+
+    // 保存後の姿として正しいか（作成・更新の共通部分）
+    function validMarker(d) {
+      return d.keys().hasOnly([
+          'youtubeUrl', 'lat', 'lng', 'tags', 'equipment',
+          'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
+          'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
+        && d.keys().hasAll([
+          'youtubeUrl', 'lat', 'lng', 'tags', 'equipment',
+          'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
+        && reqString(d, 'youtubeUrl', 1, 300)
+        && d.youtubeUrl.matches('^https://((www|m)[.])?(youtube[.]com|youtu[.]be)/.+')
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180
+        && validTags(d.tags)
+        && validEquipment(d.equipment)
+        && optString(d, 'title', 300)
+        && optString(d, 'channelTitle', 200)
+        && optString(d, 'thumbnailUrl', 500)
+        && optString(d, 'prefecture', 20)
+        && optString(d, 'city', 50)
+        && reqString(d, 'ownerUid', 1, 128)
+        && reqString(d, 'createdBy', 1, 100)
+        && d.createdAt is timestamp
+        && d.updatedAt == request.time
+        && d.deleted is bool;
+    }
+
+    // 作成後に誰も変えられない項目
+    function keepsIdentity() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['ownerUid', 'createdBy', 'createdAt']);
+    }
+
+    function isOwner() {
+      return resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /markers/{markerId} {
+      // 閲覧は誰でも可（onSnapshot で差分を埋めるため。要件 1.4）
+      allow read: if true;
+
+      // 要件 1.1: 未認証では登録させない
+      allow create: if canWrite()
+        && stampedFor(markerId)
+        && validMarker(request.resource.data)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.deleted == false;
+
+      // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
+      // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
+      allow update: if canWrite()
+        && validMarker(request.resource.data)
+        && keepsIdentity()
+        && (
+          isAdmin()
+          || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
+        );
+
+      // 物理削除は管理者だけ（要件 1.4）
+      allow delete: if canWrite() && isAdmin();
+    }
+
+    // ---- 管理者とブラックリスト（要件 5.x）----
+    // 追加・削除は管理者だけ。本人は自分の行があるかどうかだけ読める（表示の切り替え用）
+
+    match /admins/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if canWrite() && isAdmin();
+    }
+
+    match /blacklist/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if canWrite() && isAdmin();
+    }
+  }
+}
