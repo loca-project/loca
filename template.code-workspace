@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"name": "template",
+			"path": "../../template"
+		},
+		{
+			"name": "shiori",
+			"path": "../../shiori"
+		},
+		{
+			"name": "Loca",
+			"path": ".."
+		},
+		{
+			"name": "untitled-game",
+			"path": "../../untitled-game"
+		}
+	]
+}
