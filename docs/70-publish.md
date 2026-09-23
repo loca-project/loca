@@ -157,7 +157,7 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 
 | 確認項目 | 期待 |
 |---|---|
-| 地図が表示される | OpenFreeMap のタイルが出る |
+| 地図が表示される | 地理院タイル（淡色地図）が出る。右下に「地理院タイル」の出典 |
 | ピンが出る | markers.json の件数ぶん |
 | ピンをクリック | サイドメニューがマーカー情報になる |
 | ランキングタブ → 適用 | 結果パネルに件数順で並ぶ |
@@ -171,7 +171,7 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 |---|---|
 | `Permission to <owner>/<repo>.git denied to <別名>` / 403 | Windows に**別の GitHub アカウント**の資格情報がキャッシュされている。下記参照 |
 | 404 になる | Settings → Pages の Source が「GitHub Actions」か確認 |
-| 地図が灰色のまま | バッジが「注意」なら OpenFreeMap に到達できていない。「最新」のままなら地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
+| 地図が灰色のまま | バッジが「注意」なら地理院タイルに到達できていない。「最新」のままなら地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
 | ピンが出ない | `project/public/data/markers.json` が空。`npm run seed` で復旧できる |
 | 投稿ボタンが出ない | `VITE_GITHUB_REPO` が空。Actions ビルドなら自動設定されるので、ローカル確認時のみ `.env.local` に設定する |
 | 取り込みが動かない | Workflow permissions が Read and write か、`approved` ラベルがあるか確認 |

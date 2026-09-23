@@ -1,14 +1,15 @@
 /**
  * 投稿された内容を外部情報で補う。
  * ここはサーバー側（GitHub Actions）で動くので CORS の制約は無いが、
- * Google API は使わない方針なので oEmbed と Nominatim だけを使う。
+ * Google API は使わない方針なので oEmbed と国土地理院だけを使う（ADR 0011）。
  */
 
-import { prefectureFromIsoCode } from './prefectures.mjs';
+import { prefectureFromCode } from './prefectures.mjs';
 
 const OEMBED = 'https://www.youtube.com/oembed';
-const NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
-/** Nominatim の利用規約に従い、自分を名乗る。 */
+const GSI_REVERSE = 'https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress';
+const GSI_MUNI = 'https://maps.gsi.go.jp/js/muni.js';
+/** 呼び出し元を名乗る。 */
 const USER_AGENT = 'Loca/0.2 (https://github.com/; static map site)';
 
 /** YouTube oEmbed からタイトル・チャンネル・サムネイルを取る。 */
@@ -28,30 +29,40 @@ export async function fetchVideoMeta(videoId) {
 }
 
 /**
- * Nominatim で都道府県・市町村を引く。失敗しても投稿は通す（空で返す）。
- *
- * 東京 23 区や政令指定都市では `province` が返らないことが実測で分かっている。
- * その場合でも `ISO3166-2-lvl4`（JP-13 など）は必ず返るので、そこから引き当てる。
+ * 市町村コード表（muni.js）を読む。行の形式と区の扱いは src/adapters/geocode/gsi.ts と同じ。
+ * 1 回の取り込みで複数件を処理するので、プロセス内で 1 回だけ取得する。
+ */
+let muniTable = null;
+async function loadMuniTable() {
+  if (muniTable) return muniTable;
+  const res = await fetch(GSI_MUNI, { headers: { 'User-Agent': USER_AGENT } });
+  if (!res.ok) throw new Error(`市町村コード表を取得できませんでした (${res.status})`);
+  const table = new Map();
+  const line = /MUNI_ARRAY\["(\d+)"\]\s*=\s*'\d+,([^,]+),\d+,([^']+)'/g;
+  for (const m of (await res.text()).matchAll(line)) {
+    table.set(String(Number(m[1])), { prefecture: m[2], city: m[3].split('　')[0].trim() });
+  }
+  muniTable = table;
+  return table;
+}
+
+/**
+ * 国土地理院の逆ジオコーダで都道府県・市町村を引く。失敗しても投稿は通す（空で返す）。
+ * 海上など市町村に属さない地点では結果が返らないので、そのときも空になる。
  */
 export async function fetchPlace(lat, lng) {
   try {
-    const url = `${NOMINATIM}?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ja&zoom=10`;
-    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    const res = await fetch(`${GSI_REVERSE}?lat=${lat}&lon=${lng}`, { headers: { 'User-Agent': USER_AGENT } });
     if (!res.ok) return { prefecture: '', city: '' };
-    const data = await res.json();
-    const addr = data?.address ?? {};
+    const code = String((await res.json())?.results?.muniCd ?? '');
+    if (!/^\d+$/.test(code)) return { prefecture: '', city: '' };
+    const hit = (await loadMuniTable()).get(String(Number(code)));
     return {
-      prefecture:
-        addr.province || addr.state || prefectureFromIsoCode(addr['ISO3166-2-lvl4']) || '',
-      city: addr.city ?? addr.town ?? addr.village ?? addr.county ?? '',
+      prefecture: hit?.prefecture ?? prefectureFromCode(code.padStart(5, '0').slice(0, 2)),
+      city: hit?.city ?? '',
     };
   } catch (e) {
     console.warn('[loca] 地名を取得できませんでした:', e.message);
     return { prefecture: '', city: '' };
   }
-}
-
-/** Nominatim の 1 req/s 制限を守るための待機。 */
-export function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
 }

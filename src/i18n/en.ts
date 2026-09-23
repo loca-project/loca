@@ -205,6 +205,6 @@ export const en: DeepPartial<Dictionary> = {
     degraded: 'Attention',
     generatedAt: 'Generated',
     dataUnavailable: 'Could not load the published data. Please reload in a moment.',
-    mapFallback: 'Map tiles could not be loaded, so a simplified view is shown.',
+    mapUnavailable: 'Map tiles (GSI Japan) could not be loaded. Please reload later.',
   },
 };

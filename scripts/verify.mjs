@@ -1,7 +1,8 @@
 /**
  * 公開前の自動検証。
- * 「Google API / Firebase / 地図サービスに依存しない」という設計上の約束を、
- * 数えられる形で確かめる（CP-3）。
+ * 「Google Maps Platform を使わない」「外部 SDK はアダプタに閉じ込める」という設計上の約束を、
+ * 数えられる形で確かめる（CP-3）。Firebase は ADR 0010 で導入を決めたので、
+ * 禁止ではなく「src/adapters/firebase/ からだけ import する」ことを検査する。
  *
  * 実行: npm run verify   失敗が 1 件でもあれば非ゼロ終了。
  */
@@ -31,10 +32,18 @@ const sources = await Promise.all(
 );
 
 // 1. 廃止した依存が残っていないこと
-const banned = /(firebase|@googlemaps|googleapis\.com\/youtube|@tensorflow|@google\/genai)/;
+//    Google Maps Platform（地図・Geocoding）は無料の範囲の利用でも請求先アカウントが必須（ADR 0010・0011）
+const banned = /(@googlemaps|maps\.googleapis\.com|googleapis\.com\/youtube|@tensorflow|@google\/genai)/;
 const leftovers = sources.filter((s) => banned.test(s.text));
-record('廃止した依存（Firebase / Google Maps / YouTube Data API / TensorFlow）が無い',
+record('廃止した依存（Google Maps Platform / YouTube Data API / TensorFlow）が無い',
   leftovers.length === 0, leftovers.map((l) => l.file).join(', '));
+
+// 1b. Firebase SDK を import するのは src/adapters/firebase/ だけ（ADR 0010）
+const firebaseImport = /(from\s+|import\s*\(\s*)['"](firebase|@firebase)(\/|['"])/;
+const firebaseDir = `src${path.sep}adapters${path.sep}firebase${path.sep}`;
+const firebaseLeaks = sources.filter((s) => firebaseImport.test(s.text) && !s.file.startsWith(firebaseDir));
+record('Firebase SDK の import は src/adapters/firebase/ のみ', firebaseLeaks.length === 0,
+  firebaseLeaks.map((l) => l.file).join(', '));
 
 // 2. package.json にも残っていないこと
 const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));

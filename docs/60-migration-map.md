@@ -136,3 +136,17 @@
 サイトの公開に必要なものを **`project/` 配下にすべて集約**した
 （`index.html` / `package.json` / `vite.config.ts` / `src` / `public` / `scripts`）。
 `.github/` だけは GitHub の仕様でリポジトリルートから動かせない。
+
+## 2026-09-23 地図と地名を国土地理院に統一（ADR 0011）
+
+| 変更 | 内容 |
+|---|---|
+| 削除 `src/adapters/geocode/nominatim.ts` | Nominatim をやめ、国土地理院に統一 |
+| 削除 `src/adapters/geocode/offline.ts`, `prefectureCentroids.ts` | 予備の実装を持たない方針 |
+| 追加 `src/adapters/geocode/gsi.ts` | 逆ジオコーダ＋市町村コード表、住所検索 |
+| 変更 `src/adapters/map/maplibreStyle.ts` | OpenFreeMap のスタイル URL をやめ、地理院タイル（淡色地図）のスタイルをコードで組み立てる |
+| 削除 `VITE_MAP_STYLE_URLS`, 背景色だけの代替地図 | 予備を持たない |
+| 変更 `GeocodePort` | `providesCity` を削除（常に市町村まで返す） |
+| 変更 `RuntimeHealth.mapFallback` → `mapUnavailable` | 代替に切り替える仕組みが無くなったため、意味を「取得できない」に変更 |
+| 変更 `scripts/lib/enrich.mjs` | 取り込み側の地名取得も国土地理院に |
+| 変更 `prefectureFromIsoCode` → `prefectureFromCode` | ISO コード（Nominatim 用）から都道府県コード（国土地理院の市町村コード先頭 2 桁）へ |

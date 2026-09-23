@@ -6,15 +6,16 @@
 |---|---|
 | ホスティング | GitHub Pages |
 | 地図描画 | MapLibre GL JS |
-| 地図タイル | OpenFreeMap（APIキー不要・無制限・商用可） |
+| 地図タイル | 地理院タイル（淡色地図。APIキー・申請不要、出典の明示が条件） |
+| 地名 | 国土地理院の逆ジオコーダ・住所検索（APIキー不要。非公式） |
 | 動画情報 | YouTube oEmbed（APIキー不要） |
 | 定期処理 | GitHub Actions |
-| データベース | **使わない**（GitHub リポジトリ上の JSON が唯一の保存先） |
-| 認証 | **使わない**（GitHub アカウントが本人確認を兼ねる） |
+| データベース | Firebase Firestore（Spark・請求先なし）。**決定済み・未実装**。現在は GitHub リポジトリ上の JSON が唯一の保存先 |
+| 認証 | Firebase Auth の Google ログイン（ポップアップ方式）。**決定済み・未実装**。現在は GitHub アカウントが本人確認を兼ねる |
 | 動画本体 | 保存しない（YouTube 埋め込み） |
 
-Google API と Firebase は使わない。関連コードはすべて削除済みで、
-`npm run verify` が再混入を検出する。
+支払い方法を前提にしない（ADR 0010）。Google Maps・Geocoding API・Cloud Functions は請求先が必須なので使わない。
+`npm run verify` が Google Maps Platform の混入と、`src/adapters/firebase/` 以外からの Firebase の import を検出する。
 
 ## 一言でいうと
 
@@ -24,6 +25,14 @@ Google API と Firebase は使わない。関連コードはすべて削除済�
 ```
 閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json
 投稿:  ブラウザ ──> GitHub Issue ──> Actions（検証・追記・push）──> Pages に反映
+```
+
+Firebase の実装後（ADR 0010）は次の形になる。閲覧の土台は静的 JSON のまま。
+
+```
+閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot）
+投稿:  ブラウザ ──> Firebase Auth ──> Firestore（権限はセキュリティルール）
+反映:  Actions（毎日）──> Firestore を読んで markers.json を再生成 ──> Pages に反映
 ```
 
 ## ディレクトリ
@@ -62,10 +71,11 @@ Loca/                               ワークスペース（git の外）
 | `CatalogPort` | 公開データの読み取り | `static`（public/data/*.json） |
 | `MapPort` | 地図の描画・ピン・情報ウィンドウ・矩形描画 | `maplibre` |
 | `VideoMetaPort` | 動画メタデータの取得 | `oembed` |
-| `GeocodePort` | 座標 ⇄ 地名 | `nominatim` → `offline` |
+| `GeocodePort` | 座標 ⇄ 地名 | `gsi`（国土地理院） |
 
 書き込み用のポートは無い。書き込みは `features/contribute/issueUrl.ts` が
 GitHub Issue フォームの URL を組み立てるだけで、保存はしない。
+Firebase の実装時に、書き込み用のポートと `AuthPort` を足す（ADR 0010）。
 
 ## データの形
 
@@ -117,8 +127,8 @@ Google API を使わないため、**再生数・動画投稿日・再生時間�
 | 依存 | 落ちたとき |
 |---|---|
 | GitHub Pages | サイト全体が見られない（代替なし） |
-| OpenFreeMap | スタイル URL を順に試し、最後は背景色だけの地図で操作を継続 |
-| Nominatim | `offline` 実装（県庁所在地の最近傍）に自動で切り替え |
+| 地理院タイル | 地図が灰色になる。ピンと閲覧は続く。メニューの「公開データの状態」に表示 |
+| 国土地理院の地名 API | 地名の取得と地名検索が使えない。登録は地名なしで続行（予備なし・ADR 0011） |
 
 状態は画面右上のバッジに出す。黙って劣化させない。
 
@@ -127,17 +137,22 @@ Google API を使わないため、**再生数・動画投稿日・再生時間�
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 8 項目チェック
+npm run verify      # 設計上の約束を 13 項目チェック
 npm run check       # 上記 3 つをまとめて
 ```
 
 `npm run verify` が見ているもの:
 
-1. 廃止した依存（Firebase / Google Maps / YouTube Data API / TensorFlow）が無い
-2. package.json にも残っていない
-3. `features/` と `core/` に地図 SDK の直接 import が無い
-4. `import.meta.env` を読むのは `runtime/config.ts` だけ
-5. ソースに API キーが直書きされていない
-6. すべてのソースが 400 行以内（CP-2）
-7. 公開データが読める
-8. `dist/` が静的ファイルのみ
+1. 廃止した依存（Google Maps Platform / YouTube Data API / TensorFlow）が無い
+2. Firebase SDK の import は `src/adapters/firebase/` だけ
+3. package.json に廃止した依存が無い
+4. `features/` と `core/` に地図 SDK の直接 import が無い
+5. `import.meta.env` を読むのは `runtime/config.ts` だけ
+6. ソースに API キーが直書きされていない
+7. すべてのソースが 400 行以内（CP-2）
+8. 公開データが読める
+9. サンプルデータが公開データに混ざっていない
+10. 都道府県リストが scripts と src で一致
+11. Issue フォームの項目が事前入力できる型になっている
+12. Issue フォームの見出しが取り込み側の対応表に揃っている
+13. `dist/` が静的ファイルのみ

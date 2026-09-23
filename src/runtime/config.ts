@@ -11,23 +11,9 @@ function env(key: string): string {
   return (source[key] ?? '').trim();
 }
 
-function list(key: string, separator = ';'): string[] {
-  return env(key)
-    .split(separator)
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-/** OpenFreeMap の既定スタイル。API キー不要・リクエスト数無制限・商用可。 */
-const DEFAULT_MAP_STYLES = ['https://tiles.openfreemap.org/styles/positron'];
-
 export interface AppConfig {
   /** 静的 JSON の置き場（index.html からの相対）。 */
   dataBaseUrl: string;
-  map: {
-    /** MapLibre のスタイル URL。複数指定すると先頭から順にフォールバックする */
-    styleUrls: string[];
-  };
   github: {
     /** owner/repo。未設定なら投稿導線を出さない */
     repo: string;
@@ -40,9 +26,6 @@ export interface AppConfig {
 
 export const appConfig: AppConfig = {
   dataBaseUrl: env('VITE_DATA_BASE_URL') || './data',
-  map: {
-    styleUrls: list('VITE_MAP_STYLE_URLS').length > 0 ? list('VITE_MAP_STYLE_URLS') : DEFAULT_MAP_STYLES,
-  },
   github: {
     repo: env('VITE_GITHUB_REPO'),
     markerTemplate: env('VITE_ISSUE_TEMPLATE_MARKER') || 'marker.yml',

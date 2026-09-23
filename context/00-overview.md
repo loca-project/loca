@@ -17,17 +17,21 @@ Google AI Studio で作った「Chronos MAP」を移植し、サイト名を Loc
 |---|---|---|
 | ホスティング | GitHub Pages | 決定 |
 | 地図描画 | MapLibre GL JS | 決定 |
-| 地図タイル | OpenFreeMap | 決定 |
+| 地図タイル | 地理院タイル（淡色地図） | 決定 |
+| 地名 | 国土地理院の逆ジオコーダ・住所検索 | 決定 |
 | 動画情報 | YouTube oEmbed | 決定 |
 | 定期処理 | GitHub Actions | 決定 |
 | 動画本体 | 保存しない | 決定 |
-| データベース | 使わない（GitHub 上の JSON） | 見送り済み |
-| 認証 | 使わない（GitHub アカウント） | 見送り済み |
+| データベース | Firebase Firestore（Spark・請求先なし） | **決定・未実装**（ADR 0010） |
+| 認証 | Firebase Auth の Google ログイン | **決定・未実装**（ADR 0010） |
 
-**Google API と Firebase は使わない。** 関連コードは削除済みで、
-`npm run verify` が再混入を検出する。
+**支払い方法を前提にしない。** Google Maps・Geocoding API・Cloud Functions は請求先が必須なので使わない。
+`npm run verify` が Google Maps Platform の混入と、`src/adapters/firebase/` 以外からの Firebase の import を検出する。
 
 ## スコープ
+
+現時点（Firebase 未実装）の範囲。Firebase の実装が終わると、右列のうち
+いいね・即時反映・ユーザー管理・GitHub アカウントを持たない人の投稿が戻る（ADR 0010）。
 
 | 含む | 含まない |
 |---|---|
@@ -45,7 +49,7 @@ Google AI Studio で作った「Chronos MAP」を移植し、サイト名を Loc
 | フレームワーク | React 18 + Vite 6 |
 | パッケージマネージャ | npm |
 | スタイル | Tailwind CSS 3（CDN ではなくビルドに含める） |
-| 地図 | MapLibre GL JS + OpenFreeMap |
+| 地図 | MapLibre GL JS + 地理院タイル |
 | データ | `project/public/data/*.json`（GitHub リポジトリ上） |
 | テスト | `npm run check`（型・ビルド・設計検証の 3 点） |
 

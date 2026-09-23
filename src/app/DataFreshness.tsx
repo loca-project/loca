@@ -19,7 +19,7 @@ export default function DataFreshness() {
   useEffect(() => subscribeHealth(setHealth), []);
   if (!health) return null;
 
-  const degraded = health.dataUnavailable || health.mapFallback;
+  const degraded = health.dataUnavailable || health.mapUnavailable;
 
   return (
     <div className="px-3 py-2">
@@ -40,9 +40,9 @@ export default function DataFreshness() {
           {t.runtime.dataUnavailable}
         </p>
       )}
-      {health.mapFallback && (
+      {health.mapUnavailable && (
         <p className="mt-1.5 rounded bg-amber-50 p-2 text-[10px] leading-relaxed text-amber-800">
-          {t.runtime.mapFallback}
+          {t.runtime.mapUnavailable}
         </p>
       )}
     </div>

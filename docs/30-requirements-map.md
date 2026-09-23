@@ -161,13 +161,13 @@ Google認証済みのユーザーが、画面右上のユーザーアイコン�
 
 | 元の要件 | Loca での実現 |
 |---|---|
-| Google MAP を表示 | `MapPort` を定義。既定は MapLibre GL JS + OpenStreetMap（API キー不要）。`VITE_ADAPTER_MAP=google` で Google Maps に差し替え可能 |
-| Google MAP API で都道府県・市町村を取得 | `GeocodePort`。既定は `offline`（都道府県のみ・ネットワーク不要）、`nominatim`（市町村まで・キー不要）、`google` から選択 |
+| Google MAP を表示 | `MapPort` を定義。MapLibre GL JS + 地理院タイル（API キー不要・予備なし。ADR 0011）。Google Maps は請求先アカウントが必須のため使わない |
+| Google MAP API で都道府県・市町村を取得 | `GeocodePort`。国土地理院の逆ジオコーダ＋市町村コード表（キー不要・予備なし。ADR 0011）。政令指定都市は区を落として市まで |
 | YouTube API でサムネイル等を取得 | `VideoMetaPort`。既定は `oembed`（キー不要だが再生数は取れない）、`youtube`（Data API・全項目）、`fixture`（完全オフライン） |
 | 両 API から応答があった場合のみ登録 | 維持。失敗パターン 3 種のメッセージも要件どおり（`src/app/useMarkerSubmit.ts`） |
 | 矩形範囲指定検索 | 維持。MapLibre / Google Maps の両アダプタに実装 |
 | 仮マーカーは一律グレー | 維持（`NEUTRAL_HEX`） |
 | 感情の核でマーカー色を決定 | 維持（`src/core/constants/emotion.ts`） |
 
-**注意**: `offline` ジオコーディングは県庁所在地からの最近傍判定であり、県境付近では
-隣県に寄ることがある。正確さが必要な運用では `nominatim` か `google` を選ぶこと。
+**注意**: 国土地理院の地名 API は非公式で、予告なく変わりうる。海上と県境未定地（富士山頂など）では
+地名を取得できず、登録は地名なしで続行する。

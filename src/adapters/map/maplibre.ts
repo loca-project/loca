@@ -1,9 +1,9 @@
 /**
- * MapLibre GL JS + OpenFreeMap による地図アダプタ。
+ * MapLibre GL JS + 地理院タイルによる地図アダプタ（ADR 0011）。
  *
- * OpenFreeMap は API キー不要・リクエスト数無制限・商用可のベクタタイル配信で、
- * GitHub Pages のような静的配信からそのまま使える。
- * スタイル URL は複数指定でき、読めなければ次の候補、最後は背景色だけの地図に落とす。
+ * 地理院タイルは API キー不要・申請不要（出典の明示のみ）で、
+ * GitHub Pages のような静的配信からそのまま使える。予備のタイルは持たない。
+ * タイルを 1 枚も読めなかったときだけ、その旨を画面に出す。
  */
 
 import type { Map as MlMap, Marker as MlMarker, Popup as MlPopup } from 'maplibre-gl';
@@ -11,15 +11,15 @@ import type { Bounds, LatLng } from '@/core/types';
 import type { InfoWindowOptions, MapPinOptions, MapPort, Unsubscribe } from '@/ports';
 import { JAPAN_BOUNDS, MAX_ZOOM, MIN_ZOOM, normalizeBounds } from '@/core/logic/geo';
 import { NEUTRAL_HEX } from '@/core/constants';
-import { appConfig } from '@/runtime/config';
 import { createPinElement } from './pinElement';
 import { setHealth } from '@/runtime/health';
 import {
+  GSI_SOURCE,
   RECT_FILL,
   RECT_LINE,
   RECT_SOURCE,
-  blankStyle,
   boundsToFeatureCollection,
+  gsiStyle,
 } from './maplibreStyle';
 
 type MapLibreModule = typeof import('maplibre-gl');
@@ -54,23 +54,22 @@ export class MapLibreAdapter implements MapPort {
   }
 
   /**
-   * スタイル URL を先頭から順に試す。すべて失敗したら背景色だけの地図で継続する。
-   * 地図が真っ白になって操作不能になるのを避けるため。
+   * タイルを 1 枚も読めていない状態でのエラーだけを「地図を取得できない」とみなす。
+   * 日本の範囲外など、個別のタイルが無いだけの 404 では知らせない。
    */
-  private async resolveStyle(): Promise<string | ReturnType<typeof blankStyle>> {
-    for (const [index, url] of appConfig.map.styleUrls.entries()) {
-      try {
-        const res = await fetch(url, { method: 'GET' });
-        if (res.ok) {
-          if (index > 0) setHealth({ mapFallback: true });
-          return url;
-        }
-      } catch (e) {
-        console.warn(`[loca] 地図スタイルを取得できませんでした: ${url}`, e);
+  private watchTiles(map: MlMap): void {
+    let loaded = false;
+    map.on('data', (e) => {
+      if (e.dataType === 'source' && 'sourceId' in e && e.sourceId === GSI_SOURCE && 'tile' in e) {
+        loaded = true;
+        setHealth({ mapUnavailable: false });
       }
-    }
-    setHealth({ mapFallback: true, notice: '地図タイルを取得できないため簡易表示にしています。' });
-    return blankStyle();
+    });
+    map.on('error', (e) => {
+      if (loaded || (e as { sourceId?: string }).sourceId !== GSI_SOURCE) return;
+      console.warn('[loca] 地理院タイルを取得できませんでした', e.error);
+      setHealth({ mapUnavailable: true });
+    });
   }
 
   async mount(container: HTMLElement): Promise<void> {
@@ -79,7 +78,7 @@ export class MapLibreAdapter implements MapPort {
 
     this.map = new this.lib.Map({
       container,
-      style: (await this.resolveStyle()) as never,
+      style: gsiStyle() as never,
       bounds: [
         [JAPAN_BOUNDS.west, JAPAN_BOUNDS.south],
         [JAPAN_BOUNDS.east, JAPAN_BOUNDS.north],
@@ -94,6 +93,7 @@ export class MapLibreAdapter implements MapPort {
     });
 
     this.map.addControl(new this.lib.NavigationControl({ showCompass: false }), 'bottom-right');
+    this.watchTiles(this.map);
     await new Promise<void>((resolve) => {
       this.map?.once('load', () => resolve());
     });

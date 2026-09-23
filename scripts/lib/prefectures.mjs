@@ -17,12 +17,10 @@ export const PREFECTURES = [
 ];
 
 /**
- * ISO 3166-2:JP のコード（JP-01〜JP-47）から都道府県名を引く。
- * Nominatim は東京 23 区などで province を返さないが、このコードは必ず返す。
+ * 都道府県コード（01〜47）から都道府県名を引く。
+ * 国土地理院の市町村コードの先頭 2 桁がこれにあたる。
  */
-export function prefectureFromIsoCode(code) {
-  if (!code) return '';
-  const match = /^JP-(\d{2})$/.exec(String(code).trim().toUpperCase());
-  if (!match) return '';
-  return PREFECTURES[Number(match[1]) - 1] ?? '';
+export function prefectureFromCode(code) {
+  if (!code || !/^\d{1,2}$/.test(String(code).trim())) return '';
+  return PREFECTURES[Number(code) - 1] ?? '';
 }

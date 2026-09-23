@@ -199,7 +199,7 @@ export const ja = {
     degraded: '注意',
     generatedAt: '生成日時',
     dataUnavailable: '公開データを読み込めませんでした。時間をおいて再読み込みしてください。',
-    mapFallback: '地図タイルの取得に問題があり、簡易表示に切り替えています。',
+    mapUnavailable: '地図タイル（国土地理院）を取得できませんでした。時間をおいて再読み込みしてください。',
   },
 };
 

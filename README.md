@@ -61,9 +61,9 @@
 | 層 | 使っているもの |
 |---|---|
 | ホスティング | GitHub Pages |
-| 地図 | MapLibre GL JS + [OpenFreeMap](https://openfreemap.org/)（OpenStreetMap データ） |
+| 地図 | MapLibre GL JS + [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html)（淡色地図） |
 | 動画情報 | YouTube oEmbed |
-| 地名 | [Nominatim](https://nominatim.openstreetmap.org/)（OpenStreetMap） |
+| 地名 | 国土地理院の逆ジオコーダ・住所検索 |
 | データ | このリポジトリの JSON |
 
 API キーは 1 つも使っていません。
@@ -90,5 +90,5 @@ npm run dev         # http://127.0.0.1:5173
 
 ## クレジット
 
-地図データ © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors /
-タイル配信 [OpenFreeMap](https://openfreemap.org/) / [OpenMapTiles](https://openmaptiles.org/)
+地図: [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html)（国土地理院）
+地名: 国土地理院 逆ジオコーダ・住所検索

@@ -5,8 +5,8 @@ export interface RuntimeHealth {
   generatedAt: number;
   /** 公開データを 1 件も読めなかったか */
   dataUnavailable: boolean;
-  /** 地図スタイルの読み込みに失敗して代替に切り替えたか */
-  mapFallback: boolean;
+  /** 地図タイル（国土地理院）を 1 枚も読めなかったか */
+  mapUnavailable: boolean;
   /** 利用者に見せたい注意書き */
   notice?: string;
 }
@@ -16,7 +16,7 @@ type Listener = (health: RuntimeHealth) => void;
 const state: RuntimeHealth = {
   generatedAt: 0,
   dataUnavailable: false,
-  mapFallback: false,
+  mapUnavailable: false,
 };
 
 const listeners = new Set<Listener>();

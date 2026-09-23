@@ -34,7 +34,7 @@ export interface VideoMeta {
 export interface PlaceMeta {
   prefecture: string;
   city: string;
-  source: 'nominatim' | 'offline';
+  source: 'gsi';
 }
 
 export interface MarkerData {
