@@ -1,6 +1,6 @@
 {
-  "generatedAt": 1790219741898,
-  "syncedAt": 1790219740562,
+  "generatedAt": 1790220875134,
+  "syncedAt": 1790220872410,
   "markers": [
     {
       "id": "ozgGSNaaWI6TcMIgtqHC",
@@ -8,14 +8,14 @@
       "lat": 34.675673,
       "lng": 135.517376,
       "tags": {
-        "emotion": "喜び",
         "action": "訪問/地域紹介",
-        "atmosphere": "明るい"
+        "atmosphere": "明るい",
+        "emotion": "喜び"
       },
       "equipment": {
+        "manufacturer": "",
         "model": "",
-        "series": "",
-        "manufacturer": ""
+        "series": ""
       },
       "title": "Sample",
       "channelTitle": "立神",
