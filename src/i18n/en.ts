@@ -50,7 +50,7 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   sidebar: {
-    map: 'Map',
+    map: 'Search',
     post: 'Post',
     request: 'Requests',
     region: 'Region',

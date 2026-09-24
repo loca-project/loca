@@ -43,7 +43,7 @@ export const ja = {
   },
 
   sidebar: {
-    map: '地図',
+    map: '検索',
     post: '投稿',
     request: 'リクエスト',
     region: '地域別',

@@ -10,10 +10,11 @@ import { useI18n } from '@/shared/hooks/useI18n';
 type TabLabelKey = 'map' | 'post' | 'request' | 'region' | 'channel' | 'gear';
 
 export const TAB_ICONS: { mode: TabMode; icon: string; labelKey: TabLabelKey }[] = [
-  { mode: TabMode.MAP, icon: 'fa-map', labelKey: 'map' },
+  // 並びは動線の順: 投稿 → 検索 → ランキング（リクエスト・地域・チャンネル・機器）
   { mode: TabMode.POST, icon: 'fa-circle-plus', labelKey: 'post' },
+  { mode: TabMode.MAP, icon: 'fa-magnifying-glass', labelKey: 'map' },
   { mode: TabMode.RANKING_REQUEST, icon: 'fa-fire', labelKey: 'request' },
-  { mode: TabMode.RANKING_REGION, icon: 'fa-location-dot', labelKey: 'region' },
+  { mode: TabMode.RANKING_REGION, icon: 'fa-map', labelKey: 'region' },
   { mode: TabMode.RANKING_CHANNEL, icon: 'fa-tv', labelKey: 'channel' },
   { mode: TabMode.RANKING_EQUIPMENT, icon: 'fa-camera', labelKey: 'gear' },
 ];
