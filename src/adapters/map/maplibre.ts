@@ -72,11 +72,21 @@ export class MapLibreAdapter implements MapPort {
     });
   }
 
+  /**
+   * mount と destroy のたびに進める世代番号。
+   * StrictMode では mount → destroy → mount が await の途中で重なるため、
+   * await から戻ったときに世代が変わっていたら、その mount は捨てる（T34）。
+   */
+  private generation = 0;
+
   async mount(container: HTMLElement): Promise<void> {
     if (this.map) return;
-    this.lib = await import('maplibre-gl');
+    const gen = ++this.generation;
+    const lib = await import('maplibre-gl');
+    if (gen !== this.generation) return;
+    this.lib = lib;
 
-    this.map = new this.lib.Map({
+    const map = new lib.Map({
       container,
       style: gsiStyle() as never,
       bounds: [
@@ -92,11 +102,16 @@ export class MapLibreAdapter implements MapPort {
       // renderWorldCopies（既定 true）で足りる。
     });
 
-    this.map.addControl(new this.lib.NavigationControl({ showCompass: false }), 'bottom-right');
-    this.watchTiles(this.map);
+    this.map = map;
+
+    map.addControl(new lib.NavigationControl({ showCompass: false }), 'bottom-right');
+    this.watchTiles(map);
+    // 読み込み前に destroy されたら 'load' は来ないので、'remove' でも待ちを解く
     await new Promise<void>((resolve) => {
-      this.map?.once('load', () => resolve());
+      map.once('load', () => resolve());
+      map.once('remove', () => resolve());
     });
+    if (gen !== this.generation) return;
     this.setupRectangleLayer();
     this.setupInteractions();
   }
@@ -150,6 +165,7 @@ export class MapLibreAdapter implements MapPort {
   }
 
   destroy(): void {
+    this.generation += 1;
     this.pins.forEach((m) => m.remove());
     this.pins.clear();
     this.ghost?.remove();
