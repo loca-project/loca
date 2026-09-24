@@ -1,7 +1,8 @@
 /**
  * 画面右上のボタンは 1 つだけ。未ログインなら「ログイン」、ログイン後は Google のような丸いアイコン。
- * 押すとプルダウンに、アカウント（ログイン／名前・メール・ログアウト）とメニュー（統計・投稿の流れ・言語）を出す。
- * 迷わせないよう項目を絞る（リポジトリやデータの生成日時は出さない）。登録済みならプロフィールを出す（管理者モードは T27 で足す）。
+ * 押すとプルダウンに、アカウント（ログイン／名前・メール・ログアウト）とメニュー（投稿の流れ・言語）を出す。
+ * 迷わせないよう項目を絞る（リポジトリやデータの生成日時は出さない）。登録済みならプロフィールと自分の投稿を出す。
+ * サイト全体の統計とエクスポートは管理者モード（T27）から開く（利用者向けは「自分の投稿」の統計とエクスポート）。
  * 名前は登録したニックネームを出す（Google の名前は本名のことが多いため、登録前だけ使う）。
  * Firebase の設定が無い構成では「≡」の丸いボタンになり、メニューだけを出す。
  */
@@ -13,7 +14,6 @@ import { useProfile } from '@/shared/hooks/useProfile';
 import { useToast } from '@/shared/components/Toast';
 
 interface HeaderBarProps {
-  onOpenStats: () => void;
   onOpenGuide: () => void;
   onOpenMyPosts: () => void;
 }
@@ -35,7 +35,7 @@ function Avatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
   );
 }
 
-export default function HeaderBar({ onOpenStats, onOpenGuide, onOpenMyPosts }: HeaderBarProps) {
+export default function HeaderBar({ onOpenGuide, onOpenMyPosts }: HeaderBarProps) {
   const { t, lang, changeLanguage } = useI18n();
   const auth = useAuth();
   const { profile, setEditorOpen } = useProfile();
@@ -74,10 +74,6 @@ export default function HeaderBar({ onOpenStats, onOpenGuide, onOpenMyPosts }: H
 
   const menuItems = (
     <>
-      <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenStats)}>
-        <i className="fa-solid fa-chart-pie w-4 text-gray-400" />
-        {t.admin.title}
-      </button>
       <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenGuide)}>
         <i className="fa-solid fa-circle-question w-4 text-gray-400" />
         {t.contribute.guideTitle}

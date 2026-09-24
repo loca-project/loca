@@ -1,6 +1,8 @@
 /**
- * 自分の投稿の一覧（T53）。右上のメニューの「自分の投稿」から開く。
- * マーカーと撮影リクエストを切り替えて出し、押すと地図がその地点へ移って詳細が開く。
+ * 自分の投稿（T53）。右上のメニューの「自分の投稿」から開く。
+ * 統計とエクスポート（要件 5.2）と同じ形の画面で、タブは「投稿一覧・統計・エクスポート」。対象はどれも自分の投稿だけ
+ * （サイト全体の統計とエクスポートは管理者画面。T27）。
+ * 投稿一覧はマーカーと撮影リクエストを切り替えて出し、押すと地図がその地点へ移って詳細が開く。
  * データは地図の一覧から本人の uid で絞る（myPosts.ts）。Firestore の読み取りは増えない。
  */
 
@@ -10,8 +12,11 @@ import { myMarkers, myRequestSpots } from '@/core/logic/myPosts';
 import { formatDate, interpolate } from '@/core/logic/format';
 import { tagLabel } from '@/core/constants';
 import Modal from '@/shared/components/Modal';
+import DashboardTabs from '@/shared/components/DashboardTabs';
 import { Segmented } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
+import StatisticsTab from '@/features/admin/StatisticsTab';
+import ExportTab from '@/features/admin/ExportTab';
 
 interface MyPostsModalProps {
   open: boolean;
@@ -24,6 +29,7 @@ interface MyPostsModalProps {
 }
 
 type Kind = 'markers' | 'requests';
+type TabId = 'posts' | 'statistics' | 'export';
 
 function PostRow({ title, sub, onClick }: { title: string; sub: string; onClick: () => void }) {
   return (
@@ -46,6 +52,7 @@ function PostRow({ title, sub, onClick }: { title: string; sub: string; onClick:
 export default function MyPostsModal(props: MyPostsModalProps) {
   const { open, uid, markers, requestMarkers, onPickMarker, onPickRequest, onClose } = props;
   const { t, lang } = useI18n();
+  const [tab, setTab] = useState<TabId>('posts');
   const [kind, setKind] = useState<Kind>('markers');
   const mine = useMemo(() => myMarkers(markers, uid), [markers, uid]);
   const spots = useMemo(() => myRequestSpots(requestMarkers, uid), [requestMarkers, uid]);
@@ -69,8 +76,8 @@ export default function MyPostsModal(props: MyPostsModalProps) {
   ));
   const list = kind === 'markers' ? markerList : requestList;
 
-  return (
-    <Modal open={open} title={t.myPosts.title} onClose={onClose}>
+  const postsTab = (
+    <>
       <Segmented<Kind>
         value={kind}
         onChange={setKind}
@@ -89,6 +96,26 @@ export default function MyPostsModal(props: MyPostsModalProps) {
           {kind === 'markers' ? t.myPosts.emptyMarkers : t.myPosts.emptyRequests}
         </p>
       )}
+    </>
+  );
+
+  // 統計とエクスポート（要件 5.2）と同じ大きな画面・同じタブの形。対象は自分のマーカーだけ
+  return (
+    <Modal open={open} title={t.myPosts.title} size="lg" onClose={onClose}>
+      <DashboardTabs<TabId>
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { id: 'posts', icon: 'fa-list-ul', label: t.myPosts.tabPosts },
+          { id: 'statistics', icon: 'fa-chart-pie', label: t.admin.tabStatistics },
+          { id: 'export', icon: 'fa-file-export', label: t.admin.tabExport },
+        ]}
+      />
+      <div className="min-h-[20rem]">
+        {tab === 'posts' && postsTab}
+        {tab === 'statistics' && <StatisticsTab markers={mine} />}
+        {tab === 'export' && <ExportTab markers={mine} filePrefix="loca-my-markers" />}
+      </div>
     </Modal>
   );
 }

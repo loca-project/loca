@@ -80,6 +80,7 @@ export const en: DeepPartial<Dictionary> = {
   myPosts: {
     menu: 'My posts',
     title: 'My posts',
+    tabPosts: 'Posts',
     markers: 'Markers ({count})',
     requests: 'Shooting requests ({count})',
     heat: 'Heat {heat} ({count})',

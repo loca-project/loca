@@ -24,7 +24,6 @@ import EmptyMapNotice from '@/features/contribute/EmptyMapNotice';
 import MapFilterBar from '@/features/filter/MapFilterBar';
 import { filterBarLeft } from '@/features/filter/placement';
 import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
-import AdminDashboard from '@/features/admin/AdminDashboard';
 import HeaderBar from './HeaderBar';
 import MyPostsModal from '@/features/profile/MyPostsModal';
 import HealthNotice from './HealthNotice';
@@ -343,7 +342,6 @@ export default function AppShell() {
       <HealthNotice />
 
       <HeaderBar
-        onOpenStats={() => app.openModal('stats')}
         onOpenGuide={() => app.openModal('guide')}
         onOpenMyPosts={() => app.openModal('myPosts')}
       />
@@ -374,12 +372,6 @@ export default function AppShell() {
       />
 
       <ContributeGuideModal open={app.modals.guide} onClose={() => app.openModal('guide', false)} />
-
-      <AdminDashboard
-        open={app.modals.stats}
-        markers={app.catalog.markers}
-        onClose={() => app.openModal('stats', false)}
-      />
     </div>
   );
 }

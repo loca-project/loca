@@ -49,7 +49,8 @@ function download(filename: string, content: string, mime: string): void {
   URL.revokeObjectURL(url);
 }
 
-export default function ExportTab({ markers }: { markers: MarkerData[] }) {
+/** filePrefix: 書き出すファイル名の頭（自分の投稿では loca-my-markers にして、全体のものと見分ける） */
+export default function ExportTab({ markers, filePrefix = 'loca-markers' }: { markers: MarkerData[]; filePrefix?: string }) {
   const { t } = useI18n();
   const rows = useMemo(() => toRows(markers), [markers]);
   const stamp = new Date().toISOString().slice(0, 10);
@@ -62,7 +63,7 @@ export default function ExportTab({ markers }: { markers: MarkerData[] }) {
       </p>
 
       <div className="flex gap-2">
-        <Button onClick={() => download(`loca-markers-${stamp}.csv`, toCsv(rows), 'text/csv')}>
+        <Button onClick={() => download(`${filePrefix}-${stamp}.csv`, toCsv(rows), 'text/csv')}>
           <i className="fa-solid fa-file-csv mr-1.5" />
           {t.admin.exportCsv}
         </Button>
@@ -70,7 +71,7 @@ export default function ExportTab({ markers }: { markers: MarkerData[] }) {
           variant="secondary"
           onClick={() =>
             download(
-              `loca-markers-${stamp}.json`,
+              `${filePrefix}-${stamp}.json`,
               JSON.stringify(rows, null, 2),
               'application/json',
             )

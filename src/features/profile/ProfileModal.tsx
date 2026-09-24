@@ -45,7 +45,8 @@ export default function ProfileModal({ profile, user, busy, onSave, onClose, onD
       onClose={onClose}
       footer={
         <>
-          <Button variant="ghost" className="mr-auto text-red-600" onClick={onDelete} disabled={busy}>
+          <Button variant="dangerSoft" className="mr-auto" onClick={onDelete} disabled={busy}>
+            <i className="fa-solid fa-user-xmark mr-1.5" />
             {t.profile.deleteAccount}
           </Button>
           <Button variant="secondary" onClick={onClose} disabled={busy}>

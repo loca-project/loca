@@ -69,6 +69,7 @@ export const ja = {
   myPosts: {
     menu: '自分の投稿',
     title: '自分の投稿',
+    tabPosts: '投稿一覧',
     markers: 'マーカー（{count}）',
     requests: '撮影リクエスト（{count}）',
     heat: '熱量 {heat}（{count} 件）',
