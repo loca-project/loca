@@ -130,6 +130,22 @@ record(
   `scripts=${scriptList.length} / src=${tsList.length}`,
 );
 
+// 8a. 機器の分類のキーが、アプリ（src）・ルール・マスタで一致していること（ADR 0018）
+const categoryText = await readFile(path.join(ROOT, 'src', 'core', 'constants', 'equipment.ts'), 'utf8');
+const srcCategories = [...(categoryText.match(/EQUIPMENT_CATEGORY_KEYS = \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]);
+const rulesText = await readFile(path.join(ROOT, 'firestore.rules'), 'utf8');
+const rulesCategories = [...(rulesText.match(/e\.category in \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']*)'/g)]
+  .map((m) => m[1])
+  .filter(Boolean);
+const { EQUIPMENT_MASTER } = await import('./data/equipment-master.mjs');
+const masterCategories = EQUIPMENT_MASTER.map((c) => c.category);
+const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
+record(
+  '機器の分類が src・ルール・マスタで一致',
+  srcCategories.length > 0 && same(srcCategories, rulesCategories) && same(srcCategories, masterCategories),
+  `src=${srcCategories.length} / rules=${rulesCategories.length} / master=${masterCategories.length}`,
+);
+
 // 8b. 撮影リクエストの「同じ地点」のしきい値が、画面（src）と日次の同期（scripts）で一致していること
 //     ずれると、同期のたびに地点が分かれたりまとまったりする。
 const { SAME_SPOT_EPS: scriptEps } = await import('./lib/merge-requests.mjs');

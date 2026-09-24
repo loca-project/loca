@@ -6,6 +6,7 @@
  */
 
 import type { TagField } from '@/core/constants/tags';
+import type { Equipment } from './marker';
 
 /**
  * タグの絞り込み。項目の中は OR、項目の間は AND（要件 4.2・ADR 0015）。
@@ -21,9 +22,11 @@ export interface MapFilter {
   videos: boolean;
   requests: boolean;
   tags: TagSelection;
+  /** 機器の分類のキー（複数選択は OR。動画だけに効く。ADR 0018） */
+  equipmentCategories: string[];
 }
 
-export const DEFAULT_MAP_FILTER: MapFilter = { videos: true, requests: true, tags: {} };
+export const DEFAULT_MAP_FILTER: MapFilter = { videos: true, requests: true, tags: {}, equipmentCategories: [] };
 
 /** 動画の投稿日を基準にした期間フィルタ（要件 4.2）。 */
 export type PeriodFilter = 'all' | '1y' | '6m' | '3m' | '1m' | '2w' | 'today';
@@ -43,11 +46,8 @@ export interface RankingFilter {
   /** 動画の投稿月を四半期で絞る（要件 4.3 の地域別） */
   season?: SeasonFilter;
 
-  equipment?: {
-    manufacturer: string;
-    series: string;
-    model: string;
-  };
+  /** 機器（分類 → メーカー → シリーズ → モデル）。空の段では絞らない */
+  equipment?: Equipment;
 
   /** タグ（複数選択可）。撮影リクエストランキングは季節・時間帯・撮り方だけを使う */
   tags: TagSelection;

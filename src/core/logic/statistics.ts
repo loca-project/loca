@@ -35,6 +35,8 @@ export interface MarkerStatistics {
   total: number;
   /** タグの項目ごとの件数。label はタグのキー（表示は画面が訳す） */
   tags: Record<TagField, CountRow[]>;
+  /** 機器の分類。label は分類のキー（表示は画面が訳す） */
+  equipmentCategory: CountRow[];
   manufacturer: CountRow[];
   series: CountRow[];
   model: CountRow[];
@@ -48,6 +50,7 @@ export function computeStatistics(markers: MarkerData[]): MarkerStatistics {
     tags: Object.fromEntries(
       TAG_FIELDS.map((field) => [field, tally(markers.map((m) => m.tags?.[field]))]),
     ) as Record<TagField, CountRow[]>,
+    equipmentCategory: tally(markers.map((m) => m.equipment?.category)),
     manufacturer: tally(markers.map((m) => m.equipment?.manufacturer)),
     series: tally(markers.map((m) => m.equipment?.series)),
     model: tally(markers.map((m) => m.equipment?.model)),

@@ -7,11 +7,11 @@
 import React from 'react';
 import type { EquipmentDef } from '@/core/types';
 import { MEMO_MAX_LENGTH, TAG_CATEGORIES, type TagCategory } from '@/core/constants';
-import { modelsOf, seriesOf } from '@/core/logic/equipment';
-import { Button, Field, RadioGroup, Select, TextInput } from '@/shared/components/Controls';
+import { Button, Field, RadioGroup, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import type { MarkerFormState } from '@/features/marker/formState';
 import { chipOptions } from '@/features/tags/tagChips';
+import EquipmentSelects from '@/features/equipment/EquipmentSelects';
 
 interface MarkerFormProps {
   form: MarkerFormState;
@@ -45,19 +45,6 @@ export default function MarkerForm({
       onChange={(v) => onChange({ tags: { ...form.tags, [category.field]: v } })}
     />
   );
-
-  const makerOptions = [
-    { value: '', label: t.form.selectMaker },
-    ...equipment.map((d) => ({ value: d.manufacturer, label: d.manufacturer })),
-  ];
-  const seriesOptions = [
-    { value: '', label: t.form.selectSeries },
-    ...seriesOf(equipment, form.manufacturer).map((s) => ({ value: s, label: s })),
-  ];
-  const modelOptions = [
-    { value: '', label: t.form.selectModel },
-    ...modelsOf(equipment, form.manufacturer, form.series).map((m) => ({ value: m, label: m })),
-  ];
 
   return (
     <div className="flex flex-col gap-4">
@@ -115,25 +102,11 @@ export default function MarkerForm({
 
       <div className="flex flex-col gap-2 rounded border border-gray-100 bg-gray-50 p-2">
         <span className="text-[11px] font-bold text-gray-500">{t.form.equipment}</span>
-        <Select
-          aria-label={t.form.maker}
-          value={form.manufacturer}
-          options={makerOptions}
-          onChange={(e) => onChange({ manufacturer: e.target.value, series: '', model: '' })}
-        />
-        <Select
-          aria-label={t.form.series}
-          value={form.series}
-          options={seriesOptions}
-          disabled={!form.manufacturer}
-          onChange={(e) => onChange({ series: e.target.value, model: '' })}
-        />
-        <Select
-          aria-label={t.form.model}
-          value={form.model}
-          options={modelOptions}
-          disabled={!form.series}
-          onChange={(e) => onChange({ model: e.target.value })}
+        <EquipmentSelects
+          defs={equipment}
+          value={form.equipment}
+          mode="input"
+          onChange={(next) => onChange({ equipment: next })}
         />
       </div>
 

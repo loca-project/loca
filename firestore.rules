@@ -92,10 +92,13 @@ service cloud.firestore {
         || (d.memo is string && d.memo.size() <= 80 && d.memo.matches('[^\\r\\n]+'));
     }
 
+    // 撮影機器（分類 → メーカー → シリーズ → モデル。ADR 0018）。分類のキーは src/core/constants/equipment.ts と同じ。
+    // 未選択は空文字。組み合わせがマスタにあるかは画面が確かめる（マスタは公開データでルールから読めないため）
     function validEquipment(e) {
       return e is map
-        && e.keys().hasOnly(['manufacturer', 'series', 'model'])
-        && e.keys().hasAll(['manufacturer', 'series', 'model'])
+        && e.keys().hasOnly(['category', 'manufacturer', 'series', 'model'])
+        && e.keys().hasAll(['category', 'manufacturer', 'series', 'model'])
+        && e.category in ['', 'drone', 'mirrorless', 'cinema', 'action', 'gimbal', 'camera360', 'smartphone', 'camcorder', 'other']
         && reqString(e, 'manufacturer', 0, 80)
         && reqString(e, 'series', 0, 80)
         && reqString(e, 'model', 0, 80);

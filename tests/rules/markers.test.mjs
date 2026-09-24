@@ -105,6 +105,8 @@ describe('入力の検証', () => {
     ['現地メモが 81 字', { memo: 'あ'.repeat(81) }],
     ['現地メモが空', { memo: '' }],
     ['現地メモに改行', { memo: '1 行目\n2 行目' }],
+    ['機器の分類が一覧に無い', { equipment: { category: 'tripod', manufacturer: '', series: '', model: '' } }],
+    ['機器に分類が無い（旧形式）', { equipment: { manufacturer: 'DJI', series: '', model: '' } }],
     ['タイトルが長すぎる', { title: 'あ'.repeat(301) }],
     ['必須の createdBy が無い', { createdBy: undefined }],
   ];
@@ -121,6 +123,8 @@ describe('入力の検証', () => {
       tags: { subject: 'festival', mood: 'lively', season: 'summer', timeOfDay: 'night', style: 'walking' },
     }],
     ['現地メモが 80 字', { memo: 'あ'.repeat(80) }],
+    ['機器を 4 段で指定', { equipment: { category: 'drone', manufacturer: 'DJI', series: 'Mini', model: 'Mini 4 Pro' } }],
+    ['機器を分類だけ指定', { equipment: { category: 'other', manufacturer: '', series: '', model: '' } }],
   ];
   for (const [label, overrides] of accepted) {
     it(`${label} は通る`, async () => {

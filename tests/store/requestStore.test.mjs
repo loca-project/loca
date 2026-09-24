@@ -30,7 +30,7 @@ const user = (uid) => ({ uid, displayName: uid, email: null, photoUrl: null });
 const storeFor = (uid) => createRequestStore(env.authenticatedContext(uid).firestore(), () => user(uid));
 const content = (heat, lat = 35.0) => ({
   lat, lng: 135.0, heat, season: 'spring', timeOfDay: 'morning', style: 'aerial',
-  equipment: { manufacturer: '', series: '', model: '' },
+  equipment: { category: '', manufacturer: '', series: '', model: '' },
 });
 
 describe('アダプタでの作成と熱量の上限', () => {

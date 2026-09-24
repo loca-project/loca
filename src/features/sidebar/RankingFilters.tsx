@@ -7,10 +7,11 @@ import React from 'react';
 import type { EquipmentDef, RankingFilter, TabMode } from '@/core/types';
 import { TabMode as Tab } from '@/core/types';
 import { PREFECTURES, REQUEST_TAG_FIELDS, TAG_CATEGORIES, type TagField } from '@/core/constants';
-import { modelsOf, seriesOf } from '@/core/logic/equipment';
+import { EMPTY_EQUIPMENT } from '@/core/logic/equipment';
 import { Button, CheckboxGroup, Field, Select } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { chipOptions } from '@/features/tags/tagChips';
+import EquipmentSelects from '@/features/equipment/EquipmentSelects';
 
 interface RankingFiltersProps {
   tab: TabMode;
@@ -30,7 +31,7 @@ export default function RankingFilters({
   onApply,
 }: RankingFiltersProps) {
   const { t, lang } = useI18n();
-  const eq = filter.equipment ?? { manufacturer: '', series: '', model: '' };
+  const eq = { ...EMPTY_EQUIPMENT, ...filter.equipment };
 
   const periodOptions = [
     { value: 'all', label: t.filters.allTime },
@@ -112,34 +113,7 @@ export default function RankingFilters({
       {tab === Tab.RANKING_EQUIPMENT && (
         <div className="flex flex-col gap-2 rounded border border-loca-100 bg-loca-50 p-2">
           <span className="text-[11px] font-bold text-loca-700">{t.filters.equipmentFilter}</span>
-          <Select
-            value={eq.manufacturer}
-            options={[
-              { value: '', label: t.filters.allMakers },
-              ...equipment.map((d) => ({ value: d.manufacturer, label: d.manufacturer })),
-            ]}
-            onChange={(e) =>
-              onChange({ equipment: { manufacturer: e.target.value, series: '', model: '' } })
-            }
-          />
-          <Select
-            value={eq.series}
-            disabled={!eq.manufacturer}
-            options={[
-              { value: '', label: t.filters.any },
-              ...seriesOf(equipment, eq.manufacturer).map((s) => ({ value: s, label: s })),
-            ]}
-            onChange={(e) => onChange({ equipment: { ...eq, series: e.target.value, model: '' } })}
-          />
-          <Select
-            value={eq.model}
-            disabled={!eq.series}
-            options={[
-              { value: '', label: t.filters.any },
-              ...modelsOf(equipment, eq.manufacturer, eq.series).map((m) => ({ value: m, label: m })),
-            ]}
-            onChange={(e) => onChange({ equipment: { ...eq, model: e.target.value } })}
-          />
+          <EquipmentSelects defs={equipment} value={eq} mode="filter" onChange={(next) => onChange({ equipment: next })} />
         </div>
       )}
 

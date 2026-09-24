@@ -6,7 +6,8 @@
 import React from 'react';
 import type { MarkerData } from '@/core/types';
 import { formatCount, formatDate, formatDuration } from '@/core/logic/format';
-import { TAG_FIELDS, tagLabel } from '@/core/constants';
+import { TAG_FIELDS, equipmentCategoryLabel, tagLabel } from '@/core/constants';
+import { equipmentText } from '@/core/logic/equipment';
 import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 
@@ -42,9 +43,10 @@ export default function MarkerDetails({
   busy = false,
 }: MarkerDetailsProps) {
   const { t, lang } = useI18n();
-  const equipment = [marker.equipment?.manufacturer, marker.equipment?.series, marker.equipment?.model]
+  // 分類（訳す）に続けてメーカー / シリーズ / モデル
+  const equipment = [equipmentCategoryLabel(marker.equipment?.category, lang), equipmentText(marker.equipment)]
     .filter(Boolean)
-    .join(' / ');
+    .join('：');
 
   // 並びは利用者の動線の順: 見る（動画）→ 共有・通報 → 知る（詳細）→ 自分の操作 → 閉じる
   return (

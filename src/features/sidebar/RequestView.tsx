@@ -10,7 +10,7 @@ import React from 'react';
 import type { RequestMarkerData } from '@/core/types';
 import { formatCount } from '@/core/logic/format';
 import { requestBreakdown } from '@/core/logic/requests';
-import { REQUEST_TAG_FIELDS, tagLabel } from '@/core/constants';
+import { REQUEST_TAG_FIELDS, equipmentCategoryLabel, tagLabel } from '@/core/constants';
 import { Button } from '@/shared/components/Controls';
 import BarList from '@/shared/components/BarList';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -69,6 +69,12 @@ export default function RequestView({
             {REQUEST_TAG_FIELDS.map((field) => (
               <BarList key={field} title={t.tags[field]} rows={breakdown[field].map((r) => ({ ...r, label: tagLabel(r.label, lang) }))} />
             ))}
+            {breakdown.equipmentCategory.length > 0 && (
+              <BarList
+                title={t.form.category}
+                rows={breakdown.equipmentCategory.map((r) => ({ ...r, label: equipmentCategoryLabel(r.label, lang) }))}
+              />
+            )}
             {breakdown.equipment.length > 0 && <BarList title={t.form.equipment} rows={breakdown.equipment} />}
             <p className="text-[11px] text-gray-500">{t.request.howToAnswer}</p>
           </>

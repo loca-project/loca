@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mergeRequests } from '../../scripts/lib/merge-requests.mjs';
 
 const fsRow = (id, heat, lat = 35.0, createdAt = 1000) => ({
-  id, lat, lng: 135.0, heat, equipment: { manufacturer: '', series: '', model: '' }, ownerUid: 'u1', createdAt,
+  id, lat, lng: 135.0, heat, equipment: { category: '', manufacturer: '', series: '', model: '' }, ownerUid: 'u1', createdAt,
 });
 
 describe('mergeRequests', () => {

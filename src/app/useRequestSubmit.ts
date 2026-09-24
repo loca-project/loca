@@ -58,7 +58,7 @@ export function useRequestSubmit(uid: string | null) {
             ...(form.season ? { season: form.season as SeasonKey } : {}),
             ...(form.timeOfDay ? { timeOfDay: form.timeOfDay as TimeOfDayKey } : {}),
             ...(form.style ? { style: form.style as StyleKey } : {}),
-            equipment: { manufacturer: form.manufacturer, series: form.series, model: form.model },
+            equipment: form.equipment,
           });
           setHeatUsed((used) => (used ?? 0) + form.heat);
           return { ok: true, message: t.store.requestSaved, saved };

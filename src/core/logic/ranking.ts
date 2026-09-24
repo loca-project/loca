@@ -61,6 +61,7 @@ export function matchesSeason(m: MarkerData, season?: SeasonFilter): boolean {
 /** 未選択（空文字）の項目はフィルタ対象外として扱う（要件 4.3）。 */
 export function matchesEquipment(m: MarkerData, eq?: RankingFilter['equipment']): boolean {
   if (!eq) return true;
+  if (eq.category && m.equipment?.category !== eq.category) return false;
   if (eq.manufacturer && m.equipment?.manufacturer !== eq.manufacturer) return false;
   if (eq.series && m.equipment?.series !== eq.series) return false;
   if (eq.model && m.equipment?.model !== eq.model) return false;
@@ -170,6 +171,6 @@ export function isLimitedByFilter(f: RankingFilter): boolean {
     hasTagSelection(f.tags) ||
     Boolean(f.prefecture) ||
     Boolean(f.season) ||
-    Boolean(f.equipment?.manufacturer)
+    Boolean(f.equipment?.category || f.equipment?.manufacturer)
   );
 }

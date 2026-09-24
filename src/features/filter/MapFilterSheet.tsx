@@ -1,11 +1,11 @@
 /**
  * 「フィルター」ボタンで開くパネル（ADR 0015・T50）。ボタンの上に開く。
- * 表示する種類（動画／撮影リクエスト）と、雰囲気・映っているもの・撮影の季節・時間帯・撮り方を選ぶ。変更はすぐ地図に効く。
+ * 表示する種類（動画／撮影リクエスト）と、雰囲気・映っているもの・撮影の季節・時間帯・撮り方・機器の分類を選ぶ。変更はすぐ地図に効く。
  */
 
 import React, { useEffect } from 'react';
 import type { MapFilter } from '@/core/types';
-import type { TagField } from '@/core/constants';
+import { EQUIPMENT_CATEGORY_KEYS, equipmentCategoryLabel, type TagField } from '@/core/constants';
 import { Button, CheckboxGroup, Field, IconButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { categoryOf, chipOptions } from '@/features/tags/tagChips';
@@ -68,6 +68,13 @@ export default function MapFilterSheet({ filter, shown, total, onChange, onClear
             />
           </Field>
         ))}
+        <Field label={t.form.category}>
+          <CheckboxGroup
+            options={EQUIPMENT_CATEGORY_KEYS.map((key) => ({ value: key, label: equipmentCategoryLabel(key, lang) }))}
+            values={filter.equipmentCategories}
+            onChange={(next) => onChange({ ...filter, equipmentCategories: next })}
+          />
+        </Field>
         <p className="text-[10px] text-gray-400">{t.mapFilter.requestNote}</p>
         <Button variant="secondary" onClick={onClear}>
           {t.mapFilter.clear}

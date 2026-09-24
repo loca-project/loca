@@ -87,6 +87,8 @@ export const ja = {
     maker: 'メーカー',
     series: 'シリーズ',
     model: 'モデル',
+    category: '分類',
+    selectCategory: '分類を選択',
     selectMaker: 'メーカーを選択',
     selectSeries: 'シリーズを選択',
     selectModel: 'モデルを選択',
@@ -192,7 +194,7 @@ export const ja = {
     clear: '条件をクリア',
     close: '閉じる',
     showing: '動画 {shown} / {total} 件',
-    requestNote: '撮影リクエストには季節・時間帯・撮り方だけが効きます',
+    requestNote: '撮影リクエストには季節・時間帯・撮り方だけが効きます（機器の分類は動画だけ）',
   },
 
   filters: {

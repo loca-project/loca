@@ -39,12 +39,14 @@ const MOODS = ['lively', 'calm', 'dreamy', 'grand', 'nostalgic', 'thrill'];
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
 const TIMES = ['sunrise', 'morning', 'daytime', 'evening', 'night'];
 const STYLES = ['aerial', 'walking', 'vehicle', 'fixed'];
+// 撮影機器（分類 → メーカー → シリーズ → モデル。ADR 0018。scripts/data/equipment-master.mjs にある組み合わせ）
 const GEAR = [
-  { manufacturer: 'DJI', series: 'Mavic', model: 'Mavic 3 Pro' },
-  { manufacturer: 'DJI', series: 'Mini', model: 'Mini 4 Pro' },
-  { manufacturer: 'Sony', series: 'Alpha', model: 'a7 IV' },
-  { manufacturer: 'Sony', series: 'Cinema Line', model: 'FX3' },
-  { manufacturer: 'Zero Zero Robotics', series: 'HOVERAir', model: 'HOVERAir X1' },
+  { category: 'drone', manufacturer: 'DJI', series: 'Mavic', model: 'Mavic 3 Pro' },
+  { category: 'drone', manufacturer: 'DJI', series: 'Mini', model: 'Mini 4 Pro' },
+  { category: 'mirrorless', manufacturer: 'Sony', series: 'Alpha', model: 'a7 IV' },
+  { category: 'cinema', manufacturer: 'Sony', series: 'Cinema Line', model: 'FX3' },
+  { category: 'action', manufacturer: 'GoPro', series: 'HERO', model: 'HERO13 Black' },
+  { category: 'smartphone', manufacturer: 'Apple', series: 'iPhone', model: 'iPhone 16 Pro' },
 ];
 
 /** 11 桁の擬似 YouTube ID。形式は妥当だが実在しない。 */

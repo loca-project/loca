@@ -94,6 +94,8 @@ export const en: DeepPartial<Dictionary> = {
     maker: 'Manufacturer',
     series: 'Series',
     model: 'Model',
+    category: 'Category',
+    selectCategory: 'Select category',
     selectMaker: 'Select manufacturer',
     selectSeries: 'Select series',
     selectModel: 'Select model',
@@ -199,7 +201,7 @@ export const en: DeepPartial<Dictionary> = {
     clear: 'Clear',
     close: 'Close',
     showing: 'Videos {shown} / {total}',
-    requestNote: 'Only season, time of day and filming style apply to requests',
+    requestNote: 'Only season, time of day and filming style apply to requests (equipment category applies to videos only)',
   },
 
   filters: {

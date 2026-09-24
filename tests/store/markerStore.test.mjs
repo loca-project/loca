@@ -37,7 +37,7 @@ const content = (videoId = nextVideoId()) => ({
   lng: 139.767,
   // 任意のタグの未選択は undefined で来る。保存時に落とされること
   tags: { subject: 'nature', mood: 'calm', season: 'autumn', timeOfDay: undefined },
-  equipment: { manufacturer: '', series: '', model: '' },
+  equipment: { category: '', manufacturer: '', series: '', model: '' },
   title: 'テスト動画',
   city: undefined, // 値の無い項目は保存時に落とされること
 });

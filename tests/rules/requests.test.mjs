@@ -18,7 +18,7 @@ const guest = () => env.unauthenticatedContext().firestore();
 function newRequest(uid, heat, overrides = {}) {
   return {
     lat: 35.0, lng: 135.0, heat,
-    equipment: { manufacturer: '', series: '', model: '' },
+    equipment: { category: '', manufacturer: '', series: '', model: '' },
     ownerUid: uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     ...overrides,
   };

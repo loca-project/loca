@@ -22,6 +22,7 @@
     "admin:remove": "node scripts/admins.mjs remove",
     "migrate:video-index": "node scripts/migrate-video-index.mjs",
     "data:seed": "node scripts/make-seed-data.mjs",
+    "data:equipment": "node scripts/make-equipment.mjs",
     "data:clear": "node scripts/clear-data.mjs",
     "data:sync": "node scripts/sync-firestore.mjs",
     "data:sync:check": "node scripts/sync-firestore.mjs --check",

@@ -1,6 +1,7 @@
 /** マーカー登録・編集フォームの状態と、ドメイン型への変換。 */
 
-import type { MarkerData, MarkerDraft } from '@/core/types';
+import type { Equipment, MarkerData, MarkerDraft } from '@/core/types';
+import { EMPTY_EQUIPMENT } from '@/core/logic/equipment';
 import { EMPTY_TAG_INPUT, normalizeMemo, toMarkerTags, toTagInput, type TagInput } from '@/core/logic/tags';
 
 export interface MarkerFormState {
@@ -8,9 +9,8 @@ export interface MarkerFormState {
   /** 入力途中を許すため文字列で持つ */
   lat: string;
   lng: string;
-  manufacturer: string;
-  series: string;
-  model: string;
+  /** 撮影機器（分類 → メーカー → シリーズ → モデル。未選択は空文字） */
+  equipment: Required<Equipment>;
   /** タグの選択（未選択は空文字） */
   tags: TagInput;
   /** 現地メモ（入力途中のまま持ち、保存時に整える） */
@@ -21,9 +21,7 @@ export const EMPTY_FORM: MarkerFormState = {
   youtubeUrl: '',
   lat: '',
   lng: '',
-  manufacturer: '',
-  series: '',
-  model: '',
+  equipment: EMPTY_EQUIPMENT,
   tags: EMPTY_TAG_INPUT,
   memo: '',
 };
@@ -33,9 +31,7 @@ export function formFromMarker(marker: MarkerData): MarkerFormState {
     youtubeUrl: marker.youtubeUrl,
     lat: String(marker.lat),
     lng: String(marker.lng),
-    manufacturer: marker.equipment?.manufacturer ?? '',
-    series: marker.equipment?.series ?? '',
-    model: marker.equipment?.model ?? '',
+    equipment: { ...EMPTY_EQUIPMENT, ...marker.equipment },
     tags: toTagInput(marker.tags),
     memo: marker.memo ?? '',
   };
@@ -53,11 +49,7 @@ export function draftFromForm(
     lng: Number(form.lng),
     tags: toMarkerTags(form.tags),
     memo: normalizeMemo(form.memo),
-    equipment: {
-      manufacturer: form.manufacturer,
-      series: form.series,
-      model: form.model,
-    },
+    equipment: form.equipment,
     createdBy,
     deleted: false,
     ...extras,

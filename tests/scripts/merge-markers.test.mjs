@@ -8,7 +8,7 @@ import { mergeMarkers } from '../../scripts/lib/merge-markers.mjs';
 
 const fs = (id, over = {}) => ({
   id, youtubeUrl: `https://www.youtube.com/watch?v=${id}`, lat: 35, lng: 139,
-  tags: { subject: 'nature', mood: 'calm' }, memo: 'メモ', equipment: { manufacturer: '', series: '', model: '' },
+  tags: { subject: 'nature', mood: 'calm' }, memo: 'メモ', equipment: { category: '', manufacturer: '', series: '', model: '' },
   ownerUid: 'u1', createdBy: 'user-u1', createdAt: 2000, updatedAt: 2000, deleted: false, ...over,
 });
 

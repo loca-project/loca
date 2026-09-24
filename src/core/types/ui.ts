@@ -23,9 +23,9 @@ export enum MapMode {
 
 export type LanguageCode = 'ja' | 'en';
 
-/** 機器定義（メーカー → シリーズ → モデル）。 */
+/** 機器マスタの 1 分類（分類 → メーカー → シリーズ → モデル。ADR 0018）。category は EquipmentCategoryKey。 */
 export interface EquipmentDef {
-  manufacturer: string;
-  series: Array<{ name: string; models: string[] }>;
+  category: string;
+  makers: Array<{ name: string; series: Array<{ name: string; models: string[] }> }>;
 }
 

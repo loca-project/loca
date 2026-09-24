@@ -45,7 +45,7 @@ export function newMarker(uid, overrides = {}) {
     lat: 35.681,
     lng: 139.767,
     tags: { subject: 'nature', mood: 'calm' },
-    equipment: { manufacturer: '', series: '', model: '' },
+    equipment: { category: '', manufacturer: '', series: '', model: '' },
     title: 'テスト動画',
     ownerUid: uid,
     createdBy: `${uid} さん`,

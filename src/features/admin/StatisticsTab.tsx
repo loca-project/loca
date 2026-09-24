@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import type { MarkerData } from '@/core/types';
 import { computeStatistics, withinRegisteredRange } from '@/core/logic/statistics';
-import { TAG_FIELDS, tagLabel } from '@/core/constants';
+import { TAG_FIELDS, equipmentCategoryLabel, tagLabel } from '@/core/constants';
 import { Field, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import BarList from '@/shared/components/BarList';
@@ -44,6 +44,10 @@ export default function StatisticsTab({ markers }: { markers: MarkerData[] }) {
             rows={stats.tags[field].map((r) => ({ ...r, label: tagLabel(r.label, lang) }))}
           />
         ))}
+        <BarList
+          title={t.form.category}
+          rows={stats.equipmentCategory.map((r) => ({ ...r, label: equipmentCategoryLabel(r.label, lang) }))}
+        />
         <BarList title={t.form.maker} rows={stats.manufacturer} />
         <BarList title={t.form.series} rows={stats.series} />
         <BarList title={t.form.model} rows={stats.model} />

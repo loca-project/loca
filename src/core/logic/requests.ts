@@ -73,6 +73,8 @@ export interface RequestBreakdown {
   season: CountRow[];
   timeOfDay: CountRow[];
   style: CountRow[];
+  /** 機器の分類。label は分類のキー */
+  equipmentCategory: CountRow[];
   equipment: CountRow[];
 }
 
@@ -94,6 +96,7 @@ export function requestBreakdown(spot: RequestMarkerData): RequestBreakdown {
     season: sum((e) => e.season),
     timeOfDay: sum((e) => e.timeOfDay),
     style: sum((e) => e.style),
+    equipmentCategory: sum((e) => e.equipment?.category),
     equipment: sum((e) => [e.equipment?.manufacturer, e.equipment?.series, e.equipment?.model].filter(Boolean).join(' ')),
   };
 }

@@ -44,7 +44,7 @@ function contentOf(form: MarkerFormState, videoId: string, meta: VideoMeta, plac
     tags: toMarkerTags(form.tags),
     // 空にしたときも項目を残す（更新でアダプタが古いメモを消せるように）
     memo: normalizeMemo(form.memo),
-    equipment: { manufacturer: form.manufacturer, series: form.series, model: form.model },
+    equipment: form.equipment,
     title: meta.title,
     channelTitle: meta.channelTitle,
     thumbnailUrl: meta.thumbnailUrl,
@@ -93,7 +93,7 @@ export function useMarkerSubmit() {
         return { ok: false, message: t.alerts.duplicateUrl };
       }
 
-      if (!isValidEquipment(ctx.equipment, ctx.form.manufacturer, ctx.form.series, ctx.form.model)) {
+      if (!isValidEquipment(ctx.equipment, ctx.form.equipment)) {
         return { ok: false, message: '登録されていない撮影機器の組み合わせです。' };
       }
 

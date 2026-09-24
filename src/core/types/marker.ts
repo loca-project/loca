@@ -34,8 +34,10 @@ export interface YoutubeStats {
   checkedAt?: number;
 }
 
-/** 撮影機器。未選択は空文字で表す。 */
+/** 撮影機器（分類 → メーカー → シリーズ → モデル）。未選択は空文字で表す。 */
 export interface Equipment {
+  /** 分類のキー（ADR 0018）。旧データには無い */
+  category?: string;
   manufacturer: string;
   series: string;
   model: string;

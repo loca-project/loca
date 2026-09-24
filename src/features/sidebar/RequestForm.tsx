@@ -4,11 +4,12 @@
  */
 
 import React from 'react';
-import type { EquipmentDef } from '@/core/types';
+import type { Equipment, EquipmentDef } from '@/core/types';
 import { MAX_HEAT_PER_USER } from '@/core/types';
 import { HEAT_LEVELS, REQUEST_TAG_FIELDS } from '@/core/constants';
-import { modelsOf, seriesOf } from '@/core/logic/equipment';
+import { EMPTY_EQUIPMENT } from '@/core/logic/equipment';
 import { Button, Field, RadioGroup, Select } from '@/shared/components/Controls';
+import EquipmentSelects from '@/features/equipment/EquipmentSelects';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { categoryOf, chipOptions } from '@/features/tags/tagChips';
 
@@ -18,9 +19,7 @@ export interface RequestFormState {
   season: string;
   timeOfDay: string;
   style: string;
-  manufacturer: string;
-  series: string;
-  model: string;
+  equipment: Required<Equipment>;
 }
 
 export const EMPTY_REQUEST_FORM: RequestFormState = {
@@ -28,9 +27,7 @@ export const EMPTY_REQUEST_FORM: RequestFormState = {
   season: '',
   timeOfDay: '',
   style: '',
-  manufacturer: '',
-  series: '',
-  model: '',
+  equipment: EMPTY_EQUIPMENT,
 };
 
 interface RequestFormProps {
@@ -91,31 +88,11 @@ export default function RequestForm({
 
       <div className="flex flex-col gap-2 rounded border border-gray-100 bg-gray-50 p-2">
         <span className="text-[11px] font-bold text-gray-500">{t.form.equipment}</span>
-        <Select
-          value={form.manufacturer}
-          options={[
-            { value: '', label: t.form.selectMaker },
-            ...equipment.map((d) => ({ value: d.manufacturer, label: d.manufacturer })),
-          ]}
-          onChange={(e) => onChange({ manufacturer: e.target.value, series: '', model: '' })}
-        />
-        <Select
-          value={form.series}
-          disabled={!form.manufacturer}
-          options={[
-            { value: '', label: t.form.selectSeries },
-            ...seriesOf(equipment, form.manufacturer).map((s) => ({ value: s, label: s })),
-          ]}
-          onChange={(e) => onChange({ series: e.target.value, model: '' })}
-        />
-        <Select
-          value={form.model}
-          disabled={!form.series}
-          options={[
-            { value: '', label: t.form.selectModel },
-            ...modelsOf(equipment, form.manufacturer, form.series).map((m) => ({ value: m, label: m })),
-          ]}
-          onChange={(e) => onChange({ model: e.target.value })}
+        <EquipmentSelects
+          defs={equipment}
+          value={form.equipment}
+          mode="input"
+          onChange={(next) => onChange({ equipment: next })}
         />
       </div>
 

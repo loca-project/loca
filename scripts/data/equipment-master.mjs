@@ -1,0 +1,95 @@
+/**
+ * 撮影機器マスタの元データ（分類 → メーカー → シリーズ → モデル。ADR 0018）。
+ * public/data/equipment.json はここから scripts/make-equipment.mjs が作る（手で編集しない）。
+ * 管理者画面で編集できるようになったら（T28）、元データは Firestore に移す。
+ *
+ * 分類のキーは src/core/constants/equipment.ts と firestore.rules の validEquipment と同じにすること。
+ * 機種は発売を確かめられたものだけを載せる。
+ */
+
+export const EQUIPMENT_MASTER = [
+  {
+    category: 'drone',
+    makers: [
+      {
+        name: 'DJI',
+        series: [
+          { name: 'Mavic', models: ['Mavic 3 Pro', 'Mavic 3 Classic', 'Mavic 3'] },
+          { name: 'Air', models: ['Air 3', 'Air 2S'] },
+          { name: 'Mini', models: ['Mini 4 Pro', 'Mini 3', 'Mini 2 SE'] },
+          { name: 'Avata', models: ['Avata 2', 'Avata'] },
+          { name: 'Inspire', models: ['Inspire 3'] },
+        ],
+      },
+      {
+        name: 'Zero Zero Robotics',
+        series: [
+          { name: 'HOVERAir', models: ['HOVERAir X1 Smart', 'HOVERAir X1', 'HOVERAir X1 PRO', 'HOVERAir X1 PROMAX'] },
+          { name: 'V-Coptr', models: ['V-Coptr Falcon'] },
+        ],
+      },
+    ],
+  },
+  {
+    category: 'mirrorless',
+    makers: [
+      {
+        name: 'Sony',
+        series: [
+          { name: 'Alpha', models: ['a9 III', 'a1', 'a7R V', 'a7 IV', 'a7C II', 'a7CR', 'a6700'] },
+          { name: 'VLOGCAM', models: ['ZV-E10 II', 'ZV-E1', 'ZV-1 II', 'ZV-1F'] },
+          { name: 'Cyber-shot', models: ['RX100 VII', 'RX10 IV'] },
+        ],
+      },
+      { name: 'Canon', series: [{ name: 'EOS R', models: ['EOS R5 Mark II', 'EOS R6 Mark II', 'EOS R8'] }] },
+      { name: 'Panasonic', series: [{ name: 'LUMIX', models: ['S5II', 'GH7', 'GH6'] }] },
+    ],
+  },
+  {
+    category: 'cinema',
+    makers: [
+      { name: 'Sony', series: [{ name: 'Cinema Line', models: ['FX6', 'FX3', 'FX30'] }] },
+      {
+        name: 'Blackmagic Design',
+        series: [{ name: 'Pocket Cinema Camera', models: ['Pocket Cinema Camera 6K', 'Pocket Cinema Camera 4K'] }],
+      },
+    ],
+  },
+  {
+    category: 'action',
+    makers: [
+      { name: 'GoPro', series: [{ name: 'HERO', models: ['HERO13 Black', 'HERO12 Black', 'HERO11 Black'] }] },
+      { name: 'DJI', series: [{ name: 'Osmo Action', models: ['Osmo Action 5 Pro', 'Osmo Action 4'] }] },
+      { name: 'Insta360', series: [{ name: 'Ace', models: ['Ace Pro 2', 'Ace Pro'] }] },
+    ],
+  },
+  {
+    category: 'gimbal',
+    makers: [
+      {
+        name: 'DJI',
+        series: [
+          { name: 'Osmo Pocket', models: ['Osmo Pocket 3'] },
+          { name: 'Osmo Mobile', models: ['Osmo Mobile 6'] },
+        ],
+      },
+    ],
+  },
+  {
+    category: 'camera360',
+    makers: [{ name: 'Insta360', series: [{ name: 'X', models: ['X4', 'X3'] }] }],
+  },
+  {
+    category: 'smartphone',
+    makers: [
+      { name: 'Apple', series: [{ name: 'iPhone', models: ['iPhone 16 Pro', 'iPhone 15 Pro'] }] },
+      { name: 'Google', series: [{ name: 'Pixel', models: ['Pixel 9 Pro', 'Pixel 8 Pro'] }] },
+    ],
+  },
+  {
+    category: 'camcorder',
+    makers: [{ name: 'Sony', series: [{ name: 'Handycam', models: ['FDR-AX700', 'FDR-AX45A'] }] }],
+  },
+  // 「その他」はメーカーを持たない（分類だけを選ぶ）
+  { category: 'other', makers: [] },
+];
