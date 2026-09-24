@@ -19,6 +19,7 @@ import { listCollection } from './lib/firestore-rest.mjs';
 import { fetchPlace } from './lib/enrich.mjs';
 import { mergeMarkers } from './lib/merge-markers.mjs';
 import { mergeRequests } from './lib/merge-requests.mjs';
+import { writeSummary } from './lib/summary.mjs';
 
 const DATA = path.join(process.cwd(), 'public', 'data');
 const CHECK_ONLY = process.argv.includes('--check');
@@ -56,7 +57,9 @@ function canonical(value) {
 
 async function save(file, before, after, syncedAt) {
   const changed = JSON.stringify(canonical(after)) !== JSON.stringify(canonical(before));
-  console.log(`${file}: ${before.length} 件 → ${after.length} 件（${changed ? '変更あり' : '変更なし'}）`);
+  const line = `${before.length} 件 → ${after.length} 件（${changed ? '変更あり' : '変更なし'}）`;
+  console.log(`${file}: ${line}`);
+  summaryRows.push([file, line]);
   if (!changed || CHECK_ONLY) return;
   const bundle = { generatedAt: Date.now(), syncedAt, markers: after };
   await writeFile(path.join(DATA, file), `${JSON.stringify(bundle, null, 2)}\n`, 'utf8');
@@ -77,5 +80,12 @@ await fillPlaces(spots);
 
 console.log(`Firestore markers ${markerRows.length} 件（公開 ${markers.live}・論理削除 ${markers.deleted}）、requests ${requestRows.length} 件`);
 console.log(`地名の問い合わせ ${lookups} 件`);
+const summaryRows = [
+  ['Firestore の markers', `${markerRows.length} 件（公開 ${markers.live}・論理削除 ${markers.deleted}）`],
+  ['Firestore の requests', `${requestRows.length} 件`],
+  ['地名の問い合わせ', `${lookups} 件`],
+];
 await save('markers.json', currentMarkers, markers.markers, syncedAt);
 await save('requests.json', currentSpots, spots, syncedAt);
+// Actions のジョブ概要に件数を出す（T31）
+writeSummary(CHECK_ONLY ? '同期（確認だけ）' : '同期（Firestore → 公開データ）', summaryRows);

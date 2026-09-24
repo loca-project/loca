@@ -18,6 +18,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fromFields } from './lib/firestore-rest.mjs';
 import { planPurge } from './lib/purge-plan.mjs';
+import { writeSummary } from './lib/summary.mjs';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 
@@ -76,6 +77,13 @@ const plan = planPurge({ markers, requests, videos, now: Date.now(), syncedAt })
 
 console.log(`基準: ${new Date(plan.cutoff).toISOString()} より前に論理削除・取り下げされた行`);
 console.log(`マーカー ${plan.markerIds.length} / ${markers.length} 件・リクエスト ${plan.requestIds.length} / ${requests.length} 件・動画の索引 ${plan.videoIds.length} / ${videos.length} 件を消す`);
+// Actions のジョブ概要に件数を出す（T31）
+writeSummary(DRY_RUN ? '30 日たった行の物理削除（計画だけ）' : '30 日たった行の物理削除', [
+  ['基準（これより前に論理削除）', new Date(plan.cutoff).toISOString()],
+  ['マーカー', `${plan.markerIds.length} / ${markers.length} 件`],
+  ['撮影リクエスト', `${plan.requestIds.length} / ${requests.length} 件`],
+  ['動画の索引', `${plan.videoIds.length} / ${videos.length} 件`],
+]);
 if (DRY_RUN) {
   console.log('--dry-run のため消しません');
   process.exit(0);

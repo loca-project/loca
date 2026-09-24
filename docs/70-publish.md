@@ -137,6 +137,17 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 | `deploy.yml` | `main` に push したとき | `publish.yml` を呼ぶ |
 | `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | Firestore から `markers.json` と `requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ |
 
+### 名前・実行名・ジョブ概要の決まり（T31）
+
+`gh run list` の 1 行で、種類と契機と結果の件数にたどり着けるようにする。
+
+| 項目 | 決まり | 例 |
+|---|---|---|
+| ワークフローの名前（`name`） | 日本語で「種類（補足）」 | `公開（push）`・`同期（Firestore → 公開データ）`・`公開の共通処理`・`疎通確認（Google）` |
+| 実行名（`run-name`） | 「種類・契機」。手動なら実行した人を括弧で足す。push はコミットの題名のまま（付けない） | `同期・毎晩`・`同期・手動（loca-project）` |
+| ジョブの ID | 英小文字の動詞。変えない（`scripts/release.mjs` が job 名で結果を読む） | `refresh`・`sync`・`purge`・`publish` |
+| ジョブ概要 | 件数を出すスクリプトは `scripts/lib/summary.mjs` の `writeSummary` で表を書く（Actions の外では何もしない） | 同期: Firestore の件数・公開データの件数の変化 |
+
 **なぜ同期側から直接 publish を呼ぶのか**: GitHub には
 「`GITHUB_TOKEN` による push は他のワークフローを起動しない」という再帰防止の仕様がある。
 同期が push しても `deploy.yml` は動かないため、同期側が自分で公開まで面倒を見る。

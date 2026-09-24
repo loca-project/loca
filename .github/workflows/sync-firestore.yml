@@ -7,7 +7,9 @@
 #
 # 変更があったときだけコミットし、publish.yml を直接呼んで公開しなおす
 # （GITHUB_TOKEN による push は他のワークフローを起動しないため、deploy.yml には任せられない）。
-name: Sync from Firestore
+name: 同期（Firestore → 公開データ）
+# 実行名で契機を分ける（毎晩の定期と手動。命名規則は docs/70-publish.md。T31）。件数は各ジョブの概要に出る
+run-name: ${{ github.event_name == 'schedule' && '同期・毎晩' || format('同期・手動（{0}）', github.actor) }}
 
 on:
   schedule:

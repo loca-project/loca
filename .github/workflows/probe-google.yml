@@ -3,7 +3,8 @@
 # 手動（workflow_dispatch）でだけ動く。公開物には触れない。
 # 認証は Workload Identity 連携（鍵ファイルなし）。このリポジトリの Actions だけがサービスアカウントになれる。
 # 設定は scripts/setup-google.mjs が作る。
-name: Probe Google access
+name: 疎通確認（Google）
+run-name: ${{ format('疎通確認・手動（{0}）', github.actor) }}
 
 on:
   workflow_dispatch:

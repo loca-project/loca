@@ -7,7 +7,9 @@
 # runner は ubuntu-latest ではなく版を固定する（全ワークフロー共通。T16）。
 # ubuntu-latest は 2026-10-19 から 26.04 へ順に切り替わり、その間はジョブごとに版が混ざるため。
 # 次の LTS に上げるときは、全ワークフローの runs-on をまとめて変えて npm run release -- --sync で確かめる。
-name: Publish
+name: 公開の共通処理
+# 手動で公開し直したときだけ実行名が出る（呼ばれたときは呼び出し元の実行名になる。T31）
+run-name: ${{ format('公開のやり直し・手動（{0}）', github.actor) }}
 
 on:
   workflow_call:

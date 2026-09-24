@@ -1,5 +1,5 @@
 /**
- * push した HEAD の Actions（Deploy on push）が終わるのを待ち、公開サイトが新しい版になったかを確かめる。
+ * push した HEAD の Actions（公開（push）。deploy.yml）が終わるのを待ち、公開サイトが新しい版になったかを確かめる。
  *
  *   npm run pages:wait
  *

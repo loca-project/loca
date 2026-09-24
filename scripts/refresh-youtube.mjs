@@ -16,6 +16,7 @@
 
 import { fromFields } from './lib/firestore-rest.mjs';
 import { VIDEOS_PER_CALL, planRefresh } from './lib/youtube-refresh.mjs';
+import { writeSummary } from './lib/summary.mjs';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const { YOUTUBE_API_KEY, GOOGLE_ACCESS_TOKEN, GCP_PROJECT } = process.env;
@@ -108,6 +109,13 @@ const plan = planRefresh(markers, items);
 console.log(`対象 ${markers.length} 件・YouTube API ${calls} 回（${calls} ユニット）`);
 console.log(`更新 ${plan.updates.length} 件・論理削除 ${plan.gone.length} 件${plan.blockedGone ? `（${plan.blockedGone} 件は割合が多すぎるので止めた）` : ''}`);
 if (plan.gone.length) console.log(`論理削除: ${plan.gone.join(', ')}`);
+// Actions のジョブ概要に件数を出す（T31）
+writeSummary(DRY_RUN ? 'YouTube の情報の更新（確認だけ）' : 'YouTube の情報の更新', [
+  ['対象のマーカー', `${markers.length} 件`],
+  ['YouTube API の呼び出し', `${calls} 回（${calls} ユニット）`],
+  ['再生数などの更新', `${plan.updates.length} 件`],
+  ['消えた動画の論理削除', `${plan.gone.length} 件${plan.blockedGone ? `（${plan.blockedGone} 件は割合が多すぎるので止めた）` : ''}`],
+]);
 
 if (DRY_RUN) {
   console.log('--dry-run のため書き込みません');

@@ -1,6 +1,7 @@
 # main に push すると GitHub Pages に公開する。
 # 「1 回のコマンドでアップロード」の実体はこれ（中身は publish.yml）。
-name: Deploy on push
+# 名前は「種類（契機）」。実行名は付けず、コミットの題名がそのまま出る（命名規則は docs/70-publish.md。T31）
+name: 公開（push）
 
 on:
   push:
