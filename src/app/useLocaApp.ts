@@ -5,7 +5,7 @@
  * 保持するのは UI 状態と読み込んだ公開データだけ。保存は useMarkerSubmit がポート越しに行う。
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Bounds, LatLng, MarkerData, RankingFilter, RequestMarkerData } from '@/core/types';
 import { DEFAULT_RANKING_FILTER, MapMode, TabMode } from '@/core/types';
 import { JUMP_ZOOM } from '@/core/logic/geo';
@@ -26,13 +26,17 @@ export function useLocaApp() {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
 
   // 選んだときの写しをそのまま出すと、差分の購読で届いた変更（投稿者名の追従など）が開き直すまで映らない。
-  // 一覧に同じ ID の行があれば、いつもその最新の行を出す（一覧から消えたら写しのまま）
+  // 一覧に同じ ID の行があれば、いつもその最新の行を出す。一覧から消えたら（削除・取り下げ）選択を解く（下の effect）
   const [pickedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
   const selectedMarker = useMemo(
-    () => (pickedMarker ? (catalog.markers.find((m) => m.id === pickedMarker.id) ?? pickedMarker) : null),
+    () => (pickedMarker ? (catalog.markers.find((m) => m.id === pickedMarker.id) ?? null) : null),
     [pickedMarker, catalog.markers],
   );
-  const [selectedRequest, setSelectedRequest] = useState<RequestMarkerData | null>(null);
+  const [pickedRequest, setSelectedRequest] = useState<RequestMarkerData | null>(null);
+  const selectedRequest = useMemo(
+    () => (pickedRequest ? (catalog.requestMarkers.find((s) => s.id === pickedRequest.id) ?? null) : null),
+    [pickedRequest, catalog.requestMarkers],
+  );
   const [tempPos, setTempPos] = useState<LatLng | null>(null);
 
   const [form, setForm] = useState<MarkerFormState>(EMPTY_FORM);
@@ -72,6 +76,13 @@ export function useLocaApp() {
     setEditing(null);
     services.map.closeInfoWindow();
   }, [services.map]);
+
+  // 選んでいたマーカー・撮影リクエストの地点が一覧から消えたら（自分やほかの人の削除・取り下げ）、
+  // 消えたものの情報を出し続けないよう、選択を解いてサイドメニューとインフォウィンドウを閉じる
+  const selectionGone = (pickedMarker && !selectedMarker) || (pickedRequest && !selectedRequest);
+  useEffect(() => {
+    if (selectionGone && !catalog.loading) resetToSearch();
+  }, [selectionGone, catalog.loading, resetToSearch]);
 
   const jumpTo = useCallback(
     (pos: LatLng) => {

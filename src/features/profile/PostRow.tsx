@@ -25,11 +25,11 @@ export default function PostRow({ title, sub, checked, busy, deleteLabel, onTogg
         <span className="block truncate text-xs font-bold text-gray-800">{title}</span>
         <span className="block truncate text-[11px] text-gray-500">{sub}</span>
       </span>
-      <Button variant="secondary" className="shrink-0" onClick={onJump}>
+      <Button variant="secondary" className="w-24 shrink-0" onClick={onJump}>
         <i className="fa-solid fa-location-arrow mr-1" />
         {t.myPosts.jump}
       </Button>
-      <Button variant="dangerSoft" className="shrink-0" disabled={busy} onClick={onDelete}>
+      <Button variant="dangerSoft" className="w-24 shrink-0" disabled={busy} onClick={onDelete}>
         {deleteLabel}
       </Button>
     </li>

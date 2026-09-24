@@ -13,6 +13,7 @@
 import { useCallback } from 'react';
 import { UpstreamError } from '@/ports';
 import { useServices } from '@/shared/hooks/useServices';
+import { publishLocalChange } from '@/shared/localChanges';
 
 export interface CloseAccountResult {
   markers: number;
@@ -27,8 +28,11 @@ export function useCloseAccount(): () => Promise<CloseAccountResult | null> {
       throw new UpstreamError('この構成ではアカウントを削除できません。');
     }
     if (!(await auth.reauthenticate())) return null;
+    const uid = auth.currentUser()?.uid;
     const markers = await markerStore.softDeleteAllMine();
     const requests = await requestStore.withdrawAllMine();
+    // その人の投稿を、購読を待たずに地図から外す
+    if (uid) publishLocalChange({ kind: 'owner', uid });
     await profileStore.remove();
     await auth.deleteAccount();
     return { markers, requests };

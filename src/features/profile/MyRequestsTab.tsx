@@ -11,6 +11,7 @@ import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
+import { publishLocalChange } from '@/shared/localChanges';
 import { REQUEST_COLUMNS, requestExportRows, saveExport } from '@/features/admin/exportData';
 import PostsToolbar, { useSelection } from './PostsToolbar';
 import PostRow from './PostRow';
@@ -37,17 +38,20 @@ export default function MyRequestsTab({ uid, spots, onJump }: MyRequestsTabProps
     if (!requestStore || targets.length === 0) return;
     if (!window.confirm(interpolate(mp.confirmWithdraw, { count: targets.length }))) return;
     void exclusive(async () => {
-      let done = 0;
+      const done: string[] = [];
       try {
         for (const r of targets) {
           for (const e of (r.spot.entries ?? []).filter((x) => x.ownerUid === uid)) {
             await requestStore.withdraw({ id: e.id, heat: e.heat });
-            done += 1;
+            done.push(e.id);
           }
         }
-        toast.success(interpolate(mp.withdrawn, { count: done }));
+        toast.success(interpolate(mp.withdrawn, { count: done.length }));
       } catch (e) {
         toast.error(e instanceof Error ? e.message : String(e));
+      } finally {
+        // 途中で止まっても、取り下げた分は購読を待たずに地図と一覧から外す
+        publishLocalChange({ kind: 'requestEntries', ids: done });
       }
     });
   };

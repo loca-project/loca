@@ -1,7 +1,7 @@
 /**
  * マーカー管理のタブ（要件 5.2.5・T60）。ニックネームで投稿者を探し、その人のマーカーを選んで論理削除する。
  * 1 件だけ選んでいるときは「地図へジャンプ」を押せる。削除は論理削除だけ（ADR 0021）。
- * 消したマーカーは、updatedAt が進むので差分の購読で一覧から外れる（ADR 0013）。
+ * 消したマーカーは shared/localChanges.ts の知らせですぐ一覧から外す（ほかの人の画面には差分の購読で届く。ADR 0013）。
  */
 
 import React, { useMemo, useState } from 'react';
@@ -13,6 +13,7 @@ import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
+import { publishLocalChange } from '@/shared/localChanges';
 
 interface MarkersTabProps {
   markers: MarkerData[];
@@ -47,7 +48,9 @@ export default function MarkersTab({ markers, onJump }: MarkersTabProps) {
     if (!window.confirm(interpolate(mt.confirmDelete, { count: selected.length }))) return;
     void exclusive(async () => {
       try {
-        const count = await adminStore.softDeleteMarkers(selected.map((m) => m.id));
+        const ids = selected.map((m) => m.id);
+        const count = await adminStore.softDeleteMarkers(ids);
+        publishLocalChange({ kind: 'markers', ids });
         toast.success(interpolate(mt.deleted, { count }));
         setChecked(new Set());
       } catch (e) {

@@ -13,6 +13,7 @@ import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
+import { publishLocalChange } from '@/shared/localChanges';
 
 interface ReportsTabProps {
   markers: MarkerData[];
@@ -108,6 +109,7 @@ export default function ReportsTab({ markers, onJump }: ReportsTabProps) {
                   interpolate(rt.confirmDelete, { title }),
                   async () => {
                     await adminStore.softDeleteMarkers([s.markerId]);
+                    publishLocalChange({ kind: 'markers', ids: [s.markerId] });
                     await reportStore.resolve(s.markerId);
                   },
                   rt.deleted,

@@ -3,12 +3,14 @@
  * 1. 起動時に markers.json（前日のバッチで作った確定データ）を読む。
  * 2. Firebase が使える構成なら、その同期時刻（syncedAt）より後に変わったマーカーを onSnapshot で購読し、一覧に合流させる。
  * 自分の保存直後は upsertMarker / removeMarker でも直す（購読が届く前に地図へ出すため。同じ ID なら上書きされる）。
+ * 画面の外（自分の投稿・管理者モード・アカウント削除）での削除・取り下げは shared/localChanges.ts の知らせで外す。
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EquipmentDef, MarkerData, RequestEntry, RequestMarkerData } from '@/core/types';
 import { mergeRequestEntries, removeRequestEntries } from '@/core/logic/requests';
 import { setHealth } from '@/runtime/health';
+import { onLocalChange } from '@/shared/localChanges';
 import { useServices } from './useServices';
 
 export interface Catalog {
@@ -100,6 +102,28 @@ export function useCatalog(): Catalog {
   const removeRequestEntryIds = useCallback((ids: string[]) => {
     setRequestMarkers((prev) => removeRequestEntries(prev, ids));
   }, []);
+
+  // 自分の削除・取り下げを、購読を待たずに一覧から外す（shared/localChanges.ts）
+  useEffect(
+    () =>
+      onLocalChange((change) => {
+        if (change.kind === 'markers') {
+          const gone = new Set(change.ids);
+          setMarkers((prev) => prev.filter((m) => !gone.has(m.id)));
+        } else if (change.kind === 'requestEntries') {
+          removeRequestEntryIds(change.ids);
+        } else {
+          setMarkers((prev) => prev.filter((m) => m.ownerUid !== change.uid));
+          setRequestMarkers((prev) =>
+            removeRequestEntries(
+              prev,
+              prev.flatMap((s) => (s.entries ?? []).filter((e) => e.ownerUid === change.uid).map((e) => e.id)),
+            ),
+          );
+        }
+      }),
+    [removeRequestEntryIds],
+  );
 
   // 撮影リクエストの差分（作成と取り下げ。変更は無い）
   useEffect(() => {

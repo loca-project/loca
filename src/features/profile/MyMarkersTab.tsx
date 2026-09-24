@@ -11,6 +11,7 @@ import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
+import { publishLocalChange } from '@/shared/localChanges';
 import { MARKER_COLUMNS, markerExportRows, saveExport } from '@/features/admin/exportData';
 import PostsToolbar, { useSelection } from './PostsToolbar';
 import PostRow from './PostRow';
@@ -36,6 +37,8 @@ export default function MyMarkersTab({ mine, onJump }: MyMarkersTabProps) {
     void exclusive(async () => {
       try {
         const count = await markerStore.softDeleteMine(targets);
+        // 購読を待たずに地図と一覧から外す（残ったままだと二重に削除できてしまう）
+        publishLocalChange({ kind: 'markers', ids: targets });
         toast.success(interpolate(mp.deletedMarkers, { count }));
       } catch (e) {
         toast.error(e instanceof Error ? e.message : String(e));
