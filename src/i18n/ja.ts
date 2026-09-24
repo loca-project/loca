@@ -1,5 +1,7 @@
 /** 日本語リソース。これが基準となる形（en.ts は同じ形を満たす）。 */
 
+import { adminJa } from './admin.ja';
+
 export const ja = {
   appName: 'Loca',
   tagline: '地図に残す、あの場所の記録',
@@ -296,58 +298,8 @@ export const ja = {
     registered: '登録',
   },
 
-  // 管理者モード（要件 5・T27）
-  admin: {
-    mode: '管理者モード',
-    tabStatistics: '統計分析',
-    tabExport: 'データエクスポート',
-    tabJobs: '定期処理',
-    tabUsers: 'ユーザー管理',
-    // ユーザー管理（要件 5.2.4・T59）。利用者はニックネームと uid で見分ける（ADR 0019）
-    users: {
-      reload: 'ユーザー情報の取得',
-      note: 'Firestore から読み直します。メールアドレスと Google の名前は保存していないので、ニックネームと uid で見分けます。',
-      admins: '管理者',
-      users: '一般のユーザー',
-      blacklist: 'ブラックリスト',
-      noProfile: '（プロフィールなし）',
-      delete: '削除',
-      toBlacklist: 'ブラックリストへ',
-      unblacklist: '登録解除',
-      confirmDelete: '「{name}」のプロフィールを削除しますか？マーカーは消えません（マーカー管理で消せます）。次にログインすると登録画面から始まります。',
-      confirmBlacklist: '「{name}」をブラックリストに入れますか？ログインできなくなり、投稿もできなくなります。',
-      confirmUnblacklist: '「{name}」をブラックリストから外しますか？',
-      deleted: 'プロフィールを削除しました',
-      blacklisted: 'ブラックリストに入れました',
-      unblacklisted: 'ブラックリストから外しました',
-    },
-    blocked: {
-      title: 'ログインできません',
-      body: 'このアカウントは登録が制御されています。心当たりがない場合は、サイトの管理者にお問い合わせください。',
-      ok: '閉じる',
-    },
-    jobsEmpty: '定期処理の記録はまだありません。',
-    jobRanAt: '最後に動いた日時',
-    jobNames: {
-      'youtube-refresh': 'YouTube の情報の更新（毎晩）',
-      'purge-deleted': '30 日たった論理削除の物理削除（毎晩）',
-    },
-    jobValues: {
-      checked: '確かめたマーカー',
-      updated: '更新したマーカー',
-      gone: '消えた動画として論理削除',
-      blockedGone: '多すぎて止めた論理削除',
-      apiCalls: 'YouTube API の呼び出し',
-      markers: '消したマーカー',
-      requests: '消した撮影リクエスト',
-      videos: '消した動画の索引',
-    },
-    exportCsv: 'CSV でエクスポート',
-    exportJson: 'JSON でエクスポート',
-    periodFrom: '開始',
-    periodTo: '終了',
-    total: '合計',
-  },
+  // 管理者モード（要件 5・T27〜T61）。中身は admin.ja.ts
+  admin: adminJa,
 
   alerts: {
     invalidUrl: 'Youtube URL の形式が正しくありません。',

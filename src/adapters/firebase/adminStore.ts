@@ -21,6 +21,8 @@ import { UpstreamError } from '@/ports';
 import { toUpstream } from './errors';
 
 const ADMIN_ONLY = 'この操作は管理者だけができます。';
+/** まとめて論理削除するときの 1 バッチの件数（ルールの get・exists は本番でバッチあたり 20 回まで） */
+const DELETE_CHUNK = 3;
 const ms = (v: unknown) => (v instanceof Timestamp ? v.toMillis() : 0);
 
 export function createAdminStore(db: Firestore, currentUser: () => AuthUser | null): AdminStorePort {
@@ -104,6 +106,26 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
     unblacklist: (uid) =>
       guard(async () => {
         await deleteDoc(doc(db, 'blacklist', uid));
+      }),
+
+    softDeleteMarkers: (ids) =>
+      guard(async () => {
+        const alive: { id: string; videoId?: string }[] = [];
+        for (const id of ids) {
+          const data = (await getDoc(doc(db, 'markers', id))).data();
+          if (data && data.deleted !== true) alive.push({ id, videoId: data.videoId as string | undefined });
+        }
+        for (let i = 0; i < alive.length; i += DELETE_CHUNK) {
+          const batch = writeBatch(db);
+          for (const m of alive.slice(i, i + DELETE_CHUNK)) {
+            batch.update(doc(db, 'markers', m.id), { deleted: true, updatedAt: serverTimestamp() });
+            if (!m.videoId) continue;
+            const index = (await getDoc(doc(db, 'videos', m.videoId))).data();
+            if (index?.markerId === m.id && index.blocked !== true) batch.delete(doc(db, 'videos', m.videoId));
+          }
+          await batch.commit();
+        }
+        return alive.length;
       }),
   };
 }

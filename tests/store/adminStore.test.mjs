@@ -87,3 +87,29 @@ describe('ユーザー管理（T59）', () => {
     await assert.rejects(alice.blacklist('bob'), { name: 'UpstreamError' });
   });
 });
+
+describe('マーカー管理（T60）', () => {
+  beforeEach(async () => {
+    const { storedMarker } = await import('../rules/helpers.mjs');
+    await seed(env, async (db) => {
+      for (let i = 0; i < 4; i += 1) {
+        const m = storedMarker('alice');
+        await setDoc(doc(db, 'markers', `a${i}`), m);
+        await setDoc(doc(db, 'videos', m.videoId), { markerId: `a${i}`, ownerUid: 'alice', ...(i === 0 ? { blocked: true } : {}) });
+      }
+    });
+  });
+
+  it('管理者は他人のマーカーをまとめて論理削除でき（3 件ずつのバッチ）、禁止の印の無い索引が外れる', async () => {
+    assert.equal(await storeFor('root').softDeleteMarkers(['a0', 'a1', 'a2', 'a3']), 4);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      for (let i = 0; i < 4; i += 1) assert.equal((await getDoc(doc(db, 'markers', `a${i}`))).data().deleted, true);
+    });
+    assert.equal(await storeFor('root').softDeleteMarkers(['a0']), 0);
+  });
+
+  it('一般の利用者は他人のマーカーを消せない（UpstreamError）', async () => {
+    await assert.rejects(storeFor('bob').softDeleteMarkers(['a1']), { name: 'UpstreamError' });
+  });
+});

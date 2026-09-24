@@ -12,3 +12,4 @@ export * from './tags';
 export * from './mapFilter';
 export * from './profile';
 export * from './myPosts';
+export * from './adminMarkers';

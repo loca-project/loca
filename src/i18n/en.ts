@@ -4,8 +4,8 @@
  */
 
 import type { Dictionary } from './ja';
-
-type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+import type { DeepPartial } from './deepPartial';
+import { adminEn } from './admin.en';
 
 export const en: DeepPartial<Dictionary> = {
   appName: 'Loca',
@@ -307,56 +307,7 @@ export const en: DeepPartial<Dictionary> = {
     registered: 'Registered',
   },
 
-  admin: {
-    mode: 'Admin mode',
-    tabStatistics: 'Statistics',
-    tabExport: 'Data export',
-    tabJobs: 'Scheduled jobs',
-    tabUsers: 'Users',
-    users: {
-      reload: 'Reload users',
-      note: 'Reads again from Firestore. Email addresses and Google names are not stored, so users are shown by nickname and uid.',
-      admins: 'Administrators',
-      users: 'Users',
-      blacklist: 'Blacklist',
-      noProfile: '(no profile)',
-      delete: 'Delete',
-      toBlacklist: 'Blacklist',
-      unblacklist: 'Remove',
-      confirmDelete: 'Delete the profile of "{name}"? Their markers stay (remove them in Marker management). They start over from registration next time.',
-      confirmBlacklist: 'Blacklist "{name}"? They will not be able to sign in or post.',
-      confirmUnblacklist: 'Remove "{name}" from the blacklist?',
-      deleted: 'Profile deleted',
-      blacklisted: 'Added to the blacklist',
-      unblacklisted: 'Removed from the blacklist',
-    },
-    blocked: {
-      title: 'You cannot sign in',
-      body: 'Registration for this account is restricted. If you think this is a mistake, please contact the site administrator.',
-      ok: 'Close',
-    },
-    jobsEmpty: 'No scheduled job has run yet.',
-    jobRanAt: 'Last run',
-    jobNames: {
-      'youtube-refresh': 'YouTube info refresh (nightly)',
-      'purge-deleted': 'Erase rows deleted 30+ days ago (nightly)',
-    },
-    jobValues: {
-      checked: 'Markers checked',
-      updated: 'Markers updated',
-      gone: 'Removed as unavailable videos',
-      blockedGone: 'Removals stopped (too many)',
-      apiCalls: 'YouTube API calls',
-      markers: 'Markers erased',
-      requests: 'Shooting requests erased',
-      videos: 'Video index entries erased',
-    },
-    exportCsv: 'Export CSV',
-    exportJson: 'Export JSON',
-    periodFrom: 'From',
-    periodTo: 'To',
-    total: 'Total',
-  },
+  admin: adminEn,
 
   alerts: {
     invalidUrl: 'That YouTube URL is not valid.',

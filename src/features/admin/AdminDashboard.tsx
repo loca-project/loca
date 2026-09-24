@@ -1,8 +1,8 @@
 /**
  * 管理者モード（要件 5・T27）。右上のメニューの「管理者モード」から開く（admins/{uid} がある人だけに出す）。
  *
- * タブ: サイト全体の統計分析・データエクスポート（要件 5.2.1・5.2.2）、ユーザー管理（5.2.4・T59）、定期処理（jobs の記録）。
- * マーカー管理とログ一覧（T60）・通報（T61）はここに足す。
+ * タブ（要件 5.1 の順）: 統計分析・データエクスポート（5.2.1・5.2.2）、ログ一覧（5.2.3・T60）、ユーザー管理（5.2.4・T59）、
+ * マーカー管理（5.2.5・T60）、定期処理（jobs の記録）。通報（T61）はここに足す。
  * 利用者向けは「自分の投稿」（自分の分だけの統計とエクスポート）。タブの見た目は DashboardTabs で共有する。
  * 画面の判定は表示の切り替えにだけ使い、権限はルールが守る。
  */
@@ -16,16 +16,20 @@ import StatisticsTab from './StatisticsTab';
 import ExportTab from './ExportTab';
 import JobsTab from './JobsTab';
 import UsersTab from './UsersTab';
+import MarkersTab from './MarkersTab';
+import LogsTab from './LogsTab';
 
-type TabId = 'statistics' | 'export' | 'users' | 'jobs';
+type TabId = 'statistics' | 'export' | 'logs' | 'users' | 'markers' | 'jobs';
 
 interface AdminDashboardProps {
   open: boolean;
   markers: MarkerData[];
   onClose: () => void;
+  /** マーカー管理の「地図へジャンプ」（管理者モードを閉じて地図を移す） */
+  onJump: (marker: MarkerData) => void;
 }
 
-export default function AdminDashboard({ open, markers, onClose }: AdminDashboardProps) {
+export default function AdminDashboard({ open, markers, onClose, onJump }: AdminDashboardProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<TabId>('statistics');
 
@@ -37,14 +41,18 @@ export default function AdminDashboard({ open, markers, onClose }: AdminDashboar
         tabs={[
           { id: 'statistics', icon: 'fa-chart-pie', label: t.admin.tabStatistics },
           { id: 'export', icon: 'fa-file-export', label: t.admin.tabExport },
+          { id: 'logs', icon: 'fa-scroll', label: t.admin.tabLogs },
           { id: 'users', icon: 'fa-users-gear', label: t.admin.tabUsers },
+          { id: 'markers', icon: 'fa-location-dot', label: t.admin.tabMarkers },
           { id: 'jobs', icon: 'fa-clock-rotate-left', label: t.admin.tabJobs },
         ]}
       />
       <div className="min-h-[20rem]">
         {tab === 'statistics' && <StatisticsTab markers={markers} />}
         {tab === 'export' && <ExportTab markers={markers} />}
+        {tab === 'logs' && <LogsTab markers={markers} />}
         {tab === 'users' && <UsersTab />}
+        {tab === 'markers' && <MarkersTab markers={markers} onJump={onJump} />}
         {tab === 'jobs' && <JobsTab />}
       </div>
     </Modal>

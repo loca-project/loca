@@ -382,7 +382,16 @@ export default function AppShell() {
 
       {app.modals.admin && (
         <Suspense fallback={null}>
-          <AdminDashboard open markers={app.catalog.markers} onClose={() => app.openModal('admin', false)} />
+          <AdminDashboard
+            open
+            markers={app.catalog.markers}
+            onClose={() => app.openModal('admin', false)}
+            onJump={(m) => {
+              app.openModal('admin', false);
+              app.jumpTo({ lat: m.lat, lng: m.lng });
+              app.handleMarkerClick(m);
+            }}
+          />
         </Suspense>
       )}
     </div>

@@ -47,4 +47,9 @@ export interface AdminStorePort extends Adapter {
   blacklist(uid: string): Promise<void>;
   /** ブラックリストから外す。 */
   unblacklist(uid: string): Promise<void>;
+  /**
+   * マーカーをまとめて論理削除し、動画の索引を外す（禁止の印が付いた索引は残す）。要件 5.2.5・T60。
+   * 物理削除は 30 日後に Actions が行う（ADR 0021）。消した件数を返す（削除済みは数えない）。
+   */
+  softDeleteMarkers(ids: string[]): Promise<number>;
 }
