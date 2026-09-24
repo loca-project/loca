@@ -35,12 +35,24 @@ export function storedProfile(uid) {
   return { nickname: `${uid} さん`, consentVersion: 1, agreedAt: past, createdAt: past, updatedAt: past };
 }
 
-/** Firestore を空にし、REGISTERED の全員のプロフィールを置く。 */
+/** Firestore を空にし、REGISTERED の全員のプロフィールと名前の索引（nicknames/{小文字}）を置く。 */
 export async function resetFirestore(env, registered = REGISTERED) {
   await env.clearFirestore();
   await seed(env, async (db) => {
-    for (const uid of registered) await setDoc(doc(db, 'users', uid), storedProfile(uid));
+    for (const uid of registered) {
+      const profile = storedProfile(uid);
+      await setDoc(doc(db, 'users', uid), profile);
+      await setDoc(doc(db, 'nicknames', profile.nickname.toLowerCase()), { uid });
+    }
   });
+}
+
+/** アプリと同じ手順で登録する: プロフィールと名前の索引を同じバッチで書く。 */
+export function registerWrite(db, uid, profile) {
+  const batch = writeBatch(db);
+  batch.set(doc(db, 'users', uid), profile);
+  batch.set(doc(db, 'nicknames', profile.nickname.toLowerCase()), { uid });
+  return batch.commit();
 }
 
 let videoSeq = 0;

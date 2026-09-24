@@ -31,7 +31,7 @@ export const en: DeepPartial<Dictionary> = {
     registerTitle: 'Create your profile',
     registerLead: 'This is your first sign-in. Choose a nickname to show as the poster name, and review the terms below.',
     nickname: 'Nickname',
-    nicknameHint: '1–20 characters. Shown publicly as the poster of your markers (your Google name is never shown).',
+    nicknameHint: '1–20 characters, not already used by someone else. Shown publicly as the poster of your markers (your Google name is never shown).',
     consentsTitle: 'Terms',
     consents: {
       rights:
@@ -53,9 +53,10 @@ export const en: DeepPartial<Dictionary> = {
     google: 'Linked Google account',
     createdAt: 'Registered on',
     agreedAt: 'Agreed on',
-    nicknameNote: 'Changing it does not change the poster name on markers you already posted.',
+    nicknameNote: 'Markers you already posted will show the new name too. You can change it once a minute.',
     update: 'Update',
     updated: 'Profile updated',
+    aligned: 'Updated the poster name on {count} marker(s) to your nickname',
     loadFailed: 'Could not load your profile. Please reload the page later.',
     needed: 'You need to create a profile before posting.',
   },

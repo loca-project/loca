@@ -4,8 +4,8 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { Timestamp, deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { newMarker, resetFirestore, seed, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
+import { Timestamp, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { newMarker, registerWrite, resetFirestore, seed, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
 
 let env;
 before(async () => { env = await setupEnv(); });
@@ -29,39 +29,98 @@ function profile(overrides = {}) {
   };
 }
 
+const reg = (uid, overrides = {}, db = as(uid)) => registerWrite(db, uid, profile(overrides));
+
+/** アプリと同じ手順で名前を変える: プロフィール・新しい索引・古い索引の手放しを同じバッチで書く。 */
+function renameWrite(uid, from, to, { release = true } = {}) {
+  const db = as(uid);
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'users', uid), { nickname: to, updatedAt: serverTimestamp() });
+  batch.set(doc(db, 'nicknames', to.toLowerCase()), { uid });
+  if (release) batch.delete(doc(db, 'nicknames', from.toLowerCase()));
+  return batch.commit();
+}
+
 describe('登録（作成）', () => {
-  it('本人が同意の版 1 とサーバー時刻で登録できる', async () => {
-    await assertSucceeds(setDoc(doc(as('dave'), 'users', 'dave'), profile()));
+  it('本人が同意の版 1 とサーバー時刻で、名前の索引と一緒に登録できる', async () => {
+    await assertSucceeds(reg('dave'));
   });
 
   it('他人の uid では登録できない', async () => {
-    await assertFails(setDoc(doc(as('dave'), 'users', 'erin'), profile()));
+    await assertFails(reg('erin', {}, as('dave')));
   });
 
   it('未ログインは登録できない', async () => {
-    await assertFails(setDoc(doc(guest(), 'users', 'dave'), profile()));
+    await assertFails(reg('dave', {}, guest()));
   });
 
   it('同意日時が端末の時計・同意の版が 1 以外なら拒否', async () => {
     const past = Timestamp.fromMillis(Date.parse('2026-01-01T00:00:00Z'));
-    await assertFails(setDoc(doc(as('dave'), 'users', 'dave'), profile({ agreedAt: past })));
-    await assertFails(setDoc(doc(as('dave'), 'users', 'dave'), profile({ consentVersion: 2 })));
+    await assertFails(reg('dave', { agreedAt: past }));
+    await assertFails(reg('dave', { consentVersion: 2 }));
   });
 
   it('メールなど決めていない項目は保存させない', async () => {
-    await assertFails(setDoc(doc(as('dave'), 'users', 'dave'), profile({ email: 'dave@example.com' })));
+    await assertFails(reg('dave', { email: 'dave@example.com' }));
   });
 
-  it('ニックネームは 1〜20 字・改行なし・前後の空白なし', async () => {
-    await assertSucceeds(setDoc(doc(as('dave'), 'users', 'dave'), profile({ nickname: 'あ'.repeat(20) })));
-    for (const nickname of ['', 'あ'.repeat(21), 'だい\nち', ' だいち']) {
-      await assertFails(setDoc(doc(as('carol'), 'users', 'carol'), profile({ nickname })));
+  it('ニックネームは 1〜20 字・改行なし・前後の空白なし・「/」なし', async () => {
+    await assertSucceeds(reg('dave', { nickname: 'あ'.repeat(20) }));
+    for (const nickname of ['', 'あ'.repeat(21), 'だい\nち', ' だいち', 'だい/ち', '__x__']) {
+      await assertFails(setDoc(doc(as('erin'), 'users', 'erin'), profile({ nickname })));
     }
   });
 
   it('ブラックリストの利用者は登録できない', async () => {
     await seed(env, (db) => setDoc(doc(db, 'blacklist', 'dave'), { reason: 'スパム' }));
+    await assertFails(reg('dave'));
+  });
+});
+
+describe('ニックネームの重複の禁止（ADR 0019 決定 9）', () => {
+  it('ほかの人が使っている名前では登録できない', async () => {
+    await assertFails(reg('dave', { nickname: 'alice さん' }));
+  });
+
+  it('大文字と小文字だけが違う名前も同じ名前とみなす', async () => {
+    await reg('dave', { nickname: 'Daichi' });
+    await assertFails(reg('erin', { nickname: 'DAICHI' }));
+  });
+
+  it('索引を作らない登録は拒否', async () => {
     await assertFails(setDoc(doc(as('dave'), 'users', 'dave'), profile()));
+  });
+
+  it('プロフィールの無い人は索引だけを先取りできない', async () => {
+    await assertFails(setDoc(doc(as('dave'), 'nicknames', 'だいち'), { uid: 'dave' }));
+  });
+
+  it('ほかの人が使っている名前には変えられない', async () => {
+    await assertFails(renameWrite('alice', 'alice さん', 'bob さん'));
+  });
+
+  it('変えたら古い名前は手放され、ほかの人が使えるようになる', async () => {
+    await assertSucceeds(renameWrite('alice', 'alice さん', 'ありす'));
+    await assertSucceeds(reg('dave', { nickname: 'alice さん' }));
+  });
+
+  it('古い名前の索引を残したままの変更は拒否（買い占めさせない）', async () => {
+    await assertFails(renameWrite('alice', 'alice さん', 'ありす', { release: false }));
+  });
+
+  it('他人の索引は消せない・書き換えられない', async () => {
+    await assertFails(deleteDoc(doc(as('bob'), 'nicknames', 'alice さん')));
+    await assertFails(setDoc(doc(as('bob'), 'nicknames', 'alice さん'), { uid: 'bob' }));
+  });
+
+  it('いまの名前の索引は本人でも消せない', async () => {
+    await assertFails(deleteDoc(doc(as('alice'), 'nicknames', 'alice さん')));
+  });
+
+  it('ログイン済みなら使われているかを 1 件ずつ確かめられる（一覧は不可）', async () => {
+    await assertSucceeds(getDoc(doc(as('dave'), 'nicknames', 'alice さん')));
+    await assertFails(getDoc(doc(guest(), 'nicknames', 'alice さん')));
+    await assertFails(getDocs(collection(as('dave'), 'nicknames')));
   });
 });
 
@@ -73,8 +132,13 @@ describe('閲覧・編集・削除', () => {
     await assertFails(getDoc(doc(guest(), 'users', 'alice')));
   });
 
-  it('本人はニックネームを変えられる', async () => {
-    await assertSucceeds(updateDoc(doc(as('alice'), 'users', 'alice'), { nickname: 'ありす', updatedAt: serverTimestamp() }));
+  it('大文字小文字だけの変更は、索引を持ったまま変えられる', async () => {
+    await assertSucceeds(updateDoc(doc(as('alice'), 'users', 'alice'), { nickname: 'ALICE さん', updatedAt: serverTimestamp() }));
+  });
+
+  it('前の登録・変更から 60 秒以内の変更は拒否（付け替えの繰り返しで書き込みを増やさせない）', async () => {
+    await reg('dave');
+    await assertFails(renameWrite('dave', 'だいち', 'だいち2'));
   });
 
   it('同意の記録と登録日は変えられない', async () => {
@@ -90,6 +154,45 @@ describe('閲覧・編集・削除', () => {
   it('本人は消せない（アカウント削除は T54）。管理者は消せる', async () => {
     await assertFails(deleteDoc(doc(as('alice'), 'users', 'alice')));
     await assertSucceeds(deleteDoc(doc(as('root'), 'users', 'alice')));
+  });
+});
+
+describe('投稿者名をいまのニックネームにそろえる（ADR 0019 決定 7）', () => {
+  const align = (uid, createdBy, extra = {}) =>
+    updateDoc(doc(as(uid), 'markers', 'm1'), { createdBy, updatedAt: serverTimestamp(), ...extra });
+
+  beforeEach(async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'markers', 'm1'), storedMarker('alice', { createdBy: '古い名前' }));
+      await setDoc(doc(db, 'markers', 'm2'), storedMarker('alice', { createdBy: '古い名前', deleted: true }));
+    });
+  });
+
+  it('本人は印なしで、いまのニックネームにそろえられる（論理削除済みも）', async () => {
+    await assertSucceeds(align('alice', 'alice さん'));
+    await assertSucceeds(updateDoc(doc(as('alice'), 'markers', 'm2'), { createdBy: 'alice さん', updatedAt: serverTimestamp() }));
+  });
+
+  it('ニックネーム以外の名前（他人の名前）にはできない', async () => {
+    await assertFails(align('alice', 'bob さん'));
+  });
+
+  it('他人のマーカーの投稿者名は変えられない', async () => {
+    await assertFails(align('bob', 'bob さん'));
+  });
+
+  it('そろえるついでにほかの項目は変えられない', async () => {
+    await assertFails(align('alice', 'alice さん', { title: '書き換え' }));
+  });
+
+  it('ニックネームの変更と同じバッチでそろえられる', async () => {
+    const db = as('alice');
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'users', 'alice'), { nickname: 'ありす', updatedAt: serverTimestamp() });
+    batch.set(doc(db, 'nicknames', 'ありす'), { uid: 'alice' });
+    batch.delete(doc(db, 'nicknames', 'alice さん'));
+    batch.update(doc(db, 'markers', 'm1'), { createdBy: 'ありす', updatedAt: serverTimestamp() });
+    await assertSucceeds(batch.commit());
   });
 });
 

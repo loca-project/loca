@@ -2,11 +2,54 @@
     // users/{uid}。uid は Firebase Auth の uid なので Google アカウントに紐づく。
     // 持つのはニックネームと同意の記録だけ（メールや本名は保存しない）。読めるのは本人と管理者。
 
+    // 索引（nicknames/{キー}）の文書 ID に使えない形（/ を含む・. と ..・__ で囲む）も拒否する
     function validNickname(d) {
       return d.nickname is string
         && d.nickname.size() >= 1 && d.nickname.size() <= 20
-        && d.nickname.matches('[^\\r\\n]+')
-        && d.nickname.trim() == d.nickname;
+        && d.nickname.matches('[^\\r\\n/]+')
+        && d.nickname.trim() == d.nickname
+        && !(d.nickname in ['.', '..'])
+        && !d.nickname.matches('__.*__');
+    }
+
+    // ---- ニックネームの重複の禁止（ADR 0019 決定 9）----
+    // nicknames/{キー} = { uid }。キーはニックネームを小文字にしたもの（大文字小文字だけの違いも同じ名前とみなす）。
+    // 作成は無いときだけ通るので、同じ名前は 1 人しか持てない。プロフィールの登録・変更と同じバッチで作らせる。
+
+    function nicknameKey(nickname) {
+      return nickname.lower();
+    }
+
+    // この書き込みのあと、nickname の索引が uid のものになっているか
+    function holdsNickname(uid, nickname) {
+      let path = docPath('nicknames', nicknameKey(nickname));
+      return existsAfter(path) && getAfter(path).data.uid == uid;
+    }
+
+    // 名前を変えたら、古い名前の索引を同じバッチで手放す（買い占めさせない）
+    function releasedOld(uid) {
+      let before = nicknameKey(resource.data.nickname);
+      let path = docPath('nicknames', before);
+      return before == nicknameKey(request.resource.data.nickname)
+        || !existsAfter(path)
+        || getAfter(path).data.uid != uid;
+    }
+
+    match /nicknames/{key} {
+      // 登録前に「使われているか」を確かめるため、ログイン済みなら 1 件ずつ読める（一覧は出さない）
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if canWrite()
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid
+        && key == nicknameKey(getAfter(docPath('users', request.auth.uid)).data.nickname);
+      allow update: if false;
+      // 本人は、いまのニックネームでなくなった索引だけ手放せる
+      allow delete: if canWrite() && (
+        isAdmin()
+        || (resource.data.uid == request.auth.uid
+          && key != nicknameKey(getAfter(docPath('users', request.auth.uid)).data.nickname))
+      );
     }
 
     match /users/{uid} {
@@ -18,15 +61,20 @@
         && request.resource.data.keys().hasAll(['nickname', 'consentVersion', 'agreedAt', 'createdAt', 'updatedAt'])
         && validNickname(request.resource.data)
         && request.resource.data.consentVersion == 1
+        && holdsNickname(uid, request.resource.data.nickname)
         && request.resource.data.agreedAt == request.time
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt == request.time;
-      // 本人が変えられるのはニックネームだけ（要件 2.6）
+      // 本人が変えられるのはニックネームだけ（要件 2.6）。変えるたびに本人のマーカーの投稿者名も書き換えるので、
+      // 付け替えの繰り返しで書き込みを増やされないよう、前の登録・変更から 60 秒あける
       allow update: if canWrite()
         && request.auth.uid == uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickname', 'updatedAt'])
         && validNickname(request.resource.data)
-        && request.resource.data.updatedAt == request.time;
+        && holdsNickname(uid, request.resource.data.nickname)
+        && releasedOld(uid)
+        && request.resource.data.updatedAt == request.time
+        && request.time > resource.data.updatedAt + duration.value(60, 's');
       // 本人のアカウント削除は T54 で足す
       allow delete: if canWrite() && isAdmin();
     }

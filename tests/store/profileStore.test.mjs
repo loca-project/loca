@@ -4,9 +4,9 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { createServer } from 'vite';
-import { resetFirestore, setupEnv } from '../rules/helpers.mjs';
+import { resetFirestore, seed, setupEnv, storedMarker } from '../rules/helpers.mjs';
 
 let env;
 let vite;
@@ -35,6 +35,24 @@ function next(store, uid, until) {
       resolve(p);
     }, reject);
   });
+}
+
+/** マーカー ID → 投稿者名（ルールを通さずに読む）。 */
+async function markerNames() {
+  const names = {};
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    (await getDocs(collection(ctx.firestore(), 'markers'))).forEach((d) => { names[d.id] = d.data().createdBy; });
+  });
+  return names;
+}
+
+/** 名前の索引の持ち主（ルールを通さずに読む）。無ければ undefined。 */
+async function indexOf(nickname) {
+  let uid;
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    uid = (await getDoc(doc(ctx.firestore(), 'nicknames', nickname.toLowerCase()))).data()?.uid;
+  });
+  return uid;
 }
 
 async function read(uid) {
@@ -69,6 +87,53 @@ describe('プロフィールの登録と編集', () => {
   it('ニックネームを変えられる', async () => {
     await storeFor('alice').rename('ありす');
     assert.equal((await read('alice')).nickname, 'ありす');
+  });
+
+  it('変えると、本人のマーカー（120 件・論理削除済みを含む）の投稿者名も新しい名前になり、他人のは変わらない', async () => {
+    await seed(env, async (db) => {
+      for (let i = 0; i < 120; i += 1) {
+        await setDoc(doc(db, 'markers', `a${i}`), storedMarker('alice', { deleted: i === 0 }));
+      }
+      await setDoc(doc(db, 'markers', 'b1'), storedMarker('bob'));
+    });
+    await storeFor('alice').rename('ありす');
+    const names = await markerNames();
+    const alice = Object.entries(names).filter(([id]) => id.startsWith('a'));
+    assert.equal(alice.length, 120);
+    assert.ok(alice.every(([, name]) => name === 'ありす'));
+    assert.equal(names.b1, 'bob さん');
+  });
+
+  it('変えると古い名前の索引を手放し、新しい名前の索引を持つ', async () => {
+    await storeFor('alice').rename('ありす');
+    assert.equal(await indexOf('alice さん'), undefined);
+    assert.equal(await indexOf('ありす'), 'alice');
+  });
+
+  it('ほかの人が使っている名前（大文字小文字違い・全角英字を含む）は、登録も変更も止める', async () => {
+    await storeFor('dave').register('Daichi');
+    await assert.rejects(storeFor('erin').register('ＤＡＩＣＨＩ'), /ほかの人が使っています/);
+    await assert.rejects(storeFor('alice').rename('bob さん'), /ほかの人が使っています/);
+  });
+
+  it('ずれた投稿者名はログイン時の修復でそろう（件数を返す）', async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'markers', 'a1'), storedMarker('alice', { createdBy: '古い名前' }));
+      await setDoc(doc(db, 'markers', 'a2'), storedMarker('alice'));
+    });
+    assert.equal(await storeFor('alice').repair('alice さん'), 1);
+    assert.equal((await markerNames()).a1, 'alice さん');
+  });
+
+  it('重複の禁止より前に登録した人（索引なし）は、修復でいまの名前の索引を取る', async () => {
+    await seed(env, (db) => deleteDoc(doc(db, 'nicknames', 'alice さん')));
+    await storeFor('alice').repair('alice さん');
+    assert.equal(await indexOf('alice さん'), 'alice');
+  });
+
+  it('いまのニックネーム以外への修復はルールが拒否する', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'a1'), storedMarker('alice')));
+    await assert.rejects(storeFor('alice').repair('だれか'), /そろえられませんでした/);
   });
 
   it('21 字のニックネームは送る前に止める', async () => {

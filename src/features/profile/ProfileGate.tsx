@@ -3,7 +3,8 @@
  * ログイン済みで未登録なら登録画面を必ず出す。登録かキャンセル（ログアウト）のどちらかを選ぶまで閉じない。
  */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { interpolate } from '@/core/logic/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -24,6 +25,24 @@ export default function ProfileGate() {
   useEffect(() => {
     if (status === 'error') toast.error(t.profile.loadFailed);
   }, [status, toast, t]);
+
+  // ログインごとに 1 回、名前の索引の取り直しと、投稿者名がずれたマーカーの修復をする（ADR 0019 決定 7・9）。
+  // 名前の変更は rename 自身がそろえるので、変更のたびには走らせない
+  const aligned = useRef('');
+  useEffect(() => {
+    if (!profileStore || !profile) return;
+    if (aligned.current === profile.uid) return;
+    aligned.current = profile.uid;
+    profileStore
+      .repair(profile.nickname)
+      .then((count) => {
+        if (count > 0) toast.info(interpolate(t.profile.aligned, { count }));
+      })
+      .catch((e: unknown) => {
+        console.error('[loca] 投稿者名をそろえられませんでした', e);
+        toast.error(e instanceof Error ? e.message : String(e));
+      });
+  }, [profileStore, profile, toast, t]);
 
   /** 保存して、成功したら done を知らせる。失敗は理由を出す。 */
   const save = useCallback(

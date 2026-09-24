@@ -73,7 +73,7 @@
       return keys.hasAny(['youtube', 'deletedReason']);
     }
 
-    // 作成後に誰も変えられない項目
+    // 通常の更新で変えられない項目（createdBy は下の「投稿者名をそろえる」更新だけが、いまのニックネームに変えられる）
     function keepsIdentity() {
       return !request.resource.data.diff(resource.data).affectedKeys()
         .hasAny(['ownerUid', 'createdBy', 'createdAt']);
@@ -100,7 +100,7 @@
       allow read: if true;
 
       // 要件 1.1: 未認証では登録させない
-      // 投稿者名はプロフィールのニックネーム（作成時点の値。あとで変えても既存のマーカーは変わらない）
+      // 投稿者名はプロフィールのニックネーム。ニックネームを変えたら下の「投稿者名をそろえる」更新で追従させる
       allow create: if canWrite()
         && registered()
         && request.resource.data.createdBy == get(docPath('users', request.auth.uid)).data.nickname
@@ -127,6 +127,15 @@
           isAdmin()
           || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
         );
+
+      // 投稿者名を、いまのプロフィールのニックネームにそろえる（ADR 0019 決定 7）。
+      // 本人が createdBy と updatedAt だけを変える。名前はその時点のニックネームにしかできないので、他人の名前は名乗れない。
+      // ニックネームの変更と同じバッチでも後からでも通るよう getAfter で読む。印（レートリミット）は求めない
+      allow update: if canWrite()
+        && isOwner()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['createdBy', 'updatedAt'])
+        && request.resource.data.createdBy == getAfter(docPath('users', request.auth.uid)).data.nickname
+        && request.resource.data.updatedAt == request.time;
 
       // 物理削除は管理者だけ（要件 1.4）
       allow delete: if canWrite() && isAdmin();
