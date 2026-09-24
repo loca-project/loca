@@ -1,32 +1,5 @@
 {
-  "generatedAt": 1790225151902,
-  "syncedAt": 1790225150903,
-  "markers": [
-    {
-      "id": "ozgGSNaaWI6TcMIgtqHC",
-      "youtubeUrl": "https://www.youtube.com/watch?v=Firkhg9yU9g",
-      "videoId": "Firkhg9yU9g",
-      "lat": 34.675673,
-      "lng": 135.517376,
-      "tags": {
-        "action": "訪問/地域紹介",
-        "atmosphere": "明るい",
-        "emotion": "喜び"
-      },
-      "equipment": {
-        "manufacturer": "",
-        "model": "",
-        "series": ""
-      },
-      "title": "Sample",
-      "channelTitle": "立神",
-      "thumbnailUrl": "https://i.ytimg.com/vi/Firkhg9yU9g/hqdefault.jpg",
-      "prefecture": "大阪府",
-      "city": "大阪市",
-      "ownerUid": "t66DuxCJGBd2PTVmrwpee9xl2zT2",
-      "createdBy": "user-t66Dux",
-      "createdAt": 1790219641669,
-      "updatedAt": 1790219641669
-    }
-  ]
+  "generatedAt": 1790227384896,
+  "syncedAt": 1790227384037,
+  "markers": []
 }

@@ -1,32 +1,5 @@
 {
-  "generatedAt": 1790226035946,
-  "syncedAt": 1790226035135,
-  "markers": [
-    {
-      "id": "rq_lyJmOTNX8pBff8aq3Pza",
-      "lat": 35.4696911480646,
-      "lng": 139.49451534760811,
-      "prefecture": "神奈川県",
-      "city": "横浜市",
-      "entries": [
-        {
-          "id": "lyJmOTNX8pBff8aq3Pza",
-          "heat": 1,
-          "season": "春",
-          "timeOfDay": "日の出",
-          "atmosphere": "空撮/景観",
-          "equipment": {
-            "manufacturer": "DJI",
-            "model": "Mavic 3 Pro",
-            "series": "Mavic"
-          },
-          "ownerUid": "t66DuxCJGBd2PTVmrwpee9xl2zT2",
-          "createdAt": 1790220840756
-        }
-      ],
-      "totalHeat": 1,
-      "requestCount": 1,
-      "updatedAt": 1790220840756
-    }
-  ]
+  "generatedAt": 1790227384897,
+  "syncedAt": 1790227384037,
+  "markers": []
 }
