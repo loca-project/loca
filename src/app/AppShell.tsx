@@ -24,6 +24,8 @@ import EmptyMapNotice from '@/features/contribute/EmptyMapNotice';
 import AdminDashboard from '@/features/admin/AdminDashboard';
 import { openIssueForm } from '@/features/contribute/issueUrl';
 import HeaderBar from './HeaderBar';
+import HealthNotice from './HealthNotice';
+import PostButton from './PostButton';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
 import { usePins } from './usePins';
@@ -120,17 +122,21 @@ export default function AppShell() {
     app.resetToSearch();
   }, [app, remove, toast, t]);
 
-  /** ログインが要る構成で未ログインなら、登録モードに入れない（要件 1.1）。 */
-  const handleMapClick = useCallback(
-    (pos: LatLng) => {
-      if (auth.enabled && !auth.user) {
-        toast.info(t.store.loginRequired);
-        return;
-      }
-      app.handleMapClick(pos);
-    },
-    [app, auth.enabled, auth.user, toast, t],
-  );
+  /** ログインが要る構成で未ログインなら、投稿に進ませない（要件 1.1）。進めてよければ true。 */
+  const ensureCanPost = useCallback(() => {
+    if (auth.enabled && !auth.user) {
+      toast.info(t.store.loginRequired);
+      return false;
+    }
+    return true;
+  }, [auth.enabled, auth.user, toast, t]);
+
+  /** 「＋ 投稿する」: 次の地図クリックで場所を選ぶ状態にする（指摘 9）。 */
+  const startPosting = useCallback(() => {
+    if (!ensureCanPost()) return;
+    app.services.map.closeInfoWindow();
+    app.setPicking(true);
+  }, [app, ensureCanPost]);
 
   const handleSubmitRequest = useCallback(async () => {
     if (!app.tempPos) return;
@@ -187,7 +193,7 @@ export default function AppShell() {
         ghost={app.tempPos}
         rectangle={app.rectangle}
         drawing={app.drawing}
-        onMapClick={handleMapClick}
+        onMapClick={app.handleMapClick}
         onRectangleDrawn={(bounds) => {
           app.setDrawing(false);
           app.setRectangle(bounds);
@@ -240,14 +246,13 @@ export default function AppShell() {
             },
             onDeleteMarker: handleDeleteMarker,
             onAddRequest: () => {
-              if (!app.selectedRequest) return;
-              app.setTempPos({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
-              app.setMapMode(MapMode.REGISTER);
+              if (!app.selectedRequest || !ensureCanPost()) return;
+              app.startRegisterAt({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
               app.setRegisterTab('request');
             },
             onPostVideoFromRequest: () => {
-              if (!app.selectedRequest) return;
-              handleMapClick({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
+              if (!app.selectedRequest || !ensureCanPost()) return;
+              app.startRegisterAt({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
               app.setRegisterTab('marker');
             },
             onSearchRelated: () => {
@@ -276,6 +281,16 @@ export default function AppShell() {
         onClose={search.close}
         onJump={jump}
       />
+
+      <PostButton
+        offsetLeft={sidebarOffset}
+        picking={app.picking}
+        hidden={app.mapMode === MapMode.REGISTER || app.drawing}
+        onStart={startPosting}
+        onCancel={() => app.setPicking(false)}
+      />
+
+      <HealthNotice />
 
       <HeaderBar
         onOpenStats={() => app.openModal('stats')}

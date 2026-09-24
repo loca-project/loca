@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Button, Field, TextInput } from '@/shared/components/Controls';
+import { Button, Field, Segmented, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 
 export type SearchTarget = 'map' | 'marker';
@@ -42,21 +42,15 @@ export default function SearchPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 overflow-hidden rounded border border-gray-300 text-xs">
-        {(['map', 'marker'] as SearchTarget[]).map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => onTargetChange(value)}
-            disabled={textDisabled}
-            className={`py-1.5 font-bold transition disabled:text-gray-300 ${
-              target === value ? 'bg-loca-500 text-white' : 'bg-white text-gray-600'
-            }`}
-          >
-            {value === 'map' ? t.form.mapTab : t.form.markerTab}
-          </button>
-        ))}
-      </div>
+      <Segmented
+        value={target}
+        disabled={textDisabled}
+        onChange={onTargetChange}
+        options={[
+          { value: 'map', label: t.form.mapTab },
+          { value: 'marker', label: t.form.markerTab },
+        ]}
+      />
 
       <Field label={t.form.keyword}>
         <TextInput

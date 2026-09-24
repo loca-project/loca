@@ -10,7 +10,7 @@
  */
 
 import React, { useState } from 'react';
-import { Button } from '@/shared/components/Controls';
+import { Button, IconButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { canContribute } from '@/runtime/config';
 
@@ -52,15 +52,7 @@ export default function EmptyMapNotice({ offsetLeft, onOpenGuide }: EmptyMapNoti
       style={{ left: offsetLeft, right: 0 }}
     >
       <div className="pointer-events-auto relative w-[min(26rem,100%)] rounded-xl border border-gray-200 bg-white/95 p-5 text-center shadow-xl backdrop-blur">
-        <button
-          type="button"
-          onClick={close}
-          aria-label={t.close}
-          title={t.close}
-          className="absolute right-2 top-2 rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-        >
-          <i className="fa-solid fa-xmark" />
-        </button>
+        <IconButton icon="fa-solid fa-xmark" label={t.close} onClick={close} className="absolute right-2 top-2 text-gray-400" />
 
         <i className="fa-solid fa-location-dot mb-2 text-2xl text-loca-500" />
         <h2 className="text-sm font-bold text-gray-800">{t.appName}</h2>

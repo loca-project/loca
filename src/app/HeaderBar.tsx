@@ -1,128 +1,156 @@
 /**
- * 画面右上のメニュー。
+ * 画面右上。左から「メニュー（≡）」と「アカウント」の丸いボタンを並べる。
  *
- * ボタンを 5 つ並べると地図を隠すので、1 つのプルダウンに集約している。
- * ログイン・ログアウトはこのプルダウンの最上段に出す（ADR 0010）。ログイン中はボタンにアイコンを出す。
+ * - メニュー: 統計・投稿の流れ・言語だけ。迷わせないよう項目を絞る（リポジトリやデータの生成日時は出さない）。
+ * - アカウント: 未ログインなら「ログイン」、ログイン後は Google のような丸いアイコンだけ。
+ *   押すと名前・メール・ログアウトを出す。プロフィールと管理者モードはここに足す。
+ * - Firebase の設定が無い構成では、アカウントのボタン自体を出さない。
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/shared/hooks/useI18n';
-import { issueListUrl } from '@/features/contribute/issueUrl';
-import { canContribute } from '@/runtime/config';
 import { useAuth } from '@/shared/hooks/useAuth';
-import DataFreshness from './DataFreshness';
-import AuthMenuItems, { UserAvatar } from './AuthMenuItems';
+import { useToast } from '@/shared/components/Toast';
+import { Button, IconButton } from '@/shared/components/Controls';
 
 interface HeaderBarProps {
   onOpenStats: () => void;
   onOpenGuide: () => void;
 }
 
+type Popup = 'menu' | 'account' | null;
+
+const PANEL = 'absolute right-0 mt-2 w-60 overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl';
+const ITEM = 'flex h-9 w-full items-center gap-2.5 px-3 text-left text-xs text-gray-700 hover:bg-gray-100';
+/** 地図の上に浮かせる丸いボタンの共通の見た目 */
+const FLOATING = 'border border-gray-200 bg-white shadow-md';
+
+function Avatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
+  if (photoUrl) {
+    // Google のプロフィール画像はリファラ付きだと 403 になることがある
+    return <img src={photoUrl} alt={name} referrerPolicy="no-referrer" className="h-9 w-9 rounded-full object-cover" />;
+  }
+  return (
+    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-loca-500 text-sm font-bold text-white">
+      {name.slice(0, 1)}
+    </span>
+  );
+}
+
 export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) {
   const { t, lang, changeLanguage } = useI18n();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const repoUrl = issueListUrl();
   const auth = useAuth();
+  const toast = useToast();
+  const [popup, setPopup] = useState<Popup>(null);
+  const ref = useRef<HTMLDivElement>(null);
 
-  // メニューの外側をクリック、または Esc で閉じる
+  // 外側のクリック、または Esc で閉じる
   useEffect(() => {
-    if (!open) return undefined;
+    if (!popup) return undefined;
     const onPointerDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) setPopup(null);
     };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setPopup(null);
     document.addEventListener('mousedown', onPointerDown);
     window.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('mousedown', onPointerDown);
       window.removeEventListener('keydown', onKey);
     };
-  }, [open]);
+  }, [popup]);
 
-  const item =
-    'flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-gray-700 hover:bg-gray-100';
+  const toggle = (next: Exclude<Popup, null>) => setPopup((p) => (p === next ? null : next));
+  const choose = (action: () => void) => () => {
+    setPopup(null);
+    action();
+  };
+  const run = async (action: () => Promise<unknown>, done: string) => {
+    setPopup(null);
+    try {
+      if ((await action()) !== false) toast.success(done);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   return (
-    <div ref={ref} className="absolute right-4 top-4 z-40">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label={t.menu.label}
-        title={t.menu.label}
-        className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-md hover:bg-gray-50"
-      >
-        {auth.user ? <UserAvatar photoUrl={auth.user.photoUrl} size="h-4 w-4" /> : <i className="fa-solid fa-bars" />}
-        <span className="hidden sm:inline">{t.menu.label}</span>
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 mt-2 w-60 overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl"
-        >
-          <AuthMenuItems auth={auth} itemClassName={item} onDone={() => setOpen(false)} />
-
-          <button
-            type="button"
-            role="menuitem"
-            className={item}
-            onClick={() => {
-              onOpenStats();
-              setOpen(false);
-            }}
-          >
-            <i className="fa-solid fa-chart-pie w-4 text-gray-400" />
-            {t.admin.title}
-          </button>
-
-          <button
-            type="button"
-            role="menuitem"
-            className={item}
-            onClick={() => {
-              onOpenGuide();
-              setOpen(false);
-            }}
-          >
-            <i className="fa-solid fa-circle-question w-4 text-gray-400" />
-            {t.contribute.guideTitle}
-          </button>
-
-          <button
-            type="button"
-            role="menuitem"
-            className={item}
-            onClick={() => changeLanguage(lang === 'ja' ? 'en' : 'ja')}
-          >
-            <i className="fa-solid fa-language w-4 text-gray-400" />
-            {t.menu.language}
-            <span className="ml-auto font-mono text-[10px] text-gray-400">
-              {lang === 'ja' ? '日本語' : 'English'}
-            </span>
-          </button>
-
-          {canContribute() && repoUrl && (
-            <a
-              href={repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+    <div ref={ref} className="absolute right-4 top-4 z-40 flex items-center gap-2">
+      <div className="relative">
+        <IconButton
+          icon="fa-solid fa-bars"
+          label={t.menu.label}
+          aria-haspopup="menu"
+          aria-expanded={popup === 'menu'}
+          className={FLOATING}
+          onClick={() => toggle('menu')}
+        />
+        {popup === 'menu' && (
+          <div role="menu" className={PANEL}>
+            <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenStats)}>
+              <i className="fa-solid fa-chart-pie w-4 text-gray-400" />
+              {t.admin.title}
+            </button>
+            <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenGuide)}>
+              <i className="fa-solid fa-circle-question w-4 text-gray-400" />
+              {t.contribute.guideTitle}
+            </button>
+            <button
+              type="button"
               role="menuitem"
-              className={item}
-              onClick={() => setOpen(false)}
+              className={ITEM}
+              onClick={() => changeLanguage(lang === 'ja' ? 'en' : 'ja')}
             >
-              <i className="fa-brands fa-github w-4 text-gray-400" />
-              {t.contribute.repoLink}
-              <i className="fa-solid fa-arrow-up-right-from-square ml-auto text-[9px] text-gray-300" />
-            </a>
-          )}
+              <i className="fa-solid fa-language w-4 text-gray-400" />
+              {t.menu.language}
+              <span className="ml-auto text-[10px] text-gray-400">{lang === 'ja' ? '日本語' : 'English'}</span>
+            </button>
+          </div>
+        )}
+      </div>
 
-          <div className="my-1 border-t border-gray-100" />
-          <DataFreshness />
+      {auth.enabled && !auth.user && (
+        <Button
+          pill
+          className="px-4 shadow-md"
+          disabled={auth.busy}
+          onClick={() => run(auth.signIn, t.auth.signedIn)}
+        >
+          {t.auth.login}
+        </Button>
+      )}
+
+      {auth.user && (
+        <div className="relative">
+          <button
+            type="button"
+            aria-label={auth.user.displayName}
+            title={auth.user.displayName}
+            aria-haspopup="menu"
+            aria-expanded={popup === 'account'}
+            onClick={() => toggle('account')}
+            className="block rounded-full shadow-md ring-2 ring-white transition hover:ring-loca-200"
+          >
+            <Avatar photoUrl={auth.user.photoUrl} name={auth.user.displayName} />
+          </button>
+          {popup === 'account' && (
+            <div role="menu" className={PANEL}>
+              <div className="px-3 py-2">
+                <p className="truncate text-xs font-bold text-gray-800">{auth.user.displayName}</p>
+                {auth.user.email && <p className="truncate text-[11px] text-gray-400">{auth.user.email}</p>}
+              </div>
+              <div className="my-1 border-t border-gray-100" />
+              <button
+                type="button"
+                role="menuitem"
+                className={ITEM}
+                disabled={auth.busy}
+                onClick={() => run(auth.signOut, t.auth.signedOut)}
+              >
+                <i className="fa-solid fa-right-from-bracket w-4 text-gray-400" />
+                {t.auth.signOut}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

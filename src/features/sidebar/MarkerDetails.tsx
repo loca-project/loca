@@ -6,7 +6,7 @@
 import React from 'react';
 import type { MarkerData } from '@/core/types';
 import { formatDate } from '@/core/logic/format';
-import { Button } from '@/shared/components/Controls';
+import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 
 interface MarkerDetailsProps {
@@ -45,17 +45,35 @@ export default function MarkerDetails({
     .filter(Boolean)
     .join(' / ');
 
+  // 並びは利用者の動線の順: 見る（動画）→ 共有・通報 → 知る（詳細）→ 自分の操作 → 閉じる
   return (
     <div className="flex flex-col gap-3">
       {marker.thumbnailUrl && (
-        <button type="button" onClick={onWatch} className="overflow-hidden rounded" title={t.details.watchHere}>
+        <button type="button" onClick={onWatch} className="overflow-hidden rounded-md" title={t.details.watchHere}>
           <img src={marker.thumbnailUrl} alt="" className="w-full object-cover" />
         </button>
       )}
-      <p className="text-xs font-bold leading-snug text-gray-800">{marker.title ?? '-'}</p>
+      <div>
+        <p className="text-xs font-bold leading-snug text-gray-800">{marker.title ?? '-'}</p>
+        <p className="mt-0.5 text-[11px] text-gray-500">{marker.channelTitle ?? '-'}</p>
+      </div>
+
+      <LinkButton variant="danger" href={marker.youtubeUrl} target="_blank" rel="noopener noreferrer">
+        <i className="fa-brands fa-youtube mr-1.5" />
+        {t.details.openYoutube}
+      </LinkButton>
+      <div className="flex gap-2">
+        <Button variant="secondary" className="flex-1" onClick={onShare}>
+          <i className="fa-solid fa-share-nodes mr-1.5" />
+          {t.actions.share}
+        </Button>
+        <Button variant="secondary" className="flex-1" onClick={onReport}>
+          <i className="fa-solid fa-flag mr-1.5" />
+          {t.actions.report}
+        </Button>
+      </div>
 
       <dl>
-        <Row label={t.details.channel} value={marker.channelTitle ?? '-'} />
         <Row label={t.filters.prefecture} value={`${marker.prefecture ?? '-'} ${marker.city ?? ''}`} />
         <Row label={t.filters.tagAction} value={marker.tags?.action ?? '-'} />
         <Row label={t.filters.tagAtmosphere} value={marker.tags?.atmosphere ?? '-'} />
@@ -69,39 +87,19 @@ export default function MarkerDetails({
 
       {onEdit && onDelete && (
         <div className="flex gap-2">
-          <Button className="flex-1" onClick={onEdit} disabled={busy}>
+          <Button variant="secondary" className="flex-1" onClick={onEdit} disabled={busy}>
             <i className="fa-solid fa-pen mr-1.5" />
             {t.store.edit}
           </Button>
-          <Button variant="secondary" onClick={onDelete} disabled={busy} title={t.store.delete}>
-            <i className="fa-solid fa-trash mr-1.5 text-red-500" />
+          <Button variant="secondary" className="flex-1 text-red-600" onClick={onDelete} disabled={busy}>
+            <i className="fa-solid fa-trash mr-1.5" />
             {t.store.delete}
           </Button>
         </div>
       )}
 
-      <div className="flex gap-2">
-        <Button variant="secondary" className="flex-1" onClick={onShare}>
-          <i className="fa-solid fa-share-nodes mr-1.5" />
-          {t.actions.share}
-        </Button>
-        <Button variant="secondary" onClick={onReport} title={t.actions.report}>
-          <i className="fa-solid fa-flag" />
-        </Button>
-      </div>
-
-      <a
-        href={marker.youtubeUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="rounded bg-red-600 py-2 text-center text-xs font-bold text-white hover:bg-red-700"
-      >
-        <i className="fa-brands fa-youtube mr-1.5" />
-        {t.details.openYoutube}
-      </a>
-
       <Button variant="ghost" onClick={onCancel}>
-        {t.form.cancel}
+        {t.close}
       </Button>
     </div>
   );

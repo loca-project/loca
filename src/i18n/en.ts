@@ -20,9 +20,15 @@ export const en: DeepPartial<Dictionary> = {
 
   auth: {
     signIn: 'Sign in with Google',
+    login: 'Sign in',
     signOut: 'Sign out',
     signedIn: 'Signed in',
     signedOut: 'Signed out',
+  },
+
+  post: {
+    start: 'Post',
+    picking: 'Click the map to choose a place',
   },
 
   store: {
@@ -34,7 +40,7 @@ export const en: DeepPartial<Dictionary> = {
     saved: 'Marker registered',
     updated: 'Marker updated',
     deleted: 'Marker deleted',
-    loginRequired: 'Sign in to register (menu at the top right)',
+    loginRequired: 'Sign in to post ("Sign in" at the top right)',
     note: 'Your marker appears on the map right away.',
     submitRequest: 'Request',
     requestSaved: 'Shooting request registered',
@@ -86,7 +92,7 @@ export const en: DeepPartial<Dictionary> = {
     apply: 'Apply',
     mapTab: 'Map',
     markerTab: 'Marker',
-    clickHint: 'Click the map to pick a location',
+    clickHint: 'Press "+ Post" below, then choose a place on the map',
     jumpToMap: 'Jump to map',
     selectArea: 'Start area selection',
     clearArea: 'Clear area selection',
@@ -105,7 +111,7 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   empty: {
-    body: 'Nothing has been registered yet.\nClick the map and leave the first place you filmed.',
+    body: 'Nothing has been registered yet.\nUse "+ Post" below to leave the first place you filmed.',
     howTo: 'See how to submit',
     dismiss: 'Just browse the map',
   },
@@ -120,7 +126,7 @@ export const en: DeepPartial<Dictionary> = {
     openedBody:
       'Review it and create the issue. After automated checks it appears on the map within minutes.\nYour GitHub account serves as identity.',
     guideTitle: 'How submitting works',
-    guide1: 'Click the map to pick a place',
+    guide1: 'Press "+ Post" and choose a place on the map',
     guide2: 'Enter the video URL and tags',
     guide3: 'A GitHub form opens — review and submit it',
     guide4: 'Once checks pass it appears on the map within minutes',

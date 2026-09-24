@@ -7,7 +7,7 @@
 import React, { useState } from 'react';
 import type { LatLng } from '@/core/types';
 import { interpolate } from '@/core/logic/format';
-import { Button } from '@/shared/components/Controls';
+import { Button, IconButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import type { ResultRow } from './resultRow';
 
@@ -63,14 +63,7 @@ export default function ResultsPanel({
             {interpolate(t.results.count, { count: rows.length })}
           </span>
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={t.close}
-          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-        >
-          <i className="fa-solid fa-xmark" />
-        </button>
+        <IconButton icon="fa-solid fa-xmark" label={t.close} onClick={onClose} />
       </header>
 
       <div className="grow overflow-y-auto">

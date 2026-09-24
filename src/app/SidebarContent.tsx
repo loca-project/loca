@@ -3,6 +3,7 @@
 import React from 'react';
 import { MapMode, TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { Segmented } from '@/shared/components/Controls';
 import SearchPanel from '@/features/sidebar/SearchPanel';
 import MarkerForm from '@/features/sidebar/MarkerForm';
 import MarkerDetails from '@/features/sidebar/MarkerDetails';
@@ -90,20 +91,14 @@ export default function SidebarContent({
     return (
       <div className="flex flex-col gap-3">
         {!app.editing && (
-          <div className="grid grid-cols-2 overflow-hidden rounded border border-gray-300 text-[11px]">
-            {(['marker', 'request'] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => app.setRegisterTab(value)}
-                className={`py-1.5 font-bold transition ${
-                  app.registerTab === value ? 'bg-loca-500 text-white' : 'bg-white text-gray-600'
-                }`}
-              >
-                {value === 'marker' ? t.form.tabRegister : t.form.tabRequest}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            value={app.registerTab}
+            onChange={app.setRegisterTab}
+            options={[
+              { value: 'marker', label: t.form.tabRegister },
+              { value: 'request', label: t.form.tabRequest },
+            ]}
+          />
         )}
 
         {app.registerTab === 'marker' ? (

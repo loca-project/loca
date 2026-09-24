@@ -38,6 +38,8 @@ export function useLocaApp() {
   const [searchTarget, setSearchTarget] = useState<SearchTarget>('map');
   const [searchQuery, setSearchQuery] = useState('');
   const [drawing, setDrawing] = useState(false);
+  /** 「＋ 投稿する」を押して、地図のクリックで場所を選ぶのを待っている */
+  const [picking, setPicking] = useState(false);
   const [rectangle, setRectangle] = useState<Bounds | null>(null);
 
   const [filter, setFilter] = useState<RankingFilter>(DEFAULT_RANKING_FILTER);
@@ -62,6 +64,7 @@ export function useLocaApp() {
     setForm(EMPTY_FORM);
     setRequestForm(EMPTY_REQUEST_FORM);
     setEditing(null);
+    setPicking(false);
     services.map.closeInfoWindow();
   }, [services.map]);
 
@@ -73,11 +76,11 @@ export function useLocaApp() {
     [services.map],
   );
 
-  /** 地図クリックで投稿モードに入る。ログインが要る構成では AppShell が先に止める（要件 1.1）。 */
-  const handleMapClick = useCallback(
+  /** 指定した地点で投稿モードに入る（「＋ 投稿する」の後のクリックや、撮影リクエストの地点から）。 */
+  const startRegisterAt = useCallback(
     (pos: LatLng) => {
-      if (drawing) return;
       services.map.closeInfoWindow();
+      setPicking(false);
       setTab(TabMode.MAP);
       setMapMode(MapMode.REGISTER);
       setSelectedMarker(null);
@@ -87,7 +90,29 @@ export function useLocaApp() {
       setForm({ ...EMPTY_FORM, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) });
       setSidebarOpen(true);
     },
-    [drawing, services.map],
+    [services.map],
+  );
+
+  /**
+   * 地図のクリック（指摘 9）。普段は何もしない（見ているだけの人を投稿画面に飛ばさない）。
+   * - 「＋ 投稿する」を押した直後だけ、その地点で投稿モードに入る。
+   * - 投稿モード中は、入力を保ったままピンの位置だけを動かす。
+   */
+  const handleMapClick = useCallback(
+    (pos: LatLng) => {
+      if (drawing) return;
+      if (mapMode === MapMode.REGISTER) {
+        setTempPos(pos);
+        setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
+        return;
+      }
+      if (picking) {
+        startRegisterAt(pos);
+        return;
+      }
+      services.map.closeInfoWindow();
+    },
+    [drawing, mapMode, picking, startRegisterAt, services.map],
   );
 
   const handleMarkerClick = useCallback((marker: MarkerData) => {
@@ -186,6 +211,9 @@ export function useLocaApp() {
     resetToSearch,
     jumpTo,
     handleMapClick,
+    startRegisterAt,
+    picking,
+    setPicking,
     handleMarkerClick,
     handleRequestClick,
     requestEntriesOf,

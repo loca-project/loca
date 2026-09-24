@@ -1,8 +1,16 @@
-/** フォーム部品。見た目を 1 箇所に集約し、画面ごとの差異をなくす。 */
+/**
+ * フォーム部品。見た目を 1 箇所に集約し、画面ごとの差異をなくす。
+ * 高さはボタン・入力欄・セレクト・切り替えをすべて CONTROL（h-9 = 36px）にそろえる。
+ * 画面側で独自の <button> に見た目を書かず、ここの部品を使うこと。
+ */
 
 import React from 'react';
 
 type Variant = 'primary' | 'secondary' | 'danger' | 'ghost';
+
+/** 操作部品の共通の高さと角丸。丸型（pill）は地図の上に浮かせるボタンに使う。 */
+const CONTROL = 'h-9 rounded-md';
+const PILL = 'h-9 rounded-full';
 
 const VARIANT: Record<Variant, string> = {
   primary: 'bg-loca-500 text-white hover:bg-loca-600 disabled:bg-gray-300',
@@ -13,14 +21,15 @@ const VARIANT: Record<Variant, string> = {
 
 export function Button({
   variant = 'primary',
+  pill = false,
   className = '',
   ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; pill?: boolean }) {
   return (
     <button
       type="button"
       {...rest}
-      className={`rounded px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed ${VARIANT[variant]} ${className}`}
+      className={`inline-flex ${pill ? PILL : CONTROL} items-center justify-center whitespace-nowrap px-3 text-xs font-bold transition disabled:cursor-not-allowed ${VARIANT[variant]} ${className}`}
     />
   );
 }
@@ -43,15 +52,15 @@ export function Field({
   );
 }
 
-const inputClass =
-  'w-full rounded border border-gray-300 px-2 py-1.5 text-xs focus:border-loca-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400';
+const inputClass = `w-full ${CONTROL} border border-gray-300 bg-white px-2.5 text-xs focus:border-loca-500 focus:outline-none disabled:bg-gray-100 disabled:text-gray-400`;
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${inputClass} ${props.className ?? ''}`} />;
 }
 
 export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`${inputClass} ${props.className ?? ''}`} />;
+  // 複数行なので高さは固定しない（h-auto で上書き）
+  return <textarea {...props} className={`${inputClass} h-auto py-2 ${props.className ?? ''}`} />;
 }
 
 export function Select({
@@ -160,5 +169,72 @@ export function Checkbox({
       />
       <span>{children}</span>
     </label>
+  );
+}
+
+/** リンクをボタンと同じ見た目で出す（外部サイトへの遷移など）。 */
+export function LinkButton({
+  variant = 'primary',
+  className = '',
+  ...rest
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { variant?: Variant }) {
+  return (
+    <a
+      {...rest}
+      className={`inline-flex ${CONTROL} items-center justify-center whitespace-nowrap px-3 text-xs font-bold transition ${VARIANT[variant]} ${className}`}
+    />
+  );
+}
+
+/** 丸いアイコンだけのボタン（右上のメニュー、閉じるなど）。label は読み上げとツールチップに使う。 */
+export function IconButton({
+  icon,
+  label,
+  className = '',
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { icon: string; label: string }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      {...rest}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-600 transition hover:bg-gray-100 ${className}`}
+    >
+      <i className={icon} />
+    </button>
+  );
+}
+
+/** 2〜3 択の切り替え（地図／マーカー、投稿／リクエストなど）。 */
+export function Segmented<T extends string>({
+  value,
+  options,
+  onChange,
+  disabled = false,
+}: {
+  value: T;
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div role="radiogroup" className={`grid ${CONTROL} overflow-hidden border border-gray-300 text-xs`} style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }}>
+      {options.map((o) => (
+        <button
+          key={o.value}
+          type="button"
+          role="radio"
+          aria-checked={value === o.value}
+          disabled={disabled}
+          onClick={() => onChange(o.value)}
+          className={`font-bold transition disabled:text-gray-300 ${
+            value === o.value ? 'bg-loca-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+          }`}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
   );
 }
