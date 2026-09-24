@@ -6,7 +6,7 @@
  * どちらも、入力の検証と動画情報・地名の取得は共通。
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { MarkerContent, MarkerData, PlaceMeta, VideoMeta } from '@/core/types';
 import { getYoutubeId } from '@/core/logic/youtube';
 import { validateMarkerDraft } from '@/core/logic/validation';
@@ -15,6 +15,7 @@ import { findDuplicateByVideoId } from '@/core/logic/search';
 import { pseudonymOf } from '@/core/logic/format';
 import type { AuthUser } from '@/ports';
 import { useServices } from '@/shared/hooks/useServices';
+import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { draftFromForm, type MarkerFormState } from '@/features/marker/formState';
 import { openIssueForm } from '@/features/contribute/issueUrl';
@@ -91,10 +92,10 @@ function openMarkerIssue(form: MarkerFormState, videoId: string, meta: VideoMeta
 export function useMarkerSubmit() {
   const { video, geocode, auth, markerStore } = useServices();
   const { t } = useI18n();
-  const [loading, setLoading] = useState(false);
+  const { loading, exclusive } = useExclusive();
 
   const submit = useCallback(
-    async (ctx: SubmitContext): Promise<SubmitResult> => {
+    async (ctx: SubmitContext): Promise<SubmitResult | undefined> => {
       const user = auth?.currentUser() ?? null;
       if (markerStore && !user) return { ok: false, message: t.store.loginRequired };
       if (!markerStore && !canContribute()) return { ok: false, message: t.contribute.notConfigured };
@@ -117,55 +118,53 @@ export function useMarkerSubmit() {
         return { ok: false, message: '登録されていない撮影機器の組み合わせです。' };
       }
 
-      setLoading(true);
-      try {
-        // 動画情報は必須。地名は取れなくても保存は止めない（日次の再生成で補う）
-        const [metaResult, placeResult] = await Promise.allSettled([
-          video.fetchMeta(videoId),
-          geocode.reverse(Number(ctx.form.lat), Number(ctx.form.lng)),
-        ]);
-        if (metaResult.status === 'rejected') return { ok: false, message: t.alerts.fetchFail };
-        const meta = metaResult.value;
-        const place = placeResult.status === 'fulfilled' ? placeResult.value : null;
+      return exclusive(async () => {
+        try {
+          // 動画情報は必須。地名は取れなくても保存は止めない（日次の再生成で補う）
+          const [metaResult, placeResult] = await Promise.allSettled([
+            video.fetchMeta(videoId),
+            geocode.reverse(Number(ctx.form.lat), Number(ctx.form.lng)),
+          ]);
+          if (metaResult.status === 'rejected') return { ok: false, message: t.alerts.fetchFail };
+          const meta = metaResult.value;
+          const place = placeResult.status === 'fulfilled' ? placeResult.value : null;
 
-        if (!markerStore || !user) {
-          const opened = openMarkerIssue(ctx.form, videoId, meta, place);
-          if (!opened) return { ok: false, message: t.contribute.notConfigured };
-          return { ok: true, message: `${t.contribute.openedTitle}\n${t.contribute.openedBody}` };
+          if (!markerStore || !user) {
+            const opened = openMarkerIssue(ctx.form, videoId, meta, place);
+            if (!opened) return { ok: false, message: t.contribute.notConfigured };
+            return { ok: true, message: `${t.contribute.openedTitle}\n${t.contribute.openedBody}` };
+          }
+
+          const content = contentOf(ctx.form, videoId, meta, place, ctx.editing);
+          const id = ctx.editing ? ctx.editing.id : await markerStore.create(content);
+          if (ctx.editing) await markerStore.update(id, content);
+          return {
+            ok: true,
+            message: ctx.editing ? t.store.updated : t.store.saved,
+            saved: localMarker(id, content, user, ctx.editing),
+          };
+        } catch (e) {
+          return { ok: false, message: e instanceof Error ? e.message : String(e) };
         }
-
-        const content = contentOf(ctx.form, videoId, meta, place, ctx.editing);
-        const id = ctx.editing ? ctx.editing.id : await markerStore.create(content);
-        if (ctx.editing) await markerStore.update(id, content);
-        return {
-          ok: true,
-          message: ctx.editing ? t.store.updated : t.store.saved,
-          saved: localMarker(id, content, user, ctx.editing),
-        };
-      } catch (e) {
-        return { ok: false, message: e instanceof Error ? e.message : String(e) };
-      } finally {
-        setLoading(false);
-      }
+      });
     },
-    [video, geocode, auth, markerStore, t],
+    [video, geocode, auth, markerStore, exclusive, t],
   );
 
   /** 本人のマーカーを論理削除する。 */
   const remove = useCallback(
-    async (marker: MarkerData): Promise<SubmitResult> => {
+    async (marker: MarkerData): Promise<SubmitResult | undefined> => {
       if (!markerStore) return { ok: false, message: t.contribute.notConfigured };
-      setLoading(true);
-      try {
-        await markerStore.softDelete(marker.id);
-        return { ok: true, message: t.store.deleted };
-      } catch (e) {
-        return { ok: false, message: e instanceof Error ? e.message : String(e) };
-      } finally {
-        setLoading(false);
-      }
+      return exclusive(async () => {
+        try {
+          await markerStore.softDelete(marker.id);
+          return { ok: true, message: t.store.deleted };
+        } catch (e) {
+          return { ok: false, message: e instanceof Error ? e.message : String(e) };
+        }
+      });
     },
-    [markerStore, t],
+    [markerStore, exclusive, t],
   );
 
   return { submit, remove, loading, usesStore: markerStore !== null };

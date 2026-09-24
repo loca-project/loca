@@ -102,6 +102,7 @@ export default function AppShell() {
       equipment: app.catalog.equipment,
       editing: app.editing,
     });
+    if (!result) return; // 実行中の 2 回目の押下
     if (!result.ok) {
       toast.error(result.message);
       return;
@@ -115,6 +116,7 @@ export default function AppShell() {
   const handleWithdrawRequests = useCallback(
     async (entries: { id: string; heat: number }[]) => {
       const result = await requestSubmit.withdraw(entries);
+      if (!result) return; // 実行中の 2 回目の押下（取り下げ済みのものを消そうとして拒否されるのを防ぐ）
       app.catalog.removeRequestEntryIds(result.removedIds);
       if (!result.ok) {
         toast.error(result.message);
@@ -140,6 +142,7 @@ export default function AppShell() {
     const marker = app.selectedMarker;
     if (!marker || !window.confirm(t.store.confirmDelete)) return;
     const result = await remove(marker);
+    if (!result) return;
     if (!result.ok) {
       toast.error(result.message);
       return;
@@ -155,6 +158,7 @@ export default function AppShell() {
       return;
     }
     const result = await requestSubmit.submit(app.requestForm, app.tempPos);
+    if (!result) return;
     if (!result.ok) {
       toast.error(result.message);
       return;
