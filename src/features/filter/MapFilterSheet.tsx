@@ -48,37 +48,40 @@ export default function MapFilterSheet({ filter, shown, total, onChange, onClear
         </span>
         <IconButton icon="fa-solid fa-xmark" label={t.mapFilter.close} onClick={onClose} />
       </header>
-      <div className="flex grow flex-col gap-3 overflow-y-auto px-3 py-3">
-        <Field label={t.mapFilter.kinds}>
-          <CheckboxGroup
-            options={[
-              { value: 'videos', label: t.mapFilter.videos },
-              { value: 'requests', label: t.mapFilter.requests },
-            ]}
-            values={kinds}
-            onChange={(next) => onChange({ ...filter, videos: next.includes('videos'), requests: next.includes('requests') })}
-          />
-        </Field>
-        {SHEET_FIELDS.map((field) => (
-          <Field key={field} label={t.tags[field]}>
+      {/* スクロールする枠と縦に並べる枠を分ける（兼ねると、入りきらない分だけ子が縮んでボタンが潰れる） */}
+      <div className="grow overflow-y-auto px-3 py-3">
+        <div className="flex flex-col gap-3">
+          <Field label={t.mapFilter.kinds}>
             <CheckboxGroup
-              options={chipOptions(categoryOf(field), lang)}
-              values={filter.tags[field] ?? []}
-              onChange={(next) => onChange({ ...filter, tags: { ...filter.tags, [field]: next } })}
+              options={[
+                { value: 'videos', label: t.mapFilter.videos },
+                { value: 'requests', label: t.mapFilter.requests },
+              ]}
+              values={kinds}
+              onChange={(next) => onChange({ ...filter, videos: next.includes('videos'), requests: next.includes('requests') })}
             />
           </Field>
-        ))}
-        <Field label={t.form.category}>
-          <CheckboxGroup
-            options={EQUIPMENT_CATEGORY_KEYS.map((key) => ({ value: key, label: equipmentCategoryLabel(key, lang) }))}
-            values={filter.equipmentCategories}
-            onChange={(next) => onChange({ ...filter, equipmentCategories: next })}
-          />
-        </Field>
-        <p className="text-[10px] text-gray-400">{t.mapFilter.requestNote}</p>
-        <Button variant="secondary" onClick={onClear}>
-          {t.mapFilter.clear}
-        </Button>
+          {SHEET_FIELDS.map((field) => (
+            <Field key={field} label={t.tags[field]}>
+              <CheckboxGroup
+                options={chipOptions(categoryOf(field), lang)}
+                values={filter.tags[field] ?? []}
+                onChange={(next) => onChange({ ...filter, tags: { ...filter.tags, [field]: next } })}
+              />
+            </Field>
+          ))}
+          <Field label={t.form.category}>
+            <CheckboxGroup
+              options={EQUIPMENT_CATEGORY_KEYS.map((key) => ({ value: key, label: equipmentCategoryLabel(key, lang) }))}
+              values={filter.equipmentCategories}
+              onChange={(next) => onChange({ ...filter, equipmentCategories: next })}
+            />
+          </Field>
+          <p className="text-[10px] text-gray-400">{t.mapFilter.requestNote}</p>
+          <Button variant="secondary" onClick={onClear}>
+            {t.mapFilter.clear}
+          </Button>
+        </div>
       </div>
     </div>
   );

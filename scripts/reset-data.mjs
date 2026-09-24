@@ -6,7 +6,7 @@
  *
  * --yes を npm 経由で渡さないこと。ルートからの委譲では npm 自身の --yes として解釈され、スクリプトに届かない。
  *
- * 消す: markers・videos・requests・heatBudgets・rateLimits（利用者の投稿と、その索引・印）。
+ * 消す: markers・videos・requests・heatBudgets・rateLimits・reports（利用者の投稿と、その索引・印・通報）。
  * 残す: admins・blacklist（運用の設定）。
  * 物理削除は差分の購読に届かないので、消したあとは同期で公開データを作り直す（ADR 0013）。
  *   gh workflow run sync-firestore.yml
@@ -15,7 +15,7 @@
 
 import { FIRESTORE, PROJECT, call, ownerToken } from './lib/owner-auth.mjs';
 
-const TARGETS = ['markers', 'videos', 'requests', 'heatBudgets', 'rateLimits'];
+const TARGETS = ['markers', 'videos', 'requests', 'heatBudgets', 'rateLimits', 'reports'];
 const EXECUTE = process.argv.includes('--yes');
 const DATABASE = `projects/${PROJECT}/databases/(default)`;
 
