@@ -1,9 +1,8 @@
 /**
  * 静的 JSON を読む唯一のデータ実装。
  *
- * 公開データは GitHub リポジトリ上の `public/data/*.json` にあり、
- * GitHub Actions が Issue を取り込んで更新する。データベースは使わない。
- * バックエンドが存在しないので「落ちる」対象が無く、GitHub Pages が生きていれば必ず読める。
+ * 公開データは GitHub リポジトリ上の `public/data/*.json` にあり、GitHub Actions が作り直す
+ * （Firestore からの日次同期と Issue の取り込み）。GitHub Pages が生きていれば必ず読める。
  */
 
 import type { EquipmentDef, MarkerData, RequestMarkerData } from '@/core/types';
@@ -13,6 +12,7 @@ import { appConfig } from '@/runtime/config';
 
 interface MarkerBundle {
   generatedAt?: number;
+  syncedAt?: number;
   markers?: MarkerData[];
 }
 
@@ -66,6 +66,7 @@ export const staticCatalogAdapter: CatalogPort = {
       requestMarkers,
       equipment: equipment ?? [],
       generatedAt: (Array.isArray(markerBundle) ? 0 : markerBundle?.generatedAt) ?? 0,
+      syncedAt: (Array.isArray(markerBundle) ? 0 : markerBundle?.syncedAt) ?? 0,
     };
   },
 };

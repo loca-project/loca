@@ -6,30 +6,15 @@
  * 設定値は環境変数か .env.local から読む。値そのものは出力しない。
  */
 
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
+import { firestoreConfig } from './lib/env.mjs';
 
-const ROOT = process.cwd();
-
-async function envValue(key) {
-  if (process.env[key]) return process.env[key].trim();
-  try {
-    const text = await readFile(path.join(ROOT, '.env.local'), 'utf8');
-    const line = text.split(/\r?\n/).find((l) => new RegExp(`^\\s*${key}\\s*=`).test(l));
-    return line ? line.replace(/^[^=]*=/, '').trim().replace(/^"|"$/g, '') : '';
-  } catch {
-    return '';
-  }
-}
-
-const apiKey = await envValue('VITE_FIREBASE_API_KEY');
-const projectId = await envValue('VITE_FIREBASE_PROJECT_ID');
-if (!apiKey || !projectId) {
-  console.error('VITE_FIREBASE_API_KEY と VITE_FIREBASE_PROJECT_ID が .env.local にありません');
+const config = await firestoreConfig();
+if (!config) {
+  console.error('VITE_FIREBASE_API_KEY と VITE_FIREBASE_PROJECT_ID が環境変数にも .env.local にもありません');
   process.exit(2);
 }
+const { apiKey, projectId, base } = config;
 
-const base = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents`;
 const probes = [
   { name: '未ログインで markers を読める', method: 'GET', url: `${base}/markers?pageSize=1`, expect: 200 },
   {

@@ -16,7 +16,7 @@ export interface MarkerStorePort extends Adapter {
   /** 本人のマーカーを論理削除する（deleted: true）。本人には戻せない。 */
   softDelete(id: string): Promise<void>;
   /**
-   * sinceMs（markers.json の生成時刻）より後に updatedAt が変わったマーカーを購読する。
+   * sinceMs（markers.json の syncedAt。Firestore と同期した時刻）より後に updatedAt が変わったマーカーを購読する。
    * 変わった行だけが届く。deleted: true の行は一覧から外すこと。登録直後にも現在の差分で 1 回呼ぶ。
    */
   subscribeChanges(sinceMs: number, onChange: (changed: MarkerData[]) => void, onError: (e: Error) => void): Unsubscribe;

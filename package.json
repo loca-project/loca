@@ -10,7 +10,8 @@
     "preview": "vite preview --port 4173",
     "typecheck": "tsc --noEmit",
     "verify": "node scripts/verify.mjs",
-    "check": "npm run typecheck && npm run build && npm run verify",
+    "check": "npm run typecheck && npm run build && npm run verify && npm run test:scripts",
+    "test:scripts": "node --test tests/scripts/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
     "test:rules": "firebase emulators:exec --only firestore --project demo-loca \"node --test --test-concurrency=1 tests/rules/*.test.mjs tests/store/*.test.mjs\"",
     "deploy:rules": "npm run test:rules && firebase deploy --only firestore:rules --project loca-d3792 && npm run rules:probe",
@@ -19,6 +20,8 @@
     "data:seed": "node scripts/make-seed-data.mjs",
     "data:clear": "node scripts/clear-data.mjs",
     "data:ingest": "node scripts/ingest-issue.mjs",
+    "data:sync": "node scripts/sync-firestore.mjs",
+    "data:sync:check": "node scripts/sync-firestore.mjs --check",
     "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {

@@ -33,7 +33,9 @@ async function readBundle(file, key = 'markers') {
   try {
     const raw = JSON.parse(await readFile(file, 'utf8'));
     if (Array.isArray(raw)) return { generatedAt: 0, [key]: raw };
-    return { generatedAt: raw.generatedAt ?? 0, [key]: raw[key] ?? [] };
+    // syncedAt（Firestore と同期した時刻）は引き継ぐ。ここで進めると Firestore の変更を取りこぼす
+    const synced = raw.syncedAt ? { syncedAt: raw.syncedAt } : {};
+    return { generatedAt: raw.generatedAt ?? 0, ...synced, [key]: raw[key] ?? [] };
   } catch {
     return { generatedAt: 0, [key]: [] };
   }

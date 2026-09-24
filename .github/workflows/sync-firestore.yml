@@ -1,0 +1,65 @@
+# Firestore の markers から public/data/markers.json を作り直す（要件 1.3 の定時バッチ。ADR 0010）。
+#
+# 毎日 0:00（日本時間）と、手動（workflow_dispatch）で動く。
+# Firestore の markers はルールで誰でも読めるので、API キー（公開値。Variables）だけで読む。
+# サービスアカウントの鍵などの秘密情報は使わない。
+#
+# 変更があったときだけコミットし、publish.yml を直接呼んで公開しなおす
+# （GITHUB_TOKEN による push は他のワークフローを起動しないため。ingest-issue.yml と同じ理由）。
+name: Sync from Firestore
+
+on:
+  schedule:
+    - cron: '0 15 * * *' # UTC 15:00 = 日本時間 0:00
+  workflow_dispatch:
+
+# Issue の取り込みと同時に public/data を書き換えないよう、同じグループで順番に動かす
+concurrency:
+  group: ingest
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # 依存パッケージを使わないスクリプトなので npm ci は要らない
+      - name: Firestore から markers.json を作り直す
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+        run: node scripts/sync-firestore.mjs
+
+      - name: コミットして push
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/markers.json
+          if git diff --cached --quiet; then
+            echo "変更なし"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "data: Firestore から markers.json を再生成"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish.yml

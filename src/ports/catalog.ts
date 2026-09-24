@@ -17,6 +17,8 @@ export interface CatalogSnapshot {
   equipment: EquipmentDef[];
   /** データが生成された時刻（epoch ms）。画面に鮮度を出すために使う */
   generatedAt: number;
+  /** Firestore と最後に同期した時刻（epoch ms）。これより後の変更だけを購読する。0 なら全件 */
+  syncedAt: number;
 }
 
 export const EMPTY_SNAPSHOT: CatalogSnapshot = {
@@ -24,4 +26,5 @@ export const EMPTY_SNAPSHOT: CatalogSnapshot = {
   requestMarkers: [],
   equipment: [],
   generatedAt: 0,
+  syncedAt: 0,
 };

@@ -1,7 +1,7 @@
 /**
  * 公開データの読み込み（要件 1.4 のハイブリッド）。
  * 1. 起動時に markers.json（前日のバッチで作った確定データ）を読む。
- * 2. Firebase が使える構成なら、その生成時刻より後に変わったマーカーを onSnapshot で購読し、一覧に合流させる。
+ * 2. Firebase が使える構成なら、その同期時刻（syncedAt）より後に変わったマーカーを onSnapshot で購読し、一覧に合流させる。
  * 自分の保存直後は upsertMarker / removeMarker でも直す（購読が届く前に地図へ出すため。同じ ID なら上書きされる）。
  */
 
@@ -30,6 +30,7 @@ export function useCatalog(): Catalog {
   const [requestMarkers, setRequestMarkers] = useState<RequestMarkerData[]>([]);
   const [equipment, setEquipment] = useState<EquipmentDef[]>([]);
   const [generatedAt, setGeneratedAt] = useState(0);
+  const [syncedAt, setSyncedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
 
@@ -45,6 +46,7 @@ export function useCatalog(): Catalog {
         setRequestMarkers(snapshot.requestMarkers);
         setEquipment(snapshot.equipment);
         setGeneratedAt(snapshot.generatedAt);
+        setSyncedAt(snapshot.syncedAt);
         setHealth({
           generatedAt: snapshot.generatedAt,
           dataUnavailable: snapshot.markers.length === 0 && snapshot.equipment.length === 0,
@@ -63,11 +65,11 @@ export function useCatalog(): Catalog {
     };
   }, [catalog, nonce]);
 
-  // ベースを読み終えてから差分の購読を始める（generatedAt が決まってから）
+  // ベースを読み終えてから差分の購読を始める（syncedAt が決まってから）
   useEffect(() => {
     if (!markerStore || loading) return undefined;
     return markerStore.subscribeChanges(
-      generatedAt,
+      syncedAt,
       (changed) => {
         setMarkers((prev) => {
           const byId = new Map(prev.map((m) => [m.id, m]));
@@ -83,7 +85,7 @@ export function useCatalog(): Catalog {
         setHealth({ notice: '最新の登録を受け取れませんでした。再読み込みすると直ることがあります。' });
       },
     );
-  }, [markerStore, loading, generatedAt]);
+  }, [markerStore, loading, syncedAt]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   const upsertMarker = useCallback((marker: MarkerData) => {
