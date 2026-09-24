@@ -21,12 +21,16 @@ import ReportModal from '@/features/report/ReportModal';
 import VideoDetailsModal from '@/features/marker/VideoDetailsModal';
 import ContributeGuideModal from '@/features/contribute/ContributeGuideModal';
 import EmptyMapNotice from '@/features/contribute/EmptyMapNotice';
+import MapFilterBar from '@/features/filter/MapFilterBar';
+import { filterBarLeft } from '@/features/filter/placement';
+import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
 import AdminDashboard from '@/features/admin/AdminDashboard';
 import HeaderBar from './HeaderBar';
 import HealthNotice from './HealthNotice';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
 import { usePins } from './usePins';
+import { useMapFilter } from './useMapFilter';
 import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
@@ -40,9 +44,12 @@ export default function AppShell() {
   const requestSubmit = useRequestSubmit(auth.user?.uid ?? null);
   const search = useSearchAndRanking();
 
+  // 地図に出すのは画面下の地図フィルタで絞った後のもの（ADR 0015）
+  const mapFilter = useMapFilter(app.catalog.markers, app.catalog.requestMarkers);
+  const viewportWidth = useViewportWidth();
   const pins = usePins(
-    app.catalog.markers,
-    app.catalog.requestMarkers,
+    mapFilter.markers,
+    mapFilter.requestMarkers,
     app.handleMarkerClick,
     app.handleRequestClick,
   );
@@ -205,6 +212,12 @@ export default function AppShell() {
 
   const jump = useCallback((pos: LatLng) => app.jumpTo(pos), [app]);
   const sidebarOffset = SIDEBAR_RAIL_WIDTH + (app.sidebarOpen ? SIDEBAR_PANEL_WIDTH : 0);
+  const filterLeft = filterBarLeft({
+    viewportWidth,
+    sidebarOffset,
+    resultsOpen: search.results.open,
+    registering: app.tempPos !== null,
+  });
 
   return (
     <div className="relative flex h-[100dvh] w-screen overflow-hidden bg-gray-100">
@@ -217,7 +230,7 @@ export default function AppShell() {
         onRectangleDrawn={(bounds) => {
           app.setDrawing(false);
           app.setRectangle(bounds);
-          search.searchInBounds(bounds, app.catalog.markers);
+          search.searchInBounds(bounds, mapFilter.markers);
           closeMobileSidebar();
         }}
       />
@@ -307,6 +320,16 @@ export default function AppShell() {
         onClose={search.close}
         onJump={jump}
       />
+
+      {filterLeft !== null && (
+        <MapFilterBar
+          filter={mapFilter.filter}
+          onChange={mapFilter.setFilter}
+          left={filterLeft}
+          shown={mapFilter.markers.length}
+          total={app.catalog.markers.length}
+        />
+      )}
 
       <HealthNotice />
 

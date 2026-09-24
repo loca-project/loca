@@ -179,6 +179,17 @@ export const ja = {
     memoPlaceholder: '例: 北側の展望台から撮影。駐車場あり',
   },
 
+  mapFilter: {
+    label: '地図フィルタ',
+    videos: '動画',
+    requests: '撮影リクエスト',
+    more: '絞り込み',
+    clear: '条件をクリア',
+    close: '閉じる',
+    showing: '動画 {shown} / {total} 件',
+    requestNote: '撮影リクエストには季節・時間帯・撮り方だけが効きます',
+  },
+
   filters: {
     registeredRange: '登録日',
     tags: 'タグで絞り込む',

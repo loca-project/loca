@@ -186,6 +186,17 @@ export const en: DeepPartial<Dictionary> = {
     memoPlaceholder: 'e.g. Filmed from the north observation deck. Parking available',
   },
 
+  mapFilter: {
+    label: 'Map filter',
+    videos: 'Videos',
+    requests: 'Requests',
+    more: 'Filter',
+    clear: 'Clear',
+    close: 'Close',
+    showing: 'Videos {shown} / {total}',
+    requestNote: 'Only season, time of day and filming style apply to requests',
+  },
+
   filters: {
     registeredRange: 'Registered',
     tags: 'Filter by tags',

@@ -99,17 +99,20 @@ export function requestBreakdown(spot: RequestMarkerData): RequestBreakdown {
 }
 
 /**
- * 撮影リクエストのランキング（熱量の多い順）。
- * 季節・時間帯・撮り方で絞ると、条件に合うリクエストの熱量だけで数え直す（項目の中は OR、間は AND）。
+ * 季節・時間帯・撮り方で地点を絞る。条件に合うリクエストだけを残し、熱量と件数を数え直す
+ * （項目の中は OR、間は AND）。条件が無ければそのまま返す。ランキングと地図フィルタで共通。
  */
+export function narrowRequestSpots(spots: RequestMarkerData[], selection: TagSelection): RequestMarkerData[] {
+  if (!hasTagSelection(selection, REQUEST_TAG_FIELDS)) return spots;
+  return spots
+    .map((s) => {
+      const hit = (s.entries ?? []).filter((e) => matchesTagValues(e, selection, REQUEST_TAG_FIELDS));
+      return { ...s, entries: hit, totalHeat: hit.reduce((sum, e) => sum + e.heat, 0), requestCount: hit.length };
+    })
+    .filter((s) => s.requestCount > 0);
+}
+
+/** 撮影リクエストのランキング（熱量の多い順）。絞ると条件に合う熱量だけで数え直す。 */
 export function rankRequestSpots(spots: RequestMarkerData[], selection: TagSelection, limit: number): RequestMarkerData[] {
-  const filtered = hasTagSelection(selection, REQUEST_TAG_FIELDS)
-    ? spots
-        .map((s) => {
-          const hit = (s.entries ?? []).filter((e) => matchesTagValues(e, selection, REQUEST_TAG_FIELDS));
-          return { ...s, entries: hit, totalHeat: hit.reduce((sum, e) => sum + e.heat, 0), requestCount: hit.length };
-        })
-        .filter((s) => s.requestCount > 0)
-    : spots;
-  return [...filtered].sort((a, b) => b.totalHeat - a.totalHeat).slice(0, limit);
+  return [...narrowRequestSpots(spots, selection)].sort((a, b) => b.totalHeat - a.totalHeat).slice(0, limit);
 }

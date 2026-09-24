@@ -14,6 +14,18 @@ import type { TagField } from '@/core/constants/tags';
  */
 export type TagSelection = Partial<Record<TagField, string[]>>;
 
+/**
+ * 画面下の地図フィルタ（ADR 0015）。地図に出すマーカーと、範囲指定検索の結果に効く。
+ * タグの規則はランキングと同じ（項目の中は OR、間は AND）。撮影リクエストには季節・時間帯・撮り方だけが効く。
+ */
+export interface MapFilter {
+  videos: boolean;
+  requests: boolean;
+  tags: TagSelection;
+}
+
+export const DEFAULT_MAP_FILTER: MapFilter = { videos: true, requests: true, tags: {} };
+
 /** Loca への登録日を基準にした期間フィルタ。 */
 export type PeriodFilter = 'all' | '1y' | '6m' | '3m' | '1m' | '2w' | 'today';
 export type SeasonFilter = '1-3' | '4-6' | '7-9' | '10-12';
