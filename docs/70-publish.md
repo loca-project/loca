@@ -134,13 +134,13 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 | `publish.yml` | 他から呼ばれたときだけ | ビルド → 検証 → Pages へ公開 |
 | `deploy.yml` | `main` に push したとき | `publish.yml` を呼ぶ |
 | `ingest-issue.yml` | Issue に `approved` が付いたとき | 取り込み → commit/push → `publish.yml` を呼ぶ |
-| `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | Firestore から `markers.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ |
+| `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | Firestore から `markers.json` と `requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ |
 
 **なぜ取り込み側から直接 publish を呼ぶのか**: GitHub には
 「`GITHUB_TOKEN` による push は他のワークフローを起動しない」という再帰防止の仕様がある。
 取り込みが push しても `deploy.yml` は動かないため、取り込み側が自分で公開まで面倒を見る。
 
-**Firestore からの同期**（要件 1.3・1.4）: `markers` はルールで誰でも読めるので、API キー（Variables の公開値）だけで読む。
+**Firestore からの同期**（要件 1.3・1.4）: `markers` と `requests` はルールで誰でも読めるので、API キー（Variables の公開値）だけで読む。
 秘密情報は使わない。論理削除の行は除き、Issue 経由の行は残す。`markers.json` の `syncedAt` が
 「読み始めた時刻」で、アプリはそれより後の変更だけを onSnapshot で購読する。
 
