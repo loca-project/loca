@@ -1,0 +1,35 @@
+# Actions から YouTube Data API と Firestore に届くかを確かめる（T23・ADR 0017）。
+#
+# 手動（workflow_dispatch）でだけ動く。公開物には触れない。
+# 認証は Workload Identity 連携（鍵ファイルなし）。このリポジトリの Actions だけがサービスアカウントになれる。
+# 設定は scripts/setup-google.mjs が作る。
+name: Probe Google access
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: auth
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          token_format: access_token
+          create_credentials_file: false
+      - name: YouTube Data API と Firestore に届くか
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
+          GCP_PROJECT: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+        run: node scripts/probe-google.mjs
