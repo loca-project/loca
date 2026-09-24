@@ -76,6 +76,17 @@ const markers = SPOTS.map((spot, i) => {
       ...(i % 3 === 0 ? { style: STYLES[i % STYLES.length] } : {}),
     },
     ...(i % 4 === 0 ? { memo: `${spot.name}の展望台から撮影（サンプル）` } : {}),
+    // 毎晩 Actions が取る値（ADR 0017）。5 件に 1 件はまだ取っていない状態にする
+    ...(i % 5 === 4
+      ? {}
+      : {
+          youtube: {
+            viewCount: ((i * 7919) % 50000) + 100,
+            publishedAt: now - (i * 45 + 3) * 86_400_000,
+            durationSec: [95, 250, 600, 1500][i % 4],
+            checkedAt: now,
+          },
+        }),
     equipment: GEAR[i % GEAR.length],
     title: `${spot.name}のサンプル映像`,
     channelTitle: `サンプルチャンネル ${(i % 5) + 1}`,

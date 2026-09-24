@@ -1,14 +1,15 @@
 /**
  * ランキング集計。検索とは別プログラムとして維持する（要件 1.2 / 4.1）。
  *
- * 基準は Loca 内の指標のみ。外部 API に依存しないため、
- * markers.json だけで常に正確な結果が出る。
+ * 基準は再生数（要件 4.1・4.3）。再生数は毎晩 Actions が取り、markers.json に入る（ADR 0017）。
+ * まだ取っていないマーカーは再生数 0、投稿日は登録日で代わりに数える。
  */
 
 import type {
   ChannelRankingRow,
   GroupRankingRow,
   MarkerData,
+  LengthFilter,
   PeriodFilter,
   RankingFilter,
   SeasonFilter,
@@ -27,16 +28,31 @@ const PERIOD_MS: Record<Exclude<PeriodFilter, 'all'>, number> = {
   today: 1 * DAY,
 };
 
-/** Loca への登録日で絞る。 */
+/** 動画の投稿日。まだ取っていなければ登録日（投稿は必ず登録より前なので、新しい側に寄るだけで済む）。 */
+export const publishedAtOf = (m: MarkerData): number => m.youtube?.publishedAt ?? m.createdAt;
+
+export const viewsOf = (m: MarkerData): number => m.youtube?.viewCount ?? 0;
+
+/** 動画の投稿日で絞る。 */
 export function matchesPeriod(m: MarkerData, period: PeriodFilter, now = Date.now()): boolean {
   if (period === 'all') return true;
-  return now - m.createdAt <= PERIOD_MS[period];
+  return now - publishedAtOf(m) <= PERIOD_MS[period];
 }
 
-/** 登録月を四半期で絞る。 */
+/** 動画の長さで絞る。長さをまだ取っていないマーカーは当たらない。 */
+export function matchesLength(m: MarkerData, length: LengthFilter): boolean {
+  if (length === 'all') return true;
+  const sec = m.youtube?.durationSec;
+  if (sec === undefined) return false;
+  if (length === 'short') return sec < 240;
+  if (length === 'medium') return sec >= 240 && sec < 1200;
+  return sec >= 1200;
+}
+
+/** 動画の投稿月を四半期で絞る。 */
 export function matchesSeason(m: MarkerData, season?: SeasonFilter): boolean {
   if (!season) return true;
-  const month = new Date(m.createdAt).getMonth() + 1;
+  const month = new Date(publishedAtOf(m)).getMonth() + 1;
   const [from, to] = season.split('-').map(Number);
   return month >= from && month <= to;
 }
@@ -57,6 +73,7 @@ export function applyFilters(markers: MarkerData[], f: RankingFilter, now = Date
     (m) =>
       !m.deleted &&
       matchesPeriod(m, f.period, now) &&
+      matchesLength(m, f.length ?? 'all') &&
       matchesTags(m, f.tags) &&
       matchesEquipment(m, f.equipment) &&
       matchesSeason(m, f.season) &&
@@ -75,7 +92,7 @@ export function rankMarkers(markers: MarkerData[], f: RankingFilter, now = Date.
     .slice(0, Math.min(f.limit, RANKING_BASE_LIMIT));
 }
 
-/** キーごとに件数を数え、件数降順（同数なら新しい順）に並べる共通処理。 */
+/** キーごとに再生数と件数を合算し、再生数の多い順（同じなら件数、さらに新しい順）に並べる共通処理。 */
 function groupBy(
   markers: MarkerData[],
   keyOf: (m: MarkerData) => string | undefined,
@@ -89,6 +106,7 @@ function groupBy(
     const row = buckets.get(label);
     if (row) {
       row.count += 1;
+      row.views += viewsOf(m);
       if (m.createdAt > row.latestAt) {
         row.latestAt = m.createdAt;
         row.sampleMarkerId = m.id;
@@ -99,6 +117,7 @@ function groupBy(
       buckets.set(label, {
         label,
         count: 1,
+        views: viewsOf(m),
         latestAt: m.createdAt,
         sampleMarkerId: m.id,
         lat: m.lat,
@@ -108,16 +127,16 @@ function groupBy(
   }
 
   return [...buckets.values()]
-    .sort((a, b) => b.count - a.count || b.latestAt - a.latestAt)
+    .sort((a, b) => b.views - a.views || b.count - a.count || b.latestAt - a.latestAt)
     .slice(0, Math.min(limit, RANKING_BASE_LIMIT));
 }
 
-/** 地域別ランキング: 都道府県ごとの登録件数。 */
+/** 地域別ランキング: 都道府県ごとの再生数の合計（要件 4.3）。 */
 export function rankPrefectures(markers: MarkerData[], f: RankingFilter, now = Date.now()) {
   return groupBy(applyFilters(markers, f, now), (m) => m.prefecture, f.limit);
 }
 
-/** 機器別ランキング: メーカー/シリーズ/モデルの組み合わせごとの登録件数。 */
+/** 機器別ランキング: メーカー/シリーズ/モデルの組み合わせごとの再生数の合計。 */
 export function rankEquipment(markers: MarkerData[], f: RankingFilter, now = Date.now()) {
   return groupBy(
     applyFilters(markers, f, now),
@@ -126,7 +145,7 @@ export function rankEquipment(markers: MarkerData[], f: RankingFilter, now = Dat
   );
 }
 
-/** チャンネル別ランキング: 同名チャンネルの登録本数を合算する（要件 4.3）。 */
+/** チャンネル別ランキング: 同名チャンネルの本数と再生数を合算し、再生数順（要件 4.3）。 */
 export function rankChannels(
   markers: MarkerData[],
   f: RankingFilter,
@@ -135,6 +154,7 @@ export function rankChannels(
   return groupBy(applyFilters(markers, f, now), (m) => m.channelTitle, f.limit).map((row) => ({
     channelTitle: row.label,
     videoCount: row.count,
+    views: row.views,
     latestAt: row.latestAt,
     sampleMarkerId: row.sampleMarkerId,
     lat: row.lat,
@@ -146,6 +166,7 @@ export function rankChannels(
 export function isLimitedByFilter(f: RankingFilter): boolean {
   return (
     f.period !== 'all' ||
+    (f.length ?? 'all') !== 'all' ||
     hasTagSelection(f.tags) ||
     Boolean(f.prefecture) ||
     Boolean(f.season) ||

@@ -1,9 +1,8 @@
 /**
  * 検索・ランキングのフィルタ条件。
  *
- * Google API を使わない決定により、再生数・動画投稿日・再生時間は取得できない。
- * そのため基準を Loca 内の指標（登録日・登録件数）に置き換えている。
- * 元の要件 4.1/4.2 の「再生数順」「投稿日フィルタ」「長さフィルタ」はこの置き換えで代替する。
+ * 再生数・動画の投稿日・長さは、毎晩 Actions が YouTube Data API で取る（ADR 0017）。
+ * まだ取っていないマーカー（投稿した当日）は、再生数 0・投稿日は登録日で代わりに数える。
  */
 
 import type { TagField } from '@/core/constants/tags';
@@ -26,18 +25,22 @@ export interface MapFilter {
 
 export const DEFAULT_MAP_FILTER: MapFilter = { videos: true, requests: true, tags: {} };
 
-/** Loca への登録日を基準にした期間フィルタ。 */
+/** 動画の投稿日を基準にした期間フィルタ（要件 4.2）。 */
 export type PeriodFilter = 'all' | '1y' | '6m' | '3m' | '1m' | '2w' | 'today';
 export type SeasonFilter = '1-3' | '4-6' | '7-9' | '10-12';
 export type ResultLimit = 30 | 20 | 10;
+/** 動画の長さ（要件 4.2）: 4 分未満・4 分以上 20 分未満・20 分以上 */
+export type LengthFilter = 'all' | 'short' | 'medium' | 'long';
 
 export interface RankingFilter {
-  /** 登録日の範囲 */
+  /** 動画の投稿日の範囲 */
   period: PeriodFilter;
+  /** 動画の長さ。長さをまだ取っていないマーカーは、絞ると当たらない */
+  length: LengthFilter;
   limit: ResultLimit;
 
   prefecture?: string;
-  /** 登録月を四半期で絞る */
+  /** 動画の投稿月を四半期で絞る（要件 4.3 の地域別） */
   season?: SeasonFilter;
 
   equipment?: {
@@ -52,6 +55,7 @@ export interface RankingFilter {
 
 export const DEFAULT_RANKING_FILTER: RankingFilter = {
   period: 'all',
+  length: 'all',
   limit: 30,
   tags: {},
 };
@@ -63,6 +67,8 @@ export const RANKING_BASE_LIMIT = 100;
 export interface ChannelRankingRow {
   channelTitle: string;
   videoCount: number;
+  /** 再生数の合計（要件 4.3） */
+  views: number;
   /** 最後に登録された時刻 */
   latestAt: number;
   /** 代表マーカー（地図ジャンプ用） */
@@ -71,10 +77,12 @@ export interface ChannelRankingRow {
   lng: number;
 }
 
-/** 地域別・機器別ランキングの 1 行（件数で競う）。 */
+/** 地域別・機器別ランキングの 1 行（再生数の合計で競い、同じなら件数）。 */
 export interface GroupRankingRow {
   label: string;
   count: number;
+  /** 再生数の合計 */
+  views: number;
   latestAt: number;
   sampleMarkerId: string;
   lat: number;

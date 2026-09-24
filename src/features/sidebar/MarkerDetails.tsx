@@ -5,7 +5,7 @@
 
 import React from 'react';
 import type { MarkerData } from '@/core/types';
-import { formatDate } from '@/core/logic/format';
+import { formatCount, formatDate, formatDuration } from '@/core/logic/format';
 import { TAG_FIELDS, tagLabel } from '@/core/constants';
 import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -81,6 +81,16 @@ export default function MarkerDetails({
         ))}
         {marker.memo && <Row label={t.tags.memo} value={marker.memo} />}
         <Row label={t.form.equipment} value={equipment || '-'} />
+        {/* 再生数などは毎晩 Actions が取る（ADR 0017）。まだ無ければ案内だけ出す */}
+        {marker.youtube ? (
+          <>
+            <Row label={t.details.views} value={formatCount(marker.youtube.viewCount)} />
+            <Row label={t.details.publishedAt} value={formatDate(marker.youtube.publishedAt)} />
+            <Row label={t.details.duration} value={formatDuration(marker.youtube.durationSec)} />
+          </>
+        ) : (
+          <Row label={t.details.views} value={t.details.statsPending} />
+        )}
         <Row label={t.details.registeredAt} value={formatDate(marker.createdAt)} />
         <Row label={t.details.contributor} value={marker.createdBy || '-'} />
         <Row label={t.form.lat} value={marker.lat.toFixed(6)} />

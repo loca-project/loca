@@ -21,6 +21,16 @@ export function formatDateTime(value?: string | number): string {
   return `${formatDate(d.getTime())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/** 秒を 4:13 や 1:02:03 の形にする。 */
+export function formatDuration(sec?: number): string {
+  if (sec == null) return '-';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
 /** テンプレート中の {key} を置換する。i18n の簡易差し込み用。 */
 export function interpolate(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`));

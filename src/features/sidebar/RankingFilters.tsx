@@ -52,6 +52,21 @@ export default function RankingFilters({
         />
       </Field>
 
+      {tab !== Tab.RANKING_REQUEST && (
+        <Field label={t.filters.length}>
+          <Select
+            value={filter.length}
+            options={[
+              { value: 'all', label: t.filters.lengthAll },
+              { value: 'short', label: t.filters.lengthShort },
+              { value: 'medium', label: t.filters.lengthMedium },
+              { value: 'long', label: t.filters.lengthLong },
+            ]}
+            onChange={(e) => onChange({ length: e.target.value as RankingFilter['length'] })}
+          />
+        </Field>
+      )}
+
       <div className="flex flex-col gap-2 rounded border border-gray-100 bg-gray-50 p-2">
         <span className="text-[11px] font-bold text-gray-500">{t.filters.tags}</span>
         {TAG_CATEGORIES.filter((c) => tab !== Tab.RANKING_REQUEST || (REQUEST_TAG_FIELDS as TagField[]).includes(c.field)).map((c) => (

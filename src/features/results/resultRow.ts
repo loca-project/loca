@@ -40,18 +40,18 @@ export function rowsFromChannels(channels: ChannelRankingRow[]): ResultRow[] {
     id: c.channelTitle,
     title: c.channelTitle,
     subtitle: formatDate(c.latestAt),
-    metric: `${formatCount(c.videoCount)} 本`,
+    metric: `${formatCount(c.views)} 回・${formatCount(c.videoCount)} 本`,
     position: { lat: c.lat, lng: c.lng },
   }));
 }
 
-/** 地域別・機器別ランキング（件数で競う）。 */
+/** 地域別・機器別ランキング（再生数の合計で競う）。 */
 export function rowsFromGroups(groups: GroupRankingRow[]): ResultRow[] {
   return groups.map((g) => ({
     id: g.label,
     title: g.label,
     subtitle: formatDate(g.latestAt),
-    metric: `${formatCount(g.count)} 件`,
+    metric: `${formatCount(g.views)} 回・${formatCount(g.count)} 件`,
     position: { lat: g.lat, lng: g.lng },
   }));
 }
