@@ -11,8 +11,9 @@ import { useServices } from './useServices';
 /**
  * off: ログイン機能が無い・未ログイン / loading: 読み込み中 / missing: ログイン済みで未登録（登録画面を出す）
  * ready: 登録済み / error: 読めなかった（未登録と区別する。登録画面は出さない）
+ * blocked: ブラックリストにいる（登録画面を出す前にログアウトさせる。要件 5.2.4・T59）
  */
-export type ProfileStatus = 'off' | 'loading' | 'missing' | 'ready' | 'error';
+export type ProfileStatus = 'off' | 'loading' | 'missing' | 'ready' | 'error' | 'blocked';
 
 export interface ProfileContextValue {
   status: ProfileStatus;
@@ -32,22 +33,29 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const uid = user?.uid ?? null;
   const [loaded, setLoaded] = useState<{ uid: string; profile: UserProfile | null; error: boolean } | null>(null);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [adminOf, setAdminOf] = useState<string | null>(null);
+  /** ログイン中の人の権限。読み終わるまでは null（登録画面を出さずに待つ） */
+  const [access, setAccess] = useState<{ uid: string; admin: boolean; blocked: boolean } | null>(null);
 
-  // ログインの切り替えのたびに、管理者かどうかを 1 回だけ読む
+  // ログインの切り替えのたびに、管理者か・ブラックリストにいるかを 1 回だけ読む。
+  // 読めなかったときは一般の利用者として扱う（書き込みはルールが止める）
   useEffect(() => {
     if (!adminStore || !uid) return undefined;
     let cancelled = false;
-    adminStore
-      .amIAdmin()
-      .then((yes) => {
-        if (!cancelled) setAdminOf(yes ? uid : null);
+    Promise.all([adminStore.amIAdmin(), adminStore.amIBlacklisted()])
+      .then(([admin, blocked]) => ({ admin, blocked }))
+      .catch((e: unknown) => {
+        console.error('[loca] 権限を確かめられませんでした', e);
+        return { admin: false, blocked: false };
       })
-      .catch((e: unknown) => console.error('[loca] 管理者かどうかを確かめられませんでした', e));
+      .then((result) => {
+        if (!cancelled) setAccess({ uid, ...result });
+      });
     return () => {
       cancelled = true;
     };
   }, [adminStore, uid]);
+  const checked = !adminStore || access?.uid === uid;
+  const blocked = access?.uid === uid && access.blocked;
 
   useEffect(() => {
     if (!profileStore || !uid) return undefined;
@@ -65,15 +73,16 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const current = loaded && loaded.uid === uid ? loaded : null;
   let status: ProfileStatus = 'off';
   if (profileStore && uid) {
-    if (!current) status = 'loading';
+    if (!checked || !current) status = 'loading';
+    else if (blocked) status = 'blocked';
     else if (current.error) status = 'error';
     else status = current.profile ? 'ready' : 'missing';
   }
   const profile = status === 'ready' ? (current?.profile ?? null) : null;
 
   const value = useMemo(
-    () => ({ status, profile, editorOpen: editorOpen && status === 'ready', setEditorOpen, isAdmin: uid !== null && adminOf === uid }),
-    [status, profile, editorOpen, uid, adminOf],
+    () => ({ status, profile, editorOpen: editorOpen && status === 'ready', setEditorOpen, isAdmin: access?.uid === uid && access.admin }),
+    [status, profile, editorOpen, uid, access],
   );
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;
 }

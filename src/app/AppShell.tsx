@@ -1,6 +1,6 @@
 /** 画面全体の組み立てと、各操作のつなぎ込み。 */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect } from 'react';
 import type { LatLng, ReportReason } from '@/core/types';
 import { MapMode, TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -25,8 +25,6 @@ import MapFilterBar from '@/features/filter/MapFilterBar';
 import { filterBarLeft } from '@/features/filter/placement';
 import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
 import HeaderBar from './HeaderBar';
-import MyPostsModal from '@/features/profile/MyPostsModal';
-import AdminDashboard from '@/features/admin/AdminDashboard';
 import HealthNotice from './HealthNotice';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
@@ -35,6 +33,10 @@ import { useMapFilter } from './useMapFilter';
 import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
+
+// ログインして開くまで要らない画面は、開いたときに読み込む（初期読み込みの JS を 260 kB 以内に保つ）
+const MyPostsModal = lazy(() => import('@/features/profile/MyPostsModal'));
+const AdminDashboard = lazy(() => import('@/features/admin/AdminDashboard'));
 
 export default function AppShell() {
   const { t } = useI18n();
@@ -348,16 +350,19 @@ export default function AppShell() {
         onOpenAdmin={() => app.openModal('admin')}
       />
 
-      {auth.user && (
-        <MyPostsModal
-          open={app.modals.myPosts}
-          uid={auth.user.uid}
-          markers={app.catalog.markers}
-          requestMarkers={app.catalog.requestMarkers}
-          onPickMarker={pickMine((m) => app.handleMarkerClick(m))}
-          onPickRequest={pickMine((r) => app.handleRequestClick(r))}
-          onClose={() => app.openModal('myPosts', false)}
-        />
+      {/* 自分の投稿と管理者モードは、開いたときに読み込む（初期読み込みの JS を増やさない） */}
+      {auth.user && app.modals.myPosts && (
+        <Suspense fallback={null}>
+          <MyPostsModal
+            open
+            uid={auth.user.uid}
+            markers={app.catalog.markers}
+            requestMarkers={app.catalog.requestMarkers}
+            onPickMarker={pickMine((m) => app.handleMarkerClick(m))}
+            onPickRequest={pickMine((r) => app.handleRequestClick(r))}
+            onClose={() => app.openModal('myPosts', false)}
+          />
+        </Suspense>
       )}
 
       <ReportModal
@@ -375,7 +380,11 @@ export default function AppShell() {
 
       <ContributeGuideModal open={app.modals.guide} onClose={() => app.openModal('guide', false)} />
 
-      <AdminDashboard open={app.modals.admin} markers={app.catalog.markers} onClose={() => app.openModal('admin', false)} />
+      {app.modals.admin && (
+        <Suspense fallback={null}>
+          <AdminDashboard open markers={app.catalog.markers} onClose={() => app.openModal('admin', false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@
  * プロフィールの登録画面と編集画面を出し分ける（要件 1.1・ADR 0019）。
  * ログイン済みで未登録なら登録画面を必ず出す。登録かキャンセル（ログアウト）のどちらかを選ぶまで閉じない。
  * アカウント削除（ADR 0021）の確認と実行もここで扱う。削除の途中でプロフィールが消えても、登録画面を割り込ませない。
+ * ブラックリストの人は、登録画面を出す前にログアウトさせ、案内を出す（要件 5.2.4・T59）。
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,6 +13,8 @@ import { useI18n } from '@/shared/hooks/useI18n';
 import { useProfile } from '@/shared/hooks/useProfile';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
+import Modal from '@/shared/components/Modal';
+import { Button } from '@/shared/components/Controls';
 import RegisterModal from './RegisterModal';
 import ProfileModal from './ProfileModal';
 import DeleteAccountModal from './DeleteAccountModal';
@@ -27,6 +30,15 @@ export default function ProfileGate() {
   const closeAccount = useCloseAccount();
   /** アカウント削除の確認を出しているか、実行中か */
   const [deletion, setDeletion] = useState<'confirm' | 'running' | null>(null);
+  /** ブラックリストでログアウトさせたあとの案内を出しているか */
+  const [blockedNotice, setBlockedNotice] = useState(false);
+
+  const { signOut } = auth;
+  useEffect(() => {
+    if (status !== 'blocked') return;
+    setBlockedNotice(true);
+    signOut().catch((e: unknown) => console.error('[loca] ログアウトできませんでした', e));
+  }, [status, signOut]);
 
   useEffect(() => {
     if (status === 'error') toast.error(t.profile.loadFailed);
@@ -93,6 +105,19 @@ export default function ProfileGate() {
   }, [closeAccount, setEditorOpen, toast, t]);
 
   if (!profileStore) return null;
+
+  if (blockedNotice) {
+    return (
+      <Modal
+        open
+        title={t.admin.blocked.title}
+        onClose={() => setBlockedNotice(false)}
+        footer={<Button onClick={() => setBlockedNotice(false)}>{t.admin.blocked.ok}</Button>}
+      >
+        <p className="text-xs leading-relaxed text-gray-700">{t.admin.blocked.body}</p>
+      </Modal>
+    );
+  }
 
   if (deletion) {
     return (

@@ -3,7 +3,7 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { Timestamp, doc, setDoc } from 'firebase/firestore';
+import { Timestamp, doc, getDoc, setDoc } from 'firebase/firestore';
 import { createServer } from 'vite';
 import { resetFirestore, seed, setupEnv } from '../rules/helpers.mjs';
 
@@ -51,5 +51,39 @@ describe('管理者モードのアダプタ', () => {
 
   it('一般の利用者は定期処理の記録を読めない（UpstreamError）', async () => {
     await assert.rejects(storeFor('alice').jobs(), { name: 'UpstreamError', message: /管理者だけ/ });
+  });
+});
+
+describe('ユーザー管理（T59）', () => {
+  it('3 区画: 管理者・一般のユーザー（管理者とブラックリストを除く）・ブラックリスト', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'blacklist', 'mallory'), { reason: 'スパム' }));
+    const lists = await storeFor('root').users();
+    assert.deepEqual(lists.admins.map((r) => [r.uid, r.nickname]), [['root', 'root さん']]);
+    assert.deepEqual(lists.users.map((r) => r.uid).sort(), ['alice', 'bob', 'carol']);
+    assert.deepEqual(lists.blacklist.map((r) => r.uid), ['mallory']);
+  });
+
+  it('削除するとプロフィールと名前の索引が消え、その名前をほかの人が使える', async () => {
+    await storeFor('root').deleteUser('alice');
+    const lists = await storeFor('root').users();
+    assert.equal(lists.users.some((r) => r.uid === 'alice'), false);
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      assert.equal((await getDoc(doc(ctx.firestore(), 'nicknames', 'alice さん'))).exists(), false);
+    });
+  });
+
+  it('ブラックリストに入れると本人から「入っている」と分かり、外すと戻る', async () => {
+    await storeFor('root').blacklist('bob');
+    assert.equal(await storeFor('bob').amIBlacklisted(), true);
+    assert.equal(await storeFor('alice').amIBlacklisted(), false);
+    await storeFor('root').unblacklist('bob');
+    assert.equal(await storeFor('bob').amIBlacklisted(), false);
+  });
+
+  it('一般の利用者は一覧・削除・ブラックリストの操作ができない（UpstreamError）', async () => {
+    const alice = storeFor('alice');
+    await assert.rejects(alice.users(), { name: 'UpstreamError', message: /管理者だけ/ });
+    await assert.rejects(alice.deleteUser('bob'), { name: 'UpstreamError' });
+    await assert.rejects(alice.blacklist('bob'), { name: 'UpstreamError' });
   });
 });
