@@ -25,7 +25,7 @@ export interface RequestEntrySummary {
   timeOfDay?: string;
   atmosphere?: string;
   equipment?: Equipment;
-  /** Firestore 由来なら投稿者の uid（本人の取り下げに使う）。GitHub 経由の古い行には無い */
+  /** 投稿者の uid（本人の取り下げに使う） */
   ownerUid?: string;
   createdAt?: number;
 }
@@ -48,23 +48,6 @@ export interface RequestEntry extends RequestContent {
   ownerUid: string;
   /** epoch ms */
   createdAt: number;
-}
-
-/** 個々の利用者が投じた 1 件のリクエスト（移植元の形。GitHub Issue 経由の requests.json の entries）。 */
-export interface RequestEntryData {
-  id: string;
-  /** RequestMarkerData.id への参照 */
-  markerId: string;
-  userId: string;
-  userDisplayName: string;
-  /** 1〜5。1 利用者あたりの合計上限も 5 */
-  heat: number;
-  season: string;
-  timeOfDay: string;
-  atmosphere: string;
-  equipment: Equipment;
-  createdAt: number;
-  updatedAt: number;
 }
 
 /** 1 利用者が保有できる熱量の上限。 */

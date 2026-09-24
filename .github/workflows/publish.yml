@@ -1,8 +1,8 @@
 # ビルドして GitHub Pages に公開する共通ワークフロー。
 #
-# 単体では起動せず、deploy.yml（push 時）と ingest-issue.yml（取り込み後）から呼ばれる。
+# 単体では起動せず、deploy.yml（push 時）と sync-firestore.yml（同期後）から呼ばれる。
 # 分けている理由: GITHUB_TOKEN による push は他のワークフローを起動しないという
-# GitHub の再帰防止仕様があるため、取り込み側から直接この処理を呼ぶ必要がある。
+# GitHub の再帰防止仕様があるため、同期側から直接この処理を呼ぶ必要がある。
 name: Publish
 
 on:
@@ -32,8 +32,6 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
         env:
-          # 投稿導線の向き先。リポジトリ名から自動で決まる
-          VITE_GITHUB_REPO: ${{ github.repository }}
           # Firebase のウェブ設定（ADR 0010）。公開してよい値なのでリポジトリの Variables に置く。
           # 未登録なら空になり、ログインと保存が無効のまま公開される
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}

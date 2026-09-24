@@ -1,8 +1,7 @@
 /**
  * 撮影リクエストの登録。
  *
- * Firebase が使える構成（services.requestStore がある）なら Firestore に保存し、使った熱量を数え直す。
- * 使えない構成では GitHub Issue フォームを開くだけ（T10 で廃止）。
+ * Firestore に保存し、使った熱量を数え直す。Firebase の設定が無い構成（services.requestStore が null）では投稿できない。
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -10,7 +9,6 @@ import type { LatLng, RequestEntry } from '@/core/types';
 import { useServices } from '@/shared/hooks/useServices';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
-import { openIssueForm } from '@/features/contribute/issueUrl';
 import type { RequestFormState } from '@/features/sidebar/RequestForm';
 
 export interface RequestSubmitResult {
@@ -47,26 +45,7 @@ export function useRequestSubmit(uid: string | null) {
 
   const submit = useCallback(
     async (form: RequestFormState, pos: LatLng): Promise<RequestSubmitResult | undefined> => {
-      if (!requestStore) {
-        const opened = openIssueForm(
-          'request',
-          {
-            lat: pos.lat.toFixed(6),
-            lng: pos.lng.toFixed(6),
-            heat: String(form.heat),
-            season: form.season,
-            'time-of-day': form.timeOfDay,
-            atmosphere: form.atmosphere,
-            manufacturer: form.manufacturer,
-            series: form.series,
-            model: form.model,
-          },
-          `${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)} 熱量${form.heat}`,
-        );
-        return opened
-          ? { ok: true, message: t.contribute.openedTitle }
-          : { ok: false, message: t.contribute.notConfigured };
-      }
+      if (!requestStore) return { ok: false, message: t.store.unavailable };
 
       return exclusive(async () => {
         try {
@@ -92,7 +71,7 @@ export function useRequestSubmit(uid: string | null) {
   /** 本人のリクエストを取り下げる（1 件ずつ。印が 1 件ずつしか指せないため）。熱量はその分戻る。 */
   const withdraw = useCallback(
     async (entries: { id: string; heat: number }[]): Promise<(RequestSubmitResult & { removedIds: string[] }) | undefined> => {
-      if (!requestStore) return { ok: false, message: t.contribute.notConfigured, removedIds: [] };
+      if (!requestStore) return { ok: false, message: t.store.unavailable, removedIds: [] };
       return exclusive(async () => {
         const removedIds: string[] = [];
         try {
@@ -111,5 +90,5 @@ export function useRequestSubmit(uid: string | null) {
     [requestStore, exclusive, t],
   );
 
-  return { submit, withdraw, loading, heatUsed, usesStore: requestStore !== null };
+  return { submit, withdraw, loading, heatUsed };
 }

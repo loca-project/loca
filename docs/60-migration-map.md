@@ -150,3 +150,5 @@
 | 変更 `RuntimeHealth.mapFallback` → `mapUnavailable` | 代替に切り替える仕組みが無くなったため、意味を「取得できない」に変更 |
 | 変更 `scripts/lib/enrich.mjs` | 取り込み側の地名取得も国土地理院に |
 | 変更 `prefectureFromIsoCode` → `prefectureFromCode` | ISO コード（Nominatim 用）から都道府県コード（国土地理院の市町村コード先頭 2 桁）へ |
+
+> **2026-09-24 追記**: GitHub Issue 経由の投稿・撮影リクエスト・通報は廃止した（T22）。この文書の Issue に関する記述は経緯として残している。今の書き込みは Firestore（`docs/00-architecture.md`）。

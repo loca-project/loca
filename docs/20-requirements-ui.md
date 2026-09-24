@@ -105,3 +105,5 @@
 同意事項（2.5.2）は、投稿時の GitHub Issue フォームに
 必須チェックボックスとして移した（`.github/ISSUE_TEMPLATE/marker.yml`）。
 本サイトが保持する個人情報は **GitHub の公開アカウント名のみ**になった。
+
+> **2026-09-24 追記**: GitHub Issue 経由の投稿・撮影リクエスト・通報は廃止した（T22）。この文書の Issue に関する記述は経緯として残している。今の書き込みは Firestore（`docs/00-architecture.md`）。

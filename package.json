@@ -23,7 +23,6 @@
     "migrate:video-index": "node scripts/migrate-video-index.mjs",
     "data:seed": "node scripts/make-seed-data.mjs",
     "data:clear": "node scripts/clear-data.mjs",
-    "data:ingest": "node scripts/ingest-issue.mjs",
     "data:sync": "node scripts/sync-firestore.mjs",
     "data:sync:check": "node scripts/sync-firestore.mjs --check",
     "data:reset": "node scripts/reset-data.mjs",

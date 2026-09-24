@@ -5,7 +5,7 @@
 # サービスアカウントの鍵などの秘密情報は使わない。
 #
 # 変更があったときだけコミットし、publish.yml を直接呼んで公開しなおす
-# （GITHUB_TOKEN による push は他のワークフローを起動しないため。ingest-issue.yml と同じ理由）。
+# （GITHUB_TOKEN による push は他のワークフローを起動しないため、deploy.yml には任せられない）。
 name: Sync from Firestore
 
 on:
@@ -13,9 +13,9 @@ on:
     - cron: '0 15 * * *' # UTC 15:00 = 日本時間 0:00
   workflow_dispatch:
 
-# Issue の取り込みと同時に public/data を書き換えないよう、同じグループで順番に動かす
+# 手動と定期が重なっても public/data を同時に書き換えないよう、順番に動かす
 concurrency:
-  group: ingest
+  group: sync-data
   cancel-in-progress: false
 
 jobs:

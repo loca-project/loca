@@ -1,9 +1,8 @@
 /**
  * マーカーの登録・更新・削除。
  *
- * Firebase が使える構成（services.markerStore がある）なら Firestore に保存する（ADR 0010）。
- * 使えない構成では、従来どおり GitHub Issue フォームを開くだけで保存しない（移行が終わるまでの暫定。T10 で廃止）。
- * どちらも、入力の検証と動画情報・地名の取得は共通。
+ * Firestore に保存する（ADR 0010）。Firebase の設定が無い構成（services.markerStore が null）では投稿できない。
+ * 入力を検証し、動画情報（oEmbed）と地名（国土地理院）を取得してから保存する。
  */
 
 import { useCallback } from 'react';
@@ -18,8 +17,6 @@ import { useServices } from '@/shared/hooks/useServices';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { draftFromForm, type MarkerFormState } from '@/features/marker/formState';
-import { openIssueForm } from '@/features/contribute/issueUrl';
-import { canContribute } from '@/runtime/config';
 
 export interface SubmitContext {
   form: MarkerFormState;
@@ -68,27 +65,6 @@ function localMarker(id: string, content: MarkerContent, user: AuthUser, prev: M
   };
 }
 
-/** Firebase が使えない構成の暫定経路。GitHub Issue フォームを開く。 */
-function openMarkerIssue(form: MarkerFormState, videoId: string, meta: VideoMeta, place: PlaceMeta | null): boolean {
-  const placeLabel = place ? `${place.prefecture} ${place.city}`.trim() : '';
-  const summary = [placeLabel, meta.title].filter(Boolean).join(' / ');
-  return openIssueForm(
-    'marker',
-    {
-      'video-url': `https://www.youtube.com/watch?v=${videoId}`,
-      lat: Number(form.lat).toFixed(6),
-      lng: Number(form.lng).toFixed(6),
-      'tag-action': form.tagAction,
-      'tag-atmosphere': form.tagAtmosphere,
-      'tag-emotion': form.tagEmotion,
-      manufacturer: form.manufacturer,
-      series: form.series,
-      model: form.model,
-    },
-    summary,
-  );
-}
-
 export function useMarkerSubmit() {
   const { video, geocode, auth, markerStore } = useServices();
   const { t } = useI18n();
@@ -97,8 +73,8 @@ export function useMarkerSubmit() {
   const submit = useCallback(
     async (ctx: SubmitContext): Promise<SubmitResult | undefined> => {
       const user = auth?.currentUser() ?? null;
-      if (markerStore && !user) return { ok: false, message: t.store.loginRequired };
-      if (!markerStore && !canContribute()) return { ok: false, message: t.contribute.notConfigured };
+      if (!markerStore) return { ok: false, message: t.store.unavailable };
+      if (!user) return { ok: false, message: t.store.loginRequired };
 
       const issues = validateMarkerDraft(draftFromForm(ctx.form, ''));
       if (issues.length > 0) {
@@ -129,11 +105,6 @@ export function useMarkerSubmit() {
           const meta = metaResult.value;
           const place = placeResult.status === 'fulfilled' ? placeResult.value : null;
 
-          if (!markerStore || !user) {
-            const opened = openMarkerIssue(ctx.form, videoId, meta, place);
-            if (!opened) return { ok: false, message: t.contribute.notConfigured };
-            return { ok: true, message: `${t.contribute.openedTitle}\n${t.contribute.openedBody}` };
-          }
 
           const content = contentOf(ctx.form, videoId, meta, place, ctx.editing);
           const id = ctx.editing ? ctx.editing.id : await markerStore.create(content);
@@ -154,7 +125,7 @@ export function useMarkerSubmit() {
   /** 本人のマーカーを論理削除する。 */
   const remove = useCallback(
     async (marker: MarkerData): Promise<SubmitResult | undefined> => {
-      if (!markerStore) return { ok: false, message: t.contribute.notConfigured };
+      if (!markerStore) return { ok: false, message: t.store.unavailable };
       return exclusive(async () => {
         try {
           await markerStore.softDelete(marker.id);
@@ -167,5 +138,5 @@ export function useMarkerSubmit() {
     [markerStore, exclusive, t],
   );
 
-  return { submit, remove, loading, usesStore: markerStore !== null };
+  return { submit, remove, loading };
 }

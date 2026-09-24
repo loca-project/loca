@@ -37,8 +37,6 @@ interface SidebarContentProps {
   app: LocaApp;
   handlers: SidebarHandlers;
   busy: boolean;
-  /** Firestore に保存する構成か */
-  usesStore: boolean;
   /** ログイン中のユーザーの uid。未ログインなら null */
   currentUid: string | null;
   /** ログイン中のユーザーが使った熱量。不明なら null */
@@ -63,7 +61,6 @@ export default function SidebarContent({
   app,
   handlers,
   busy,
-  usesStore,
   currentUid,
   heatUsed,
   needsLogin,
@@ -112,7 +109,6 @@ export default function SidebarContent({
             onChange={app.patchForm}
             onSubmit={handlers.onSubmitMarker}
             onCancel={app.resetToSearch}
-            usesStore={usesStore}
             editing={app.editing !== null}
           />
         ) : (
@@ -123,7 +119,6 @@ export default function SidebarContent({
             onChange={(patch) => app.setRequestForm((prev) => ({ ...prev, ...patch }))}
             onSubmit={handlers.onSubmitRequest}
             onCancel={app.resetToSearch}
-            usesStore={usesStore}
             heatUsed={heatUsed}
           />
         )}
@@ -160,8 +155,8 @@ export default function SidebarContent({
   }
 
   if (app.mapMode === MapMode.EDIT && app.selectedMarker) {
-    // 本人判定は表示の切り替えだけ。GitHub 経由の投稿は ownerUid が無いので誰にも出ない
-    const isOwner = usesStore && currentUid !== null && app.selectedMarker.ownerUid === currentUid;
+    // 本人判定は表示の切り替えだけ（権限はルールが守る）
+    const isOwner = currentUid !== null && app.selectedMarker.ownerUid === currentUid;
     return (
       <MarkerDetails
         marker={app.selectedMarker}

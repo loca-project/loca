@@ -40,7 +40,7 @@ export interface PlaceMeta {
 export interface MarkerData {
   id: string;
   youtubeUrl: string;
-  /** YouTube の動画 ID（11 文字）。重複の禁止の索引 videos/{videoId} のキー。GitHub 経由の古い投稿には無い */
+  /** YouTube の動画 ID（11 文字）。重複の禁止の索引 videos/{videoId} のキー */
   videoId?: string;
   lat: number;
   lng: number;
@@ -56,9 +56,9 @@ export interface MarkerData {
   prefecture?: string;
   city?: string;
 
-  /** 投稿者の表示名（GitHub 経由なら GitHub アカウント名）。権限の判定には使わない */
+  /** 投稿者の表示名（プロフィールが入るまでは uid から作る仮の名前）。権限の判定には使わない */
   createdBy: string;
-  /** 投稿者の Firebase の uid。本人かどうかの判定に使う。GitHub 経由の投稿には無い（ADR 0012） */
+  /** 投稿者の Firebase の uid。本人かどうかの判定に使う（ADR 0012） */
   ownerUid?: string;
   /** Loca に登録された時刻（epoch ms）。並び替えと期間フィルタの基準 */
   createdAt: number;

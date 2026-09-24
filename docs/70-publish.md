@@ -19,7 +19,7 @@ git remote add origin https://github.com/<owner>/<repo>.git
 **なぜ `project/` なのか**: GitHub はワークフローを
 **リポジトリルート直下の `.github/workflows/`** でしか読まない。`.github/` は
 `project/.github/` にあるため、リポジトリのルートも `project/` でなければ
-デプロイも Issue 取り込みも動かない。
+デプロイも Firestore からの同期も動かない。
 
 この構成の副次的な利点として、ワークスペース側の `.claude/`・`CLAUDE.md`・
 `.mcp.json`・`tmp/` はリポジトリの外になり、**公開リポジトリに載らない**。
@@ -32,22 +32,16 @@ git remote add origin https://github.com/<owner>/<repo>.git
 リポジトリの **Settings → Pages → Build and deployment → Source** を
 **GitHub Actions** にする。（「Deploy from a branch」ではない）
 
-### 4. Actions に書き込み権限を与える
+### 4. Actions の権限は既定のままでよい
 
-Issue の取り込みが `public/data/*.json` を push するために必要。
-
-**Settings → Actions → General → Workflow permissions** で
-**Read and write permissions** を選ぶ。
-
-### 5. ラベルを作る
-
-- `approved` … これを Issue に付けると取り込みが走る
-- `loca:marker` / `loca:request` / `loca:report` … Issue フォームが自動で付ける
+各ワークフローが必要な権限（同期の push に要る `contents: write` など）を自分で宣言している。
+リポジトリの既定の権限は「読み取り」にしてある（2026-09-24。**Settings → Actions → General → Workflow permissions**）。
+main には強制 push とブランチ削除を禁じるルールを付けてある（**Settings → Rules**）。
 
 ## 公開データについて
 
 `public/data/markers.json` と `requests.json` が公開される地図データそのもの。
-**初期状態は空**で、マーカーは Issue の取り込みによってのみ増える。
+**初期状態は空**で、利用者の投稿（Firestore）が毎晩の同期で入る。投稿した直後は差分の購読でその場に出る（ADR 0013）。
 
 | コマンド | 用途 |
 |---|---|
@@ -128,21 +122,20 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 
 ## ワークフローの構成
 
-4 本に分かれている。分けているのは GitHub の仕様上の制約による。
+3 本に分かれている。分けているのは GitHub の仕様上の制約による。
 
 | ファイル | いつ動くか | 何をするか |
 |---|---|---|
 | `publish.yml` | 他から呼ばれたときだけ | ビルド → 検証 → Pages へ公開 |
 | `deploy.yml` | `main` に push したとき | `publish.yml` を呼ぶ |
-| `ingest-issue.yml` | Issue に `approved` が付いたとき | 取り込み → commit/push → `publish.yml` を呼ぶ |
 | `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | Firestore から `markers.json` と `requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ |
 
-**なぜ取り込み側から直接 publish を呼ぶのか**: GitHub には
+**なぜ同期側から直接 publish を呼ぶのか**: GitHub には
 「`GITHUB_TOKEN` による push は他のワークフローを起動しない」という再帰防止の仕様がある。
-取り込みが push しても `deploy.yml` は動かないため、取り込み側が自分で公開まで面倒を見る。
+同期が push しても `deploy.yml` は動かないため、同期側が自分で公開まで面倒を見る。
 
 **Firestore からの同期**（要件 1.3・1.4）: `markers` と `requests` はルールで誰でも読めるので、API キー（Variables の公開値）だけで読む。
-秘密情報は使わない。論理削除の行は除き、Issue 経由の行は残す。`markers.json` の `syncedAt` が
+秘密情報は使わない。論理削除・取り下げ済みの行は除く。`markers.json` の `syncedAt` が
 「読み始めた時刻」で、アプリはそれより後の変更だけを onSnapshot で購読する。
 
 | 操作 | コマンド |
@@ -161,22 +154,18 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 
 ## 投稿が地図に載るまで
 
-```
-利用者: サイトで入力 → 「GitHub で投稿する」
+```text
+利用者: 右上からログイン → 左の「投稿」タブ → 地図で場所を選ぶ → 入力して「登録する」
           ↓
-       Issue が作成される（loca:marker ラベル付き）
+       Firestore に保存（権限・重複・レートリミットはセキュリティルールが検査）
           ↓
-メンテナ: 内容を確認して `approved` ラベルを付ける
+       その場で地図に出る。他の人の画面にも差分の購読で届く（再読み込み不要）
           ↓
-       ingest-issue.yml が検証 → public/data/markers.json に追記 → push
-          ↓
-       同じワークフローが publish.yml を呼び、Pages に反映（数分）
-          ↓
-       Issue に結果がコメントされ、成功なら自動でクローズ
+毎晩 0:00: sync-firestore.yml が Firestore から markers.json / requests.json を作り直す → 公開
 ```
 
-検証に落ちた場合は Issue にその旨がコメントされる。
-内容を直して `approved` を付け直せば再試行できる。
+取り下げ・削除は論理削除なので、同期より前に作られた行でも購読で全員の画面に届く（ADR 0013）。
+管理者やスクリプトが物理削除したときだけ、同期を手動で実行する（`gh workflow run sync-firestore.yml`）。
 
 ## 動作確認
 
@@ -207,8 +196,8 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 | ピンが出る | markers.json の件数ぶん |
 | ピンをクリック | サイドメニューがマーカー情報になる |
 | ランキングタブ → 適用 | 結果パネルに件数順で並ぶ |
-| 地図をクリック | 投稿フォームが開く |
-| 「GitHub で投稿する」 | Issue フォームが入力済みで開く |
+| 地図をクリック | 何も起きない（投稿は左の「投稿」タブから） |
+| 投稿タブ → 登録する（要ログイン） | すぐ地図に出る |
 | 右上のバッジ | 「最新」と生成日時が出る |
 
 ## 困ったとき
@@ -219,5 +208,5 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 | 404 になる | Settings → Pages の Source が「GitHub Actions」か確認 |
 | 地図が灰色のまま | バッジが「注意」なら地理院タイルに到達できていない。「最新」のままなら地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
 | ピンが出ない | `project/public/data/markers.json` が空。`npm run seed` で復旧できる |
-| 投稿ボタンが出ない | `VITE_GITHUB_REPO` が空。Actions ビルドなら自動設定されるので、ローカル確認時のみ `.env.local` に設定する |
-| 取り込みが動かない | Workflow permissions が Read and write か、`approved` ラベルがあるか確認 |
+| ログインが出ない・投稿タブが「受け付けていません」 | Firebase の設定値が空。本番はリポジトリの Variables、ローカルは `.env.local` の `VITE_FIREBASE_*` を確認する |
+| 公開データに消したはずの行が残る | 物理削除は購読に届かない。`gh workflow run sync-firestore.yml` で作り直す |

@@ -9,7 +9,6 @@ import { mergeRequests } from '../../scripts/lib/merge-requests.mjs';
 const fsRow = (id, heat, lat = 35.0, createdAt = 1000) => ({
   id, lat, lng: 135.0, heat, equipment: { manufacturer: '', series: '', model: '' }, ownerUid: 'u1', createdAt,
 });
-const issueSpot = (id, entries) => ({ id, lat: 35.0, lng: 135.0, prefecture: '大阪府', city: '大阪市', entries });
 
 describe('mergeRequests', () => {
   it('近い Firestore のリクエストは 1 地点にまとまり、合計と件数が出る', () => {
@@ -21,18 +20,19 @@ describe('mergeRequests', () => {
     assert.equal(spots[0].entries[0].ownerUid, 'u1', '本人の取り下げのため ownerUid を持つ');
   });
 
-  it('Issue 経由の地点に Firestore のリクエストを足す（地名は残る）', () => {
-    const spots = mergeRequests([fsRow('a', 1)], [issueSpot('rq_9', [{ id: 're_9', heat: 4, createdAt: 1 }])]);
-    assert.equal(spots.length, 1);
-    assert.equal(spots[0].totalHeat, 5);
-    assert.equal(spots[0].city, '大阪市');
-  });
-
   it('前回入れた Firestore の行は入れ直す（二重に数えない・消えた行は落ちる）', () => {
     const first = mergeRequests([fsRow('a', 2), fsRow('b', 1, 36.0)], []);
     const again = mergeRequests([fsRow('a', 2)], first);
     assert.equal(again.length, 1);
     assert.equal(again[0].totalHeat, 2);
+  });
+
+  it('作り直した地点は、前回の同じ ID の地点から地名を引き継ぐ', () => {
+    const first = mergeRequests([fsRow('a', 1)], []);
+    first[0].prefecture = '大阪府';
+    first[0].city = '大阪市';
+    const again = mergeRequests([fsRow('a', 1)], first);
+    assert.equal(again[0].city, '大阪市');
   });
 
   it('取り下げ済み（withdrawn: true）は含めない', () => {

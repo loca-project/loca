@@ -1,7 +1,6 @@
 /**
  * 撮影リクエストの投稿フォーム。
- * Firebase が使える構成では Firestore に保存し、熱量の上限はセキュリティルールが守る。
- * 使えない構成では GitHub の Issue フォームを開き、上限は Actions 側で判定する。
+ * Firestore に保存する。熱量の上限（1 人あたり合計 5）はセキュリティルールが守る。
  */
 
 import React from 'react';
@@ -39,8 +38,6 @@ interface RequestFormProps {
   onChange: (patch: Partial<RequestFormState>) => void;
   onSubmit: () => void;
   onCancel: () => void;
-  /** Firestore に保存する構成か（false なら GitHub Issue 経由） */
-  usesStore: boolean;
   /** ログイン中のユーザーが使った熱量。不明なら null */
   heatUsed: number | null;
 }
@@ -52,7 +49,6 @@ export default function RequestForm({
   onChange,
   onSubmit,
   onCancel,
-  usesStore,
   heatUsed,
 }: RequestFormProps) {
   const { t } = useI18n();
@@ -61,9 +57,9 @@ export default function RequestForm({
   return (
     <div className="flex flex-col gap-3">
       <p className="rounded bg-amber-50 p-2 text-[11px] text-amber-800">
-        {usesStore && heatUsed !== null
+        {heatUsed !== null
           ? t.store.heatLeft.replace('{left}', String(MAX_HEAT_PER_USER - heatUsed)).replace('{max}', String(MAX_HEAT_PER_USER))
-          : `1 アカウントあたりの熱量は合計 ${MAX_HEAT_PER_USER} までです。超過分は自動で差し戻されます。`}
+          : t.request.heatRule.replace('{max}', String(MAX_HEAT_PER_USER))}
       </p>
 
       <Field label={t.form.reqHeat}>
@@ -130,8 +126,8 @@ export default function RequestForm({
 
       <div className="flex gap-2">
         <Button className="flex-1" onClick={onSubmit} disabled={loading}>
-          <i className={`${usesStore ? 'fa-solid fa-floppy-disk' : 'fa-brands fa-github'} mr-1.5`} />
-          {usesStore ? t.store.submitRequest : t.contribute.submitRequest}
+          <i className="fa-solid fa-floppy-disk mr-1.5" />
+          {t.store.submitRequest}
         </Button>
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
           {t.form.cancel}

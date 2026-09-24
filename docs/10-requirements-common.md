@@ -139,10 +139,12 @@
 | 本章の記述 | 実装後 | 状態（2026-09-24） |
 |---|---|---|
 | 1.1 Google 認証 | Firebase Auth の Google ログイン（ポップアップ方式） | 実装済み。プロフィール登録は未実装で、投稿者名は uid から作る仮の名前 |
-| 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールのみ実装済み。画面は未実装（T9） |
-| 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json` を再生成（Cloud Functions は請求先が必須で使えない） | 未実装（T8） |
+| 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールと管理者の登録（`npm run admin:add`）は実装済み。画面は未実装（T27） |
+| 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json` を再生成（Cloud Functions は請求先が必須で使えない） | 実装済み（`sync-firestore.yml`。YouTube API での更新は T24） |
 | 1.3 レートリミット | 利用者単位はセキュリティルールで実装。IP 単位は引き続き実装できない | 実装済み（6 秒間隔。ADR 0012） |
-| 1.4 ベース JSON ＋ リアルタイム差分 | 元の要件どおり。差分は Firestore の `onSnapshot` | 実装済み。`markers.json` の `generatedAt` より後に `updatedAt` が変わった行だけを購読する |
+| 1.4 ベース JSON ＋ リアルタイム差分 | 元の要件どおり。差分は Firestore の `onSnapshot` | 実装済み。`markers.json` の `syncedAt` より後に `updatedAt` が変わった行だけを購読する（ADR 0013） |
 
 1.1 のブラックリストは、ログインそのものは止められない（ブロッキング関数が請求先必須のため）。
 ログイン直後にアプリがサインアウトさせ、書き込みはルールで拒否する。
+
+> **2026-09-24 追記**: GitHub Issue 経由の投稿・撮影リクエスト・通報は廃止した（T22）。この文書の Issue に関する記述は経緯として残している。今の書き込みは Firestore（`docs/00-architecture.md`）。

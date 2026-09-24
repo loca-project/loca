@@ -76,6 +76,7 @@ Loca は **Geo（範囲指定検索・地名の取得）とユーザー認証を
    Google Maps Platform（Maps・Geocoding）は請求先アカウントが必須なので使わない。
 7. **Firebase SDK を import してよいのは `src/adapters/firebase/` だけ**にする（[0002](0002-ポートとアダプタで外部依存を隔離する.md)）。
 8. **GitHub Issue 経由の投稿は、Firestore への移行が終わった時点で廃止する。** 併存させると一次ソースが 2 つになる。
+   → 2026-09-24 に廃止した（T22。フォーム・取り込みのワークフローとスクリプト・画面の分岐を撤去し、通報も Firestore へ）。
 
 ## 検討した代替案
 
@@ -148,7 +149,7 @@ Loca は **Geo（範囲指定検索・地名の取得）とユーザー認証を
 | ~~`src/ports/`~~ | 2026-09-24 済み。`AuthPort`・`MarkerStorePort` を追加し、`catalog.ts` の説明を直した |
 | `project/README.md` の「プライバシー」 | 「ログイン機能はありません」「保持するのは GitHub アカウント名だけ」が事実でなくなる |
 | `README.md`（ワークスペース）の「制約」 | 解消した項目を消す |
-| `.github/workflows/ingest-issue.yml` ほか Issue 経由の一式 | 移行が終わったら廃止する（決定 8） |
+| ~~`.github/workflows/ingest-issue.yml` ほか Issue 経由の一式~~ | 2026-09-24 に廃止（決定 8） |
 
 ## 出典
 

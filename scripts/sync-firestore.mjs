@@ -71,11 +71,11 @@ const [markerRows, requestRows] = await Promise.all([
 const [currentMarkers, currentSpots] = await Promise.all([readList('markers.json'), readList('requests.json')]);
 
 const markers = mergeMarkers(markerRows, currentMarkers);
-await fillPlaces(markers.markers.filter((m) => m.ownerUid));
+await fillPlaces(markers.markers);
 const spots = mergeRequests(requestRows, currentSpots);
 await fillPlaces(spots);
 
 console.log(`Firestore markers ${markerRows.length} 件（公開 ${markers.live}・論理削除 ${markers.deleted}）、requests ${requestRows.length} 件`);
-console.log(`Issue 経由のマーカー ${markers.fromIssues} 件を維持、地名の問い合わせ ${lookups} 件`);
+console.log(`地名の問い合わせ ${lookups} 件`);
 await save('markers.json', currentMarkers, markers.markers, syncedAt);
 await save('requests.json', currentSpots, spots, syncedAt);

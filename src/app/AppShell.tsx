@@ -36,7 +36,7 @@ export default function AppShell() {
   const toast = useToast();
   const app = useLocaApp();
   const auth = useAuth();
-  const { submit, remove, loading: submitting, usesStore } = useMarkerSubmit();
+  const { submit, remove, loading: submitting } = useMarkerSubmit();
   const requestSubmit = useRequestSubmit(auth.user?.uid ?? null);
   const search = useSearchAndRanking();
 
@@ -245,7 +245,6 @@ export default function AppShell() {
         <SidebarContent
           app={app}
           busy={busy}
-          usesStore={usesStore}
           currentUid={auth.user?.uid ?? null}
           needsLogin={auth.enabled && !auth.user}
           onSignIn={handleSignIn}

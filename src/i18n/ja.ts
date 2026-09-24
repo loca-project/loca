@@ -28,6 +28,7 @@ export const ja = {
 
   request: {
     breakdown: 'このリクエストの中身（熱量の内訳）',
+    heatRule: '熱量は 1 人あたり合計 {max} まで使えます（取り下げると戻ります）。',
     noBreakdown: '内訳はありません（古い形式のリクエストです）',
     mine: 'あなたのリクエスト: 熱量 {heat}（{count} 件）',
     withdraw: '自分のリクエストを取り下げる',
@@ -47,6 +48,7 @@ export const ja = {
     deleted: 'マーカーを削除しました',
     loginRequired: '投稿するにはログインしてください（右上の「ログイン」）',
     note: '登録すると、すぐに地図に表示されます。',
+    unavailable: 'この構成では投稿を受け付けていません。',
     submitRequest: 'リクエストする',
     requestSaved: '撮影リクエストを登録しました',
     heatLeft: '使える熱量の残り: {left} / {max}（1 人あたりの合計）',
@@ -124,23 +126,15 @@ export const ja = {
   },
 
   contribute: {
-    submit: 'GitHub で投稿する',
-    submitRequest: 'GitHub でリクエストする',
-    submitReport: 'GitHub で通報する',
     checking: '動画情報を確認しています...',
-    notConfigured: '投稿先のリポジトリが設定されていません。',
-    openedTitle: 'GitHub の投稿フォームを開きました',
-    openedBody:
-      '内容を確認して Issue を作成すると、自動チェックのうえ数分で地図に反映されます。\nGitHub アカウントが本人確認を兼ねます。',
     guideTitle: '投稿の流れ',
     guide1: '左の「投稿」タブを開き、地図で場所を選ぶ',
-    guide2: '動画 URL とタグを入力する',
-    guide3: 'GitHub の投稿フォームが開くので、内容を確認して送信する',
-    guide4: '自動チェックを通ると数分で地図に反映される',
-    myIssues: '自分の投稿を見る',
-    repoLink: 'リポジトリを開く',
+    guide2: '動画 URL とタグ（撮影リクエストなら熱量と条件）を入力する',
+    guide3: '右上からログインして「登録する」を押す',
+    guide4: 'すぐに地図に表示される。自分の投稿はあとから編集・削除できる',
+    guideNote:
+      '投稿には Google アカウントでのログインが必要です。地図の表示は毎晩まとめて作り直し、それまでの登録・編集・削除はその場で反映されます。',
   },
-
   actions: {
     share: '共有',
     report: '通報',

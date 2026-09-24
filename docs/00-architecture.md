@@ -10,8 +10,8 @@
 | 地名 | 国土地理院の逆ジオコーダ・住所検索（APIキー不要。非公式） |
 | 動画情報 | YouTube oEmbed（APIキー不要） |
 | 定期処理 | GitHub Actions |
-| データベース | Firebase Firestore（Spark・請求先なし）。**決定済み・未実装**。現在は GitHub リポジトリ上の JSON が唯一の保存先 |
-| 認証 | Firebase Auth の Google ログイン（ポップアップ方式）。**決定済み・未実装**。現在は GitHub アカウントが本人確認を兼ねる |
+| データベース | Firebase Firestore（Spark・請求先なし）。書き込みはすべてここ。閲覧の土台は毎晩作り直す JSON |
+| 認証 | Firebase Auth の Google ログイン（ポップアップ方式） |
 | 動画本体 | 保存しない（YouTube 埋め込み） |
 
 支払い方法を前提にしない（ADR 0010）。Google Maps・Geocoding API・Cloud Functions は請求先が必須なので使わない。
@@ -19,21 +19,16 @@
 
 ## 一言でいうと
 
-**サーバーを 1 台も持たない。** 地図に出ているデータは GitHub リポジトリ上の JSON
-そのもので、書き込みは Issue、反映は Actions、配信は Pages が受け持つ。
+**サーバーを 1 台も持たない。** 閲覧の土台は GitHub Pages が配る静的 JSON、書き込みは Firestore（権限はセキュリティルール）、
+毎晩の反映と定期処理は GitHub Actions が受け持つ。
 
-```
-閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json
-投稿:  ブラウザ ──> GitHub Issue ──> Actions（検証・追記・push）──> Pages に反映
+```text
+閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot。updatedAt > syncedAt）
+投稿:  ブラウザ ──> Firebase Auth ──> Firestore（投稿・撮影リクエスト・通報。権限・重複・上限はルール）
+反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json を再生成 ──> Pages に反映
 ```
 
-Firebase の実装後（ADR 0010）は次の形になる。閲覧の土台は静的 JSON のまま。
-
-```
-閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot）
-投稿:  ブラウザ ──> Firebase Auth ──> Firestore（権限はセキュリティルール）
-反映:  Actions（毎日）──> Firestore を読んで markers.json を再生成 ──> Pages に反映
-```
+同期より後の変更は、すべて updatedAt を進める書き込みで表す（論理削除）。だから差分の購読で取りこぼさない（ADR 0013）。
 
 ## ディレクトリ
 
@@ -43,12 +38,13 @@ Loca/                               ワークスペース（git の外）
 ├─ tmp/                             一時ファイル
 └─ project/                         ←← git リポジトリのルート
    ├─ .github/
-   │  ├─ workflows/deploy.yml        push → ビルド → Pages
-   │  ├─ workflows/ingest-issue.yml  Issue → JSON 追記
-   │  └─ ISSUE_TEMPLATE/*.yml        投稿フォーム
+   │  ├─ workflows/deploy.yml         push → ビルド → Pages
+   │  ├─ workflows/sync-firestore.yml 毎日 Firestore → JSON 再生成 → Pages
+   │  └─ workflows/publish.yml        ビルドと公開の共通部分
    ├─ index.html / package.json / vite.config.ts
-   ├─ public/data/*.json             公開データ（= データベースの代わり）
-   ├─ scripts/                       検証・取り込み・公開
+   ├─ firestore.rules                セキュリティルール（tests/ がエミュレータで検査）
+   ├─ public/data/*.json             公開データ（Firestore から毎晩作り直す閲覧の土台）
+   ├─ scripts/                       検証・同期・公開・管理
    ├─ src/
    │  ├─ core/       依存ゼロ。型・定数・純粋ロジック
    │  ├─ ports/      インターフェース定義
@@ -73,13 +69,14 @@ Loca/                               ワークスペース（git の外）
 | `VideoMetaPort` | 動画メタデータの取得 | `oembed` |
 | `GeocodePort` | 座標 ⇄ 地名 | `gsi`（国土地理院） |
 | `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
-| `MarkerStorePort` | マーカーの作成・本人の更新・論理削除 | `firestore`（レートリミットの印と同じバッチで書く。ADR 0012） |
+| `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
+| `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く） |
+| `ReportStorePort` | 通報（1 人 1 マーカー 1 件） | `firestore-reports` |
 
-`AuthPort` と `MarkerStorePort` は Firebase の設定値がそろったときだけ作られ、無ければ `null`（閲覧だけで動く）。
+`AuthPort` と書き込みのポートは Firebase の設定値がそろったときだけ作られ、無ければ `null`（閲覧だけで動く）。
 Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初期読み込みには含めない（`npm run verify` が検査する）。
 
-画面からの保存はまだ `MarkerStorePort` につないでいない（T6）。それまでの書き込みは
-`features/contribute/issueUrl.ts` が GitHub Issue フォームの URL を組み立てるだけで、保存はしない。
+書き込みは `MarkerStorePort`・`RequestStorePort`・`ReportStorePort` だけ。GitHub Issue 経由の投稿は 2026-09-24 に廃止した。
 
 ## データの形
 
@@ -88,23 +85,26 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 ```json
 {
   "generatedAt": 1758500000000,
+  "syncedAt": 1758499990000,
   "markers": [
     {
-      "id": "mk_12",
-      "youtubeUrl": "https://www.youtube.com/watch?v=...",
+      "id": "ozgGSNaaWI6TcMIgtqHC",
+      "youtubeUrl": "https://www.youtube.com/watch?v=<11 文字>",
+      "videoId": "<11 文字>",
       "lat": 35.69, "lng": 139.69,
       "tags": { "action": "...", "atmosphere": "...", "emotion": "..." },
       "equipment": { "manufacturer": "DJI", "series": "Mavic", "model": "Mavic 3 Pro" },
       "title": "...", "channelTitle": "...", "thumbnailUrl": "...",
       "prefecture": "東京都", "city": "台東区",
-      "createdBy": "github-username",
-      "createdAt": 1758400000000
+      "ownerUid": "<Firebase の uid>", "createdBy": "user-xxxxxx",
+      "createdAt": 1758400000000, "updatedAt": 1758400000000
     }
   ]
 }
 ```
 
-`requests.json` も同じ形で、撮影リクエストの地点と内訳を持つ。
+`requests.json` も同じ形で、撮影リクエストの地点と、その内訳（`entries`: 熱量・季節・時間帯・雰囲気・機器・`ownerUid`）を持つ。
+`syncedAt` は「同期で Firestore を読み始めた時刻」で、画面はそれより後に `updatedAt` が変わった行だけを購読する。
 
 ## ランキングの基準を変えた理由
 
@@ -131,32 +131,26 @@ Google API を使わないため、**再生数・動画投稿日・再生時間�
 | 依存 | 落ちたとき |
 |---|---|
 | GitHub Pages | サイト全体が見られない（代替なし） |
-| 地理院タイル | 地図が灰色になる。ピンと閲覧は続く。メニューの「公開データの状態」に表示 |
+| 地理院タイル | 地図が灰色になる。ピンと閲覧は続く。画面上部の帯で知らせる |
 | 国土地理院の地名 API | 地名の取得と地名検索が使えない。登録は地名なしで続行（予備なし・ADR 0011） |
 
-状態は画面右上のバッジに出す。黙って劣化させない。
+不調は画面上部の帯（`HealthNotice`）で知らせる。黙って劣化させない。Firestore が使えないときは閲覧だけで動く。
 
 ## 検証
 
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 13 項目チェック
+npm run verify      # 設計上の約束を 16 項目チェック
 npm run check       # 上記 3 つをまとめて
 ```
 
-`npm run verify` が見ているもの:
+`npm run verify` が見ているもの（出力の各行が 1 項目）:
 
-1. 廃止した依存（Google Maps Platform / YouTube Data API / TensorFlow）が無い
-2. Firebase SDK の import は `src/adapters/firebase/` だけ
-3. package.json に廃止した依存が無い
-4. `features/` と `core/` に地図 SDK の直接 import が無い
-5. `import.meta.env` を読むのは `runtime/config.ts` だけ
-6. ソースに API キーが直書きされていない
-7. すべてのソースが 400 行以内（CP-2）
-8. 公開データが読める
-9. サンプルデータが公開データに混ざっていない
-10. 都道府県リストが scripts と src で一致
-11. Issue フォームの項目が事前入力できる型になっている
-12. Issue フォームの見出しが取り込み側の対応表に揃っている
-13. `dist/` が静的ファイルのみ
+- 廃止した依存が無い（src と package.json）。Firebase SDK の import は `src/adapters/firebase/` だけ
+- `features/` と `core/` に地図 SDK の直接 import が無い。`import.meta.env` を読むのは `runtime/config.ts` だけ
+- ソースに API キーが直書きされていない。`.env.example` 以外の `.env*` が git に無く、`.env.example` に値が無い
+- すべてのソースが 400 行以内（CP-2）
+- 公開データが読め、サンプルデータが混ざっていない
+- 都道府県リストと撮影リクエストの地点のしきい値が、scripts と src で一致
+- `dist/` が静的ファイルのみ。初期読み込みの JS に Firebase SDK が無く、260 kB 以内

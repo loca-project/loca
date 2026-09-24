@@ -2,7 +2,7 @@
  * 静的 JSON を読む唯一のデータ実装。
  *
  * 公開データは GitHub リポジトリ上の `public/data/*.json` にあり、GitHub Actions が作り直す
- * （Firestore からの日次同期と Issue の取り込み）。GitHub Pages が生きていれば必ず読める。
+ * （Firestore からの日次同期）。GitHub Pages が生きていれば必ず読める。
  */
 
 import type { EquipmentDef, MarkerData, RequestMarkerData } from '@/core/types';

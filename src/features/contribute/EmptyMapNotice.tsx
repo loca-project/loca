@@ -12,7 +12,7 @@
 import React, { useState } from 'react';
 import { Button, IconButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
-import { canContribute } from '@/runtime/config';
+import { canUseFirebase } from '@/runtime/config';
 
 const STORAGE_KEY = 'loca.emptyNotice.dismissed';
 
@@ -63,13 +63,13 @@ export default function EmptyMapNotice({ offsetLeft, onOpenGuide }: EmptyMapNoti
         </p>
 
         <div className="mt-4 flex gap-2">
-          {canContribute() && (
+          {canUseFirebase() && (
             <Button className="flex-1" onClick={onOpenGuide}>
               <i className="fa-solid fa-circle-question mr-1.5" />
               {t.empty.howTo}
             </Button>
           )}
-          <Button variant="secondary" className={canContribute() ? '' : 'flex-1'} onClick={close}>
+          <Button variant="secondary" className={canUseFirebase() ? '' : 'flex-1'} onClick={close}>
             {t.empty.dismiss}
           </Button>
         </div>

@@ -167,7 +167,7 @@ describe('地点ごとの集計（mergeRequestEntries）', () => {
     assert.equal(twice[0].requestCount, 1);
   });
 
-  it('entries を持たない既存の地点（Issue 経由）にも足せる', () => {
+  it('entries を持たない地点にも、合計を壊さずに足せる', () => {
     const spots = mergeRequestEntries(
       [{ id: 'rq_1', lat: 35.0, lng: 135.0, totalHeat: 4, requestCount: 2, updatedAt: 0 }],
       [entry('a', 1)],

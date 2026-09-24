@@ -1,7 +1,7 @@
 /**
  * マーカー投稿フォーム（要件 3.3）。
  * 入力の並びは要件どおり URL → 感情タグ3種 → GPS → 撮影機器。
- * Firebase が使える構成では Firestore に保存し、使えない構成では GitHub の Issue フォームを開く。
+ * 送信すると Firestore に保存し、すぐ地図に出る。
  */
 
 import React from 'react';
@@ -19,8 +19,6 @@ interface MarkerFormProps {
   onChange: (patch: Partial<MarkerFormState>) => void;
   onSubmit: () => void;
   onCancel: () => void;
-  /** Firestore に保存する構成か（false なら GitHub Issue 経由） */
-  usesStore: boolean;
   /** 既存マーカーの編集中か */
   editing: boolean;
 }
@@ -38,11 +36,10 @@ export default function MarkerForm({
   onChange,
   onSubmit,
   onCancel,
-  usesStore,
   editing,
 }: MarkerFormProps) {
   const { t } = useI18n();
-  const submitLabel = !usesStore ? t.contribute.submit : editing ? t.store.update : t.store.submit;
+  const submitLabel = editing ? t.store.update : t.store.submit;
 
   const makerOptions = [
     { value: '', label: t.form.selectMaker },
@@ -121,7 +118,7 @@ export default function MarkerForm({
 
       <div className="flex gap-2">
         <Button className="flex-1" onClick={onSubmit} disabled={loading}>
-          <i className={`${usesStore ? 'fa-solid fa-floppy-disk' : 'fa-brands fa-github'} mr-1.5`} />
+          <i className="fa-solid fa-floppy-disk mr-1.5" />
           {loading ? t.contribute.checking : submitLabel}
         </Button>
         <Button variant="secondary" onClick={onCancel} disabled={loading}>
@@ -131,7 +128,7 @@ export default function MarkerForm({
 
       <p className="rounded bg-gray-50 p-2 text-[10px] leading-relaxed text-gray-500">
         <i className="fa-solid fa-circle-info mr-1" />
-        {usesStore ? t.store.note : t.contribute.openedBody}
+        {t.store.note}
       </p>
     </div>
   );

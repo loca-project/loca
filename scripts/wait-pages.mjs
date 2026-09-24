@@ -57,7 +57,7 @@ try {
 console.log('OK  Actions が成功した');
 
 // 2. github-pages 環境の最新デプロイが HEAD で、成功し、URL が応答するか
-//    JS のファイル名での比較はしない。ローカルと Actions では環境変数（VITE_GITHUB_REPO など）が違い、
+//    JS のファイル名での比較はしない。ローカルと Actions では環境変数（.env.local と Variables）の中身が違いうるので、
 //    同じコミットでもハッシュが変わるため。
 const api = (p) => run(gh, ['api', p, '--jq', '.']);
 const [deploy] = JSON.parse(api(`repos/${repo}/deployments?environment=github-pages&per_page=1`));

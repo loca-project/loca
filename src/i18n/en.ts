@@ -35,6 +35,7 @@ export const en: DeepPartial<Dictionary> = {
 
   request: {
     breakdown: 'What people asked for (by heat)',
+    heatRule: 'You can use up to {max} heat in total (withdrawing returns it).',
     noBreakdown: 'No breakdown (older request format)',
     mine: 'Your requests: heat {heat} ({count})',
     withdraw: 'Withdraw my requests',
@@ -54,6 +55,7 @@ export const en: DeepPartial<Dictionary> = {
     deleted: 'Marker deleted',
     loginRequired: 'Sign in to post ("Sign in" at the top right)',
     note: 'Your marker appears on the map right away.',
+    unavailable: 'Posting is not available in this setup.',
     submitRequest: 'Request',
     requestSaved: 'Shooting request registered',
     heatLeft: 'Heat left: {left} / {max} (total per person)',
@@ -131,23 +133,15 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   contribute: {
-    submit: 'Submit on GitHub',
-    submitRequest: 'Request on GitHub',
-    submitReport: 'Report on GitHub',
     checking: 'Checking the video...',
-    notConfigured: 'No target repository is configured.',
-    openedTitle: 'Opened the GitHub submission form',
-    openedBody:
-      'Review it and create the issue. After automated checks it appears on the map within minutes.\nYour GitHub account serves as identity.',
-    guideTitle: 'How submitting works',
-    guide1: 'Open the Post tab and choose a place on the map',
-    guide2: 'Enter the video URL and tags',
-    guide3: 'A GitHub form opens — review and submit it',
-    guide4: 'Once checks pass it appears on the map within minutes',
-    myIssues: 'See my submissions',
-    repoLink: 'Open the repository',
+    guideTitle: 'How posting works',
+    guide1: 'Open the Post tab on the left and choose a place on the map',
+    guide2: 'Enter the video URL and tags (or heat and conditions for a shooting request)',
+    guide3: 'Sign in at the top right and press Register',
+    guide4: 'It appears on the map right away. You can edit or delete your posts later',
+    guideNote:
+      'Posting requires signing in with a Google account. The map is rebuilt nightly; posts, edits and deletions in between appear immediately.',
   },
-
   actions: {
     share: 'Share',
     report: 'Report',

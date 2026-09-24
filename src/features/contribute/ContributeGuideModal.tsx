@@ -1,10 +1,9 @@
-/** 投稿の仕組みを説明するモーダル。認証が無いぶん、手順を明示しておく。 */
+/** 投稿の流れを説明するモーダル（右上のメニューと、登録が無いときの案内から開く）。 */
 
 import React from 'react';
 import Modal from '@/shared/components/Modal';
 import { useI18n } from '@/shared/hooks/useI18n';
-import { issueListUrl } from '@/features/contribute/issueUrl';
-import { canContribute } from '@/runtime/config';
+import { canUseFirebase } from '@/runtime/config';
 
 export default function ContributeGuideModal({
   open,
@@ -14,16 +13,12 @@ export default function ContributeGuideModal({
   onClose: () => void;
 }) {
   const { t } = useI18n();
-  const listUrl = issueListUrl();
-
   const steps = [t.contribute.guide1, t.contribute.guide2, t.contribute.guide3, t.contribute.guide4];
 
   return (
     <Modal open={open} title={t.contribute.guideTitle} onClose={onClose}>
-      {!canContribute() ? (
-        <p className="rounded bg-amber-50 p-3 text-[11px] text-amber-800">
-          {t.contribute.notConfigured}
-        </p>
+      {!canUseFirebase() ? (
+        <p className="rounded-md bg-amber-50 p-3 text-[11px] text-amber-800">{t.store.unavailable}</p>
       ) : (
         <>
           <ol className="flex flex-col gap-2">
@@ -36,24 +31,7 @@ export default function ContributeGuideModal({
               </li>
             ))}
           </ol>
-
-          <p className="mt-4 rounded bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-600">
-            Loca はデータベースを持ちません。地図に出ているデータは GitHub リポジトリ上の
-            JSON ファイルそのものです。投稿は Issue として記録され、自動チェックを通ると
-            リポジトリに反映されます。誰がいつ何を追加したかは、すべて履歴に残ります。
-          </p>
-
-          {listUrl && (
-            <a
-              href={listUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 block rounded bg-gray-900 py-2 text-center text-xs font-bold text-white hover:bg-gray-700"
-            >
-              <i className="fa-brands fa-github mr-1.5" />
-              {t.contribute.myIssues}
-            </a>
-          )}
+          <p className="mt-4 rounded-md bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-600">{t.contribute.guideNote}</p>
         </>
       )}
     </Modal>
