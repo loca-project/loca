@@ -1,36 +1,5 @@
 {
-  "generatedAt": 1790236928391,
-  "syncedAt": 1790236926150,
-  "markers": [
-    {
-      "id": "t24-alive",
-      "youtubeUrl": "https://www.youtube.com/watch?v=jNQXAC9IVRw",
-      "videoId": "jNQXAC9IVRw",
-      "lat": 35.6812,
-      "lng": 139.7671,
-      "tags": {
-        "mood": "calm",
-        "subject": "nature"
-      },
-      "youtube": {
-        "checkedAt": 1790236918250,
-        "durationSec": 19,
-        "likeCount": 19918988,
-        "publishedAt": 1114313512000,
-        "viewCount": 436161481
-      },
-      "equipment": {
-        "manufacturer": "",
-        "model": "",
-        "series": ""
-      },
-      "title": "T24 試験（実在）",
-      "ownerUid": "loca-t24-test",
-      "createdBy": "loca-t24-test",
-      "createdAt": 1790236901417,
-      "updatedAt": 1790236901417,
-      "prefecture": "東京都",
-      "city": "千代田区"
-    }
-  ]
+  "generatedAt": 1790237047868,
+  "syncedAt": 1790237046860,
+  "markers": []
 }
