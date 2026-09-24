@@ -103,7 +103,7 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 }
 ```
 
-`requests.json` も同じ形で、撮影リクエストの地点と、その内訳（`entries`: 熱量・季節・時間帯・雰囲気・機器・`ownerUid`）を持つ。
+`requests.json` も同じ形で、撮影リクエストの地点と、その内訳（`entries`: 熱量・季節・時間帯・撮り方・機器・`ownerUid`。季節・時間帯・撮り方は動画のタグと同じキー）を持つ。
 `syncedAt` は「同期で Firestore を読み始めた時刻」で、画面はそれより後に `updatedAt` が変わった行だけを購読する。
 
 ## ランキングの基準を変えた理由

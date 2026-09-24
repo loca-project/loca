@@ -8,6 +8,7 @@ import type { Bounds, MarkerData, RankingFilter, RequestMarkerData } from '@/cor
 import { RANKING_BASE_LIMIT, TabMode } from '@/core/types';
 import { isLimitedByFilter, rankChannels, rankEquipment, rankPrefectures } from '@/core/logic/ranking';
 import { searchMarkersByBounds, searchMarkersByText } from '@/core/logic/search';
+import { rankRequestSpots } from '@/core/logic/requests';
 import { boundsOf } from '@/core/logic/geo';
 import { useServices } from '@/shared/hooks/useServices';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -105,11 +106,10 @@ export function useSearchAndRanking() {
       }
 
       if (tab === TabMode.RANKING_REQUEST) {
-        const sorted = [...requestMarkers].sort((a, b) => b.totalHeat - a.totalHeat);
         setResults({
           open: true,
           title: t.headers.requestRanking,
-          rows: rowsFromRequestMarkers(sorted.slice(0, filter.limit)),
+          rows: rowsFromRequestMarkers(rankRequestSpots(requestMarkers, filter.tags, filter.limit)),
         });
         return;
       }

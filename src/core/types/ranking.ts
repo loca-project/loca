@@ -28,17 +28,13 @@ export interface RankingFilter {
   /** 登録月を四半期で絞る */
   season?: SeasonFilter;
 
-  /** 撮影リクエストランキング専用 */
-  timeOfDay?: string;
-  atmosphere?: string;
-
   equipment?: {
     manufacturer: string;
     series: string;
     model: string;
   };
 
-  /** タグ（複数選択可） */
+  /** タグ（複数選択可）。撮影リクエストランキングは季節・時間帯・撮り方だけを使う */
   tags: TagSelection;
 }
 

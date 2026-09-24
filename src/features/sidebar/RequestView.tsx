@@ -10,6 +10,7 @@ import React from 'react';
 import type { RequestMarkerData } from '@/core/types';
 import { formatCount } from '@/core/logic/format';
 import { requestBreakdown } from '@/core/logic/requests';
+import { REQUEST_TAG_FIELDS, tagLabel } from '@/core/constants';
 import { Button } from '@/shared/components/Controls';
 import BarList from '@/shared/components/BarList';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -36,7 +37,7 @@ export default function RequestView({
   onWithdraw,
   onCancel,
 }: RequestViewProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const breakdown = requestBreakdown(marker);
   const hasBreakdown = (marker.entries ?? []).length > 0;
   const mine = currentUid ? (marker.entries ?? []).filter((e) => e.ownerUid === currentUid) : [];
@@ -65,9 +66,9 @@ export default function RequestView({
         <h3 className="text-[11px] font-bold text-gray-600">{t.request.breakdown}</h3>
         {hasBreakdown ? (
           <>
-            <BarList title={t.form.reqSeason} rows={breakdown.season} />
-            <BarList title={t.form.reqTime} rows={breakdown.timeOfDay} />
-            <BarList title={t.form.reqAtmosphere} rows={breakdown.atmosphere} />
+            {REQUEST_TAG_FIELDS.map((field) => (
+              <BarList key={field} title={t.tags[field]} rows={breakdown[field].map((r) => ({ ...r, label: tagLabel(r.label, lang) }))} />
+            ))}
             {breakdown.equipment.length > 0 && <BarList title={t.form.equipment} rows={breakdown.equipment} />}
             <p className="text-[11px] text-gray-500">{t.request.howToAnswer}</p>
           </>

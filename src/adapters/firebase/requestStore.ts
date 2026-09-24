@@ -34,9 +34,10 @@ function toEntry(id: string, data: DocumentData): RequestEntry {
     lat: data.lat,
     lng: data.lng,
     heat: data.heat,
-    season: data.season ?? '',
-    timeOfDay: data.timeOfDay ?? '',
-    atmosphere: data.atmosphere ?? '',
+    // 未選択の項目は持たない（ルールが一覧のキーだけを許している）
+    ...(data.season ? { season: data.season } : {}),
+    ...(data.timeOfDay ? { timeOfDay: data.timeOfDay } : {}),
+    ...(data.style ? { style: data.style } : {}),
     equipment: data.equipment,
     ownerUid: data.ownerUid ?? '',
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : 0,
@@ -75,8 +76,10 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
 
       const ref = doc(collection(db, 'requests'));
       const batch = writeBatch(db);
+      // Firestore は undefined を保存できないので、未選択の項目を落とす
+      const stored = Object.fromEntries(Object.entries(content).filter(([, v]) => v !== undefined));
       batch.set(ref, {
-        ...content,
+        ...stored,
         ownerUid: user.uid,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),

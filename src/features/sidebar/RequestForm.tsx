@@ -6,16 +6,18 @@
 import React from 'react';
 import type { EquipmentDef } from '@/core/types';
 import { MAX_HEAT_PER_USER } from '@/core/types';
-import { HEAT_LEVELS, REQUEST_OPTIONS } from '@/core/constants';
+import { HEAT_LEVELS, REQUEST_TAG_FIELDS } from '@/core/constants';
 import { modelsOf, seriesOf } from '@/core/logic/equipment';
-import { Button, Field, Select } from '@/shared/components/Controls';
+import { Button, Field, RadioGroup, Select } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { categoryOf, chipOptions } from '@/features/tags/tagChips';
 
 export interface RequestFormState {
   heat: number;
+  /** 動画のタグと同じキー（ADR 0014）。未選択は空文字 */
   season: string;
   timeOfDay: string;
-  atmosphere: string;
+  style: string;
   manufacturer: string;
   series: string;
   model: string;
@@ -23,9 +25,9 @@ export interface RequestFormState {
 
 export const EMPTY_REQUEST_FORM: RequestFormState = {
   heat: 1,
-  season: REQUEST_OPTIONS.season[0],
-  timeOfDay: REQUEST_OPTIONS.timeOfDay[0],
-  atmosphere: REQUEST_OPTIONS.atmosphere[0],
+  season: '',
+  timeOfDay: '',
+  style: '',
   manufacturer: '',
   series: '',
   model: '',
@@ -51,8 +53,7 @@ export default function RequestForm({
   onCancel,
   heatUsed,
 }: RequestFormProps) {
-  const { t } = useI18n();
-  const toOptions = (values: readonly string[]) => values.map((v) => ({ value: v, label: v }));
+  const { t, lang } = useI18n();
 
   return (
     <div className="flex flex-col gap-3">
@@ -70,29 +71,23 @@ export default function RequestForm({
         />
       </Field>
 
-      <Field label={t.form.reqSeason}>
-        <Select
-          value={form.season}
-          options={toOptions(REQUEST_OPTIONS.season)}
-          onChange={(e) => onChange({ season: e.target.value })}
-        />
-      </Field>
-
-      <Field label={t.form.reqTime}>
-        <Select
-          value={form.timeOfDay}
-          options={toOptions(REQUEST_OPTIONS.timeOfDay)}
-          onChange={(e) => onChange({ timeOfDay: e.target.value })}
-        />
-      </Field>
-
-      <Field label={t.form.reqAtmosphere}>
-        <Select
-          value={form.atmosphere}
-          options={toOptions(REQUEST_OPTIONS.atmosphere)}
-          onChange={(e) => onChange({ atmosphere: e.target.value })}
-        />
-      </Field>
+      <div className="flex flex-col gap-3 rounded border border-gray-100 bg-gray-50 p-2">
+        <span className="text-[11px] font-bold text-gray-500">
+          {t.tags.optionalGroup}
+          <span className="ml-1 font-normal">{t.tags.optionalHint}</span>
+        </span>
+        {REQUEST_TAG_FIELDS.map((field) => (
+          <Field key={field} label={t.tags[field]}>
+            <RadioGroup
+              name={`request-${field}`}
+              options={chipOptions(categoryOf(field), lang)}
+              value={form[field]}
+              allowDeselect
+              onChange={(v) => onChange({ [field]: v })}
+            />
+          </Field>
+        ))}
+      </div>
 
       <div className="flex flex-col gap-2 rounded border border-gray-100 bg-gray-50 p-2">
         <span className="text-[11px] font-bold text-gray-500">{t.form.equipment}</span>

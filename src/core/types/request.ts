@@ -1,6 +1,14 @@
 /** 撮影リクエスト（まだ動画が無い地点への「撮ってほしい」表明）。 */
 
+import type { SeasonKey, StyleKey, TimeOfDayKey } from '@/core/constants/tags';
 import type { Equipment } from './marker';
+
+/** どう撮ってほしいか。語とキーは動画のタグと同じ（ADR 0014）。未選択の項目は持たない */
+export interface RequestTags {
+  season?: SeasonKey;
+  timeOfDay?: TimeOfDayKey;
+  style?: StyleKey;
+}
 
 /** 地点ごとの集計マーカー。個別リクエストの合計値を持つ。 */
 export interface RequestMarkerData {
@@ -18,12 +26,9 @@ export interface RequestMarkerData {
 }
 
 /** 地点に集めたリクエスト 1 件の要約（requests.json の entries と同じ形）。 */
-export interface RequestEntrySummary {
+export interface RequestEntrySummary extends RequestTags {
   id: string;
   heat: number;
-  season?: string;
-  timeOfDay?: string;
-  atmosphere?: string;
   equipment?: Equipment;
   /** 投稿者の uid（本人の取り下げに使う） */
   ownerUid?: string;
@@ -31,14 +36,11 @@ export interface RequestEntrySummary {
 }
 
 /** 保存する撮影リクエストの内容（Firestore の requests/{id}）。 */
-export interface RequestContent {
+export interface RequestContent extends RequestTags {
   lat: number;
   lng: number;
   /** 1〜5 */
   heat: number;
-  season: string;
-  timeOfDay: string;
-  atmosphere: string;
   equipment: Equipment;
 }
 

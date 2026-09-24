@@ -29,7 +29,7 @@ beforeEach(async () => { await env.clearFirestore(); });
 const user = (uid) => ({ uid, displayName: uid, email: null, photoUrl: null });
 const storeFor = (uid) => createRequestStore(env.authenticatedContext(uid).firestore(), () => user(uid));
 const content = (heat, lat = 35.0) => ({
-  lat, lng: 135.0, heat, season: '春', timeOfDay: '朝', atmosphere: '静か',
+  lat, lng: 135.0, heat, season: 'spring', timeOfDay: 'morning', style: 'aerial',
   equipment: { manufacturer: '', series: '', model: '' },
 });
 

@@ -18,7 +18,6 @@ const guest = () => env.unauthenticatedContext().firestore();
 function newRequest(uid, heat, overrides = {}) {
   return {
     lat: 35.0, lng: 135.0, heat,
-    season: '', timeOfDay: '', atmosphere: '',
     equipment: { manufacturer: '', series: '', model: '' },
     ownerUid: uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
     ...overrides,
@@ -68,6 +67,18 @@ describe('作成', () => {
   it('熱量 0 と 6 は拒否', async () => {
     await assertFails(budgetedWrite(as('alice'), 'alice', 'r1', newRequest('alice', 0), 0));
     await assertFails(budgetedWrite(as('alice'), 'alice', 'r2', newRequest('alice', 6), 6));
+  });
+
+  it('季節・時間帯・撮り方は動画のタグと同じキーで持てる（ADR 0014）', async () => {
+    const data = newRequest('alice', 1, { season: 'autumn', timeOfDay: 'night', style: 'aerial' });
+    await assertSucceeds(budgetedWrite(as('alice'), 'alice', 'r1', data, 1));
+  });
+
+  it('一覧に無い語・旧形式の撮影雰囲気・空文字は拒否', async () => {
+    const bad = [{ season: '秋' }, { timeOfDay: 'noon' }, { style: '空撮/景観' }, { atmosphere: '散策' }, { season: '' }];
+    for (const [i, overrides] of bad.entries()) {
+      await assertFails(budgetedWrite(as('alice'), 'alice', `r${i}`, newRequest('alice', 1, overrides), 1));
+    }
   });
 
   it('ブラックリストの利用者は拒否', async () => {

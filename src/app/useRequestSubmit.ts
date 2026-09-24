@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { LatLng, RequestEntry } from '@/core/types';
+import type { SeasonKey, StyleKey, TimeOfDayKey } from '@/core/constants';
 import { useServices } from '@/shared/hooks/useServices';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -53,9 +54,10 @@ export function useRequestSubmit(uid: string | null) {
             lat: pos.lat,
             lng: pos.lng,
             heat: form.heat,
-            season: form.season,
-            timeOfDay: form.timeOfDay,
-            atmosphere: form.atmosphere,
+            // 未選択（空文字）の項目は送らない（ルールが一覧のキーだけを許している）
+            ...(form.season ? { season: form.season as SeasonKey } : {}),
+            ...(form.timeOfDay ? { timeOfDay: form.timeOfDay as TimeOfDayKey } : {}),
+            ...(form.style ? { style: form.style as StyleKey } : {}),
             equipment: { manufacturer: form.manufacturer, series: form.series, model: form.model },
           });
           setHeatUsed((used) => (used ?? 0) + form.heat);

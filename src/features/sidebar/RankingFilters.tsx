@@ -6,7 +6,7 @@
 import React from 'react';
 import type { EquipmentDef, RankingFilter, TabMode } from '@/core/types';
 import { TabMode as Tab } from '@/core/types';
-import { PREFECTURES, REQUEST_OPTIONS, TAG_CATEGORIES } from '@/core/constants';
+import { PREFECTURES, REQUEST_TAG_FIELDS, TAG_CATEGORIES, type TagField } from '@/core/constants';
 import { modelsOf, seriesOf } from '@/core/logic/equipment';
 import { Button, CheckboxGroup, Field, Select } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -54,7 +54,7 @@ export default function RankingFilters({
 
       <div className="flex flex-col gap-2 rounded border border-gray-100 bg-gray-50 p-2">
         <span className="text-[11px] font-bold text-gray-500">{t.filters.tags}</span>
-        {TAG_CATEGORIES.map((c) => (
+        {TAG_CATEGORIES.filter((c) => tab !== Tab.RANKING_REQUEST || (REQUEST_TAG_FIELDS as TagField[]).includes(c.field)).map((c) => (
           <div key={c.field}>
             <p className="mb-1 text-[10px] text-gray-400">{t.tags[c.field]}</p>
             <CheckboxGroup
@@ -89,31 +89,6 @@ export default function RankingFilters({
                 { value: '10-12', label: t.filters.q4 },
               ]}
               onChange={(e) => onChange({ season: (e.target.value || undefined) as RankingFilter['season'] })}
-            />
-          </Field>
-        </>
-      )}
-
-      {tab === Tab.RANKING_REQUEST && (
-        <>
-          <Field label={t.filters.timeOfDay}>
-            <Select
-              value={filter.timeOfDay ?? ''}
-              options={[
-                { value: '', label: t.filters.allTimes },
-                ...REQUEST_OPTIONS.timeOfDay.slice(1).map((v) => ({ value: v, label: v })),
-              ]}
-              onChange={(e) => onChange({ timeOfDay: e.target.value || undefined })}
-            />
-          </Field>
-          <Field label={t.filters.atmosphere}>
-            <Select
-              value={filter.atmosphere ?? ''}
-              options={[
-                { value: '', label: t.filters.allAtmospheres },
-                ...REQUEST_OPTIONS.atmosphere.slice(1).map((v) => ({ value: v, label: v })),
-              ]}
-              onChange={(e) => onChange({ atmosphere: e.target.value || undefined })}
             />
           </Field>
         </>

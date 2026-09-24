@@ -1,11 +1,11 @@
-/** 撮影リクエストの選択肢。 */
-export const UNSELECTED = '未選択';
+import type { TagField } from './tags';
 
-export const REQUEST_OPTIONS = {
-  timeOfDay: [UNSELECTED, '日の出', '朝', '昼', '夕方', '夜'],
-  atmosphere: [UNSELECTED, '空撮/景観', '訪問/地域紹介', '散策'],
-  season: [UNSELECTED, '春', '夏', '秋', '冬'],
-};
+/**
+ * 撮影リクエストで指定できるタグ（ADR 0014）。語とキーは動画のタグと同じ（tags.ts）。
+ * 「どう撮ってほしいか」なので、映っているもの・雰囲気は持たない。
+ */
+export type RequestTagField = Extract<TagField, 'season' | 'timeOfDay' | 'style'>;
+export const REQUEST_TAG_FIELDS: RequestTagField[] = ['season', 'timeOfDay', 'style'];
 
 /** 熱量の選択肢（1〜5）。 */
 export const HEAT_LEVELS = [1, 2, 3, 4, 5];

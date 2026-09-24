@@ -46,17 +46,28 @@ export function isValidMemo(text: string | undefined): boolean {
   return memo === undefined || [...memo].length <= MEMO_MAX_LENGTH;
 }
 
-/** 絞り込みの条件が 1 つでもあるか。 */
-export function hasTagSelection(selection: TagSelection): boolean {
-  return TAG_FIELDS.some((field) => (selection[field]?.length ?? 0) > 0);
+/** 絞り込みの条件が 1 つでもあるか（fields を渡すと、その項目だけを見る）。 */
+export function hasTagSelection(selection: TagSelection, fields: TagField[] = TAG_FIELDS): boolean {
+  return fields.some((field) => (selection[field]?.length ?? 0) > 0);
 }
 
-/** 項目の中は OR、項目の間は AND。任意項目が未設定のマーカーは、その項目で絞ると当たらない。 */
-export function matchesTags(m: MarkerData, selection: TagSelection): boolean {
-  return TAG_FIELDS.every((field) => {
+/**
+ * 項目の中は OR、項目の間は AND。値が未設定の項目で絞ると当たらない。
+ * fields を渡すと、その項目だけを見る（撮影リクエストは季節・時間帯・撮り方だけ）。
+ */
+export function matchesTagValues(
+  own: Partial<Record<TagField, string>> | undefined,
+  selection: TagSelection,
+  fields: TagField[] = TAG_FIELDS,
+): boolean {
+  return fields.every((field) => {
     const wanted = selection[field];
     if (!wanted || wanted.length === 0) return true;
-    const own = m.tags?.[field];
-    return own !== undefined && wanted.includes(own);
+    const value = own?.[field];
+    return value !== undefined && wanted.includes(value);
   });
+}
+
+export function matchesTags(m: MarkerData, selection: TagSelection): boolean {
+  return matchesTagValues(m.tags, selection);
 }

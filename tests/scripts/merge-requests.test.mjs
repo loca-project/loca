@@ -20,6 +20,15 @@ describe('mergeRequests', () => {
     assert.equal(spots[0].entries[0].ownerUid, 'u1', '本人の取り下げのため ownerUid を持つ');
   });
 
+  it('季節・時間帯・撮り方はキーのまま入り、無い項目は持たない', () => {
+    const rows = [{ ...fsRow('a', 2), season: 'autumn', style: 'aerial' }];
+    const [entry] = mergeRequests(rows, [])[0].entries;
+    assert.equal(entry.season, 'autumn');
+    assert.equal(entry.style, 'aerial');
+    assert.equal('timeOfDay' in entry, false);
+    assert.equal('atmosphere' in entry, false);
+  });
+
   it('前回入れた Firestore の行は入れ直す（二重に数えない・消えた行は落ちる）', () => {
     const first = mergeRequests([fsRow('a', 2), fsRow('b', 1, 36.0)], []);
     const again = mergeRequests([fsRow('a', 2)], first);

@@ -31,9 +31,10 @@ export function mergeRequests(firestoreRows, currentSpots) {
     spot.entries.push({
       id: row.id,
       heat: row.heat,
-      season: row.season ?? '',
-      timeOfDay: row.timeOfDay ?? '',
-      atmosphere: row.atmosphere ?? '',
+      // 季節・時間帯・撮り方は動画のタグと同じキー。無い項目は持たない（ADR 0014）
+      ...(row.season ? { season: row.season } : {}),
+      ...(row.timeOfDay ? { timeOfDay: row.timeOfDay } : {}),
+      ...(row.style ? { style: row.style } : {}),
       equipment: row.equipment,
       // 本人の取り下げに使う（uid は markers でも公開している識別子）
       ownerUid: row.ownerUid,

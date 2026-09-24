@@ -224,15 +224,16 @@ service cloud.firestore {
 
     function validRequest(d) {
       return d.keys().hasOnly([
-          'lat', 'lng', 'heat', 'season', 'timeOfDay', 'atmosphere', 'equipment',
+          'lat', 'lng', 'heat', 'season', 'timeOfDay', 'style', 'equipment',
           'ownerUid', 'createdAt', 'updatedAt', 'withdrawn'])
         && d.keys().hasAll(['lat', 'lng', 'heat', 'equipment', 'ownerUid', 'createdAt', 'updatedAt'])
         && d.lat is number && d.lat >= -90 && d.lat <= 90
         && d.lng is number && d.lng >= -180 && d.lng <= 180
         && d.heat is int && d.heat >= 1 && d.heat <= 5
-        && optString(d, 'season', 40)
-        && optString(d, 'timeOfDay', 40)
-        && optString(d, 'atmosphere', 40)
+        // 季節・時間帯・撮り方は動画のタグと同じキー（ADR 0014）。未選択は項目ごと省く
+        && optEnum(d, 'season', ['spring', 'summer', 'autumn', 'winter'])
+        && optEnum(d, 'timeOfDay', ['sunrise', 'morning', 'daytime', 'evening', 'night'])
+        && optEnum(d, 'style', ['aerial', 'walking', 'vehicle', 'fixed'])
         && validEquipment(d.equipment)
         && d.createdAt == request.time
         && d.updatedAt == request.time;
