@@ -1,6 +1,6 @@
 /** 画面全体の組み立てと、各操作のつなぎ込み。 */
 
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import type { LatLng, ReportReason } from '@/core/types';
 import { MapMode, TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -29,6 +29,7 @@ import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
 import { usePins } from './usePins';
 import { useMapFilter } from './useMapFilter';
+import { readSharedView, useShareUrl } from './useShareUrl';
 import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
@@ -43,7 +44,10 @@ export default function AppShell() {
   const search = useSearchAndRanking();
 
   // 地図に出すのは画面下の地図フィルタで絞った後のもの（ADR 0015）
-  const mapFilter = useMapFilter(app.catalog.markers, app.catalog.requestMarkers);
+  // 共有された URL の絞り込みとマーカーで始め、変えたら URL に映す（T42）
+  const [shared] = useState(readSharedView);
+  const mapFilter = useMapFilter(app.catalog.markers, app.catalog.requestMarkers, shared.filter);
+  useShareUrl(app, mapFilter.filter, shared.markerId);
   const viewportWidth = useViewportWidth();
   const pins = usePins(
     mapFilter.markers,
@@ -174,8 +178,14 @@ export default function AppShell() {
 
   const handleShare = useCallback(async () => {
     if (!app.selectedMarker) return;
-    await navigator.clipboard.writeText(app.selectedMarker.youtubeUrl);
-    toast.info(t.actions.linkCopied);
+    // 今の URL には地図フィルタと選択中のマーカーが載っている（T42）。開いた人に同じ地図を見せる
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.info(t.actions.linkCopied);
+    } catch (e) {
+      console.error('[loca] リンクをコピーできませんでした', e);
+      toast.error(t.actions.linkCopyFailed);
+    }
   }, [app.selectedMarker, t, toast]);
 
   /** 通報（要件 3.8）。Firestore に保存し、管理者が対応するまでマーカーは表示したまま。 */
