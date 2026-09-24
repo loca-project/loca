@@ -145,6 +145,19 @@ export function createProfileStore(db: Firestore, currentUser: () => AuthUser | 
       }
     },
 
+    async remove(): Promise<void> {
+      const user = requireUser();
+      try {
+        const nickname = (await getDoc(doc(db, 'users', user.uid))).data()?.nickname;
+        const batch = writeBatch(db);
+        batch.delete(doc(db, 'users', user.uid));
+        if (typeof nickname === 'string' && (await holderOf(nickname)) === user.uid) batch.delete(indexRef(nickname));
+        await batch.commit();
+      } catch (e) {
+        throw toUpstream(e, 'プロフィールを消せませんでした。');
+      }
+    },
+
     async repair(nickname: string): Promise<number> {
       const user = requireUser();
       try {

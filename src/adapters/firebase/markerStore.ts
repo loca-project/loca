@@ -14,6 +14,7 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -32,6 +33,8 @@ const DENIED =
 const DUPLICATE = 'この動画はすでに登録されています。';
 const BLOCKED = 'この動画は登録できません（管理者が禁止しています）。';
 const UNREGISTERED = '投稿するにはプロフィールを登録してください。';
+/** アカウント削除で 1 回のバッチに入れるマーカーの数（ルールの get・exists は本番でバッチあたり 20 回まで） */
+const DELETE_CHUNK = 3;
 
 /** Firestore は undefined を保存できないので、値の無い項目を落とす。 */
 function defined<T extends object>(obj: T): Partial<T> {
@@ -165,6 +168,30 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
       const remove = await releasable(id, await currentVideoId(id));
       await commit(user.uid, id, { deleted: true, updatedAt: serverTimestamp() }, 'update', { remove });
     },
+
+    async softDeleteAllMine(): Promise<number> {
+      const user = requireUser();
+      try {
+        const snap = await getDocs(query(collection(db, 'markers'), where('ownerUid', '==', user.uid)));
+        const alive = snap.docs.filter((d) => d.data().deleted !== true);
+        // 1 件につき、マーカーの更新と索引の削除でルールの get・exists が 5 回ほど走る。バッチあたり 20 回に収める
+        for (let i = 0; i < alive.length; i += DELETE_CHUNK) {
+          const chunk = alive.slice(i, i + DELETE_CHUNK);
+          const releases = await Promise.all(chunk.map((d) => releasable(d.id, d.data().videoId as string | undefined)));
+          const batch = writeBatch(db);
+          chunk.forEach((d, j) => {
+            batch.update(d.ref, { deleted: true, updatedAt: serverTimestamp() });
+            const videoId = releases[j];
+            if (videoId) batch.delete(doc(db, 'videos', videoId));
+          });
+          await batch.commit();
+        }
+        return alive.length;
+      } catch (e) {
+        throw e instanceof UpstreamError ? e : toUpstream(e, 'マーカーを削除できませんでした。');
+      }
+    },
+
     subscribeChanges(sinceMs, onChange, onError): Unsubscribe {
       // 差分だけを読む（読み取りの無料枠を守るため。要件 1.4）。単一項目の範囲条件なので複合インデックスは要らない
       const changed = query(collection(db, 'markers'), where('updatedAt', '>', Timestamp.fromMillis(sinceMs)));

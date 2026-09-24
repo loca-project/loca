@@ -44,11 +44,12 @@
         && request.resource.data.uid == request.auth.uid
         && key == nicknameKey(getAfter(docPath('users', request.auth.uid)).data.nickname);
       allow update: if false;
-      // 本人は、いまのニックネームでなくなった索引だけ手放せる
+      // 本人は、いまのニックネームでなくなった索引だけ手放せる（アカウント削除でプロフィールを消すときも手放せる）
       allow delete: if canWrite() && (
         isAdmin()
         || (resource.data.uid == request.auth.uid
-          && key != nicknameKey(getAfter(docPath('users', request.auth.uid)).data.nickname))
+          && (!existsAfter(docPath('users', request.auth.uid))
+            || key != nicknameKey(getAfter(docPath('users', request.auth.uid)).data.nickname)))
       );
     }
 
@@ -75,8 +76,8 @@
         && releasedOld(uid)
         && request.resource.data.updatedAt == request.time
         && request.time > resource.data.updatedAt + duration.value(60, 's');
-      // 本人のアカウント削除は T54 で足す
-      allow delete: if canWrite() && isAdmin();
+      // アカウント削除（要件 2.7・ADR 0021）。本人は自分のプロフィールを消せる。投稿は先に論理削除する（画面が順に行う）
+      allow delete: if canWrite() && (isAdmin() || request.auth.uid == uid);
     }
 
     // ---- 管理者とブラックリスト（要件 5.x）----

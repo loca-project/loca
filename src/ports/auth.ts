@@ -20,4 +20,11 @@ export interface AuthPort extends Adapter {
   /** Google でログインする。利用者がポップアップを閉じたら null。失敗は UpstreamError。 */
   signIn(): Promise<AuthUser | null>;
   signOut(): Promise<void>;
+  /**
+   * ログイン中の人に、Google でもう一度本人確認させる（アカウント削除の前。ADR 0021）。
+   * 別の Google アカウントを選んだら UpstreamError。利用者が閉じたら false。
+   */
+  reauthenticate(): Promise<boolean>;
+  /** ログインの登録（Firebase Authentication の利用者）を消す。消すとログアウトになる。直前の本人確認が要る。 */
+  deleteAccount(): Promise<void>;
 }

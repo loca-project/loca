@@ -1,7 +1,7 @@
 /**
  * プロフィール画面（要件 2.6・ADR 0019）。変えられるのはニックネームだけで、これまでのマーカーの投稿者名も追従する。
  * 登録日・同意した日時と、連携中の Google アカウント（ログインの仕組みが持つ値。Loca には保存しない）を見せる。
- * アカウントの削除は T54 で足す。
+ * 左下の「アカウントを削除」から、削除の確認（DeleteAccountModal）に進む。
  */
 
 import React, { useState } from 'react';
@@ -19,6 +19,8 @@ interface ProfileModalProps {
   busy: boolean;
   onSave: (nickname: string) => void;
   onClose: () => void;
+  /** アカウント削除の確認を開く（ADR 0021） */
+  onDelete: () => void;
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -30,7 +32,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default function ProfileModal({ profile, user, busy, onSave, onClose }: ProfileModalProps) {
+export default function ProfileModal({ profile, user, busy, onSave, onClose, onDelete }: ProfileModalProps) {
   const { t } = useI18n();
   const [nickname, setNickname] = useState(profile.nickname);
   const normalized = normalizeNickname(nickname);
@@ -43,6 +45,9 @@ export default function ProfileModal({ profile, user, busy, onSave, onClose }: P
       onClose={onClose}
       footer={
         <>
+          <Button variant="ghost" className="mr-auto text-red-600" onClick={onDelete} disabled={busy}>
+            {t.profile.deleteAccount}
+          </Button>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             {t.actions.cancel}
           </Button>

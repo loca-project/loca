@@ -1,0 +1,36 @@
+/**
+ * アカウント削除の手順（要件 2.7・ADR 0021）。すべて論理削除で、物理削除は 30 日後に Actions が行う（T58）。
+ *
+ * 1. Google で本人確認（取り消したら何もしない）
+ * 2. 自分のマーカーをすべて論理削除し、動画の索引を外す
+ * 3. 撮影リクエストをすべて取り下げる（熱量は戻る）
+ * 4. プロフィールと名前の索引を消す
+ * 5. ログインの登録を消す（自動でログアウトになる）
+ *
+ * 2〜4 は、途中で失敗してももう一度実行すれば残りから続く（消し済み・取り下げ済みは飛ばす）。
+ */
+
+import { useCallback } from 'react';
+import { UpstreamError } from '@/ports';
+import { useServices } from '@/shared/hooks/useServices';
+
+export interface CloseAccountResult {
+  markers: number;
+  requests: number;
+}
+
+export function useCloseAccount(): () => Promise<CloseAccountResult | null> {
+  const { auth, markerStore, requestStore, profileStore } = useServices();
+
+  return useCallback(async () => {
+    if (!auth || !markerStore || !requestStore || !profileStore) {
+      throw new UpstreamError('この構成ではアカウントを削除できません。');
+    }
+    if (!(await auth.reauthenticate())) return null;
+    const markers = await markerStore.softDeleteAllMine();
+    const requests = await requestStore.withdrawAllMine();
+    await profileStore.remove();
+    await auth.deleteAccount();
+    return { markers, requests };
+  }, [auth, markerStore, requestStore, profileStore]);
+}

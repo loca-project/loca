@@ -59,6 +59,22 @@ export const en: DeepPartial<Dictionary> = {
     aligned: 'Updated the poster name on {count} marker(s) to your nickname',
     loadFailed: 'Could not load your profile. Please reload the page later.',
     needed: 'You need to create a profile before posting.',
+    deleteAccount: 'Delete account',
+    deletion: {
+      title: 'Final check: delete your account',
+      lead: 'This cannot be undone.',
+      items: [
+        'All your markers are removed from the map, and all your shooting requests are withdrawn.',
+        'Your profile (nickname and consent record) and your Google sign-in registration are deleted.',
+        'Removed posts are kept for 30 days, visible only to administrators (for mistakes and report reviews), then erased completely.',
+        'If you sign in again with the same Google account, you start over as a new user. Your previous posts are not carried over.',
+      ],
+      reauthNote: 'After you press "Delete account", Google asks you to sign in again to confirm it is you.',
+      confirm: 'Delete account',
+      running: 'Deleting...',
+      done: 'Your account was deleted ({markers} marker(s), {requests} shooting request(s)).',
+      failed: 'Stopped partway: {message} Press "Delete account" again to continue from where it stopped.',
+    },
   },
 
   myPosts: {

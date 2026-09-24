@@ -16,6 +16,11 @@ export interface MarkerStorePort extends Adapter {
   /** 本人のマーカーを論理削除する（deleted: true）。本人には戻せない。 */
   softDelete(id: string): Promise<void>;
   /**
+   * 本人のマーカーをすべて論理削除し、動画の索引を外す（アカウント削除。ADR 0021）。
+   * 消した件数を返す。途中で失敗しても、もう一度呼ぶと残りから続ける。
+   */
+  softDeleteAllMine(): Promise<number>;
+  /**
    * sinceMs（markers.json の syncedAt。Firestore と同期した時刻）より後に updatedAt が変わったマーカーを購読する。
    * 変わった行だけが届く。deleted: true の行は一覧から外すこと。登録直後にも現在の差分で 1 回呼ぶ。
    */

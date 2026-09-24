@@ -9,8 +9,10 @@
 import { FirebaseError } from 'firebase/app';
 import {
   GoogleAuthProvider,
+  deleteUser,
   getAuth,
   onAuthStateChanged,
+  reauthenticateWithPopup,
   signInWithPopup,
   signOut,
   type Auth,
@@ -28,6 +30,13 @@ const MESSAGES: Record<string, string> = {
   'auth/unauthorized-domain': 'このドメインはログインが許可されていません（Firebase の承認済みドメインを確認してください）。',
   'auth/network-request-failed': '通信に失敗しました。ネットワークを確認してください。',
 };
+
+/** 毎回アカウントを選ばせる（別のアカウントでログインし直せるように）。 */
+function googleProvider(): GoogleAuthProvider {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return provider;
+}
 
 function toAuthUser(user: User | null): AuthUser | null {
   if (!user) return null;
@@ -58,15 +67,40 @@ export class FirebaseAuthAdapter implements AuthPort {
   }
 
   async signIn(): Promise<AuthUser | null> {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
     try {
-      const result = await signInWithPopup(this.auth, provider);
+      const result = await signInWithPopup(this.auth, googleProvider());
       return toAuthUser(result.user);
     } catch (e) {
       const code = e instanceof FirebaseError ? e.code : '';
       if (CANCELLED.has(code)) return null;
       throw new UpstreamError(MESSAGES[code] ?? `ログインに失敗しました（${code || '不明なエラー'}）。`, e);
+    }
+  }
+
+  async reauthenticate(): Promise<boolean> {
+    const user = this.auth.currentUser;
+    if (!user) throw new UpstreamError('ログインしていません。');
+    try {
+      await reauthenticateWithPopup(user, googleProvider());
+      return true;
+    } catch (e) {
+      const code = e instanceof FirebaseError ? e.code : '';
+      if (CANCELLED.has(code)) return false;
+      if (code === 'auth/user-mismatch') {
+        throw new UpstreamError('ログイン中と同じ Google アカウントを選んでください。', e);
+      }
+      throw new UpstreamError(MESSAGES[code] ?? `本人確認に失敗しました（${code || '不明なエラー'}）。`, e);
+    }
+  }
+
+  async deleteAccount(): Promise<void> {
+    const user = this.auth.currentUser;
+    if (!user) throw new UpstreamError('ログインしていません。');
+    try {
+      await deleteUser(user);
+    } catch (e) {
+      const code = e instanceof FirebaseError ? e.code : '';
+      throw new UpstreamError(`ログインの登録を消せませんでした（${code || '不明なエラー'}）。`, e);
     }
   }
 

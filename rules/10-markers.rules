@@ -134,7 +134,18 @@
       allow update: if canWrite()
         && isOwner()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['createdBy', 'updatedAt'])
+        // 名前が実際に変わるときだけ（updatedAt だけを進める「空の更新」を印なしで通さない）
+        && request.resource.data.createdBy != resource.data.createdBy
         && request.resource.data.createdBy == getAfter(docPath('users', request.auth.uid)).data.nickname
+        && request.resource.data.updatedAt == request.time;
+
+      // 本人の論理削除（deleted を true にするだけ）は印なしで通す。アカウント削除でまとめて消すため（ADR 0021）。
+      // 消すだけなので連打されても困らない。戻すのは管理者だけ（上の更新）
+      allow update: if canWrite()
+        && isOwner()
+        && resource.data.deleted == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted', 'updatedAt'])
+        && request.resource.data.deleted == true
         && request.resource.data.updatedAt == request.time;
 
       // 物理削除は管理者だけ（要件 1.4）

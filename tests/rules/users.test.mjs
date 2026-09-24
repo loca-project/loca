@@ -151,9 +151,10 @@ describe('閲覧・編集・削除', () => {
     await assertFails(updateDoc(doc(as('bob'), 'users', 'alice'), { nickname: 'x', updatedAt: serverTimestamp() }));
   });
 
-  it('本人は消せない（アカウント削除は T54）。管理者は消せる', async () => {
-    await assertFails(deleteDoc(doc(as('alice'), 'users', 'alice')));
-    await assertSucceeds(deleteDoc(doc(as('root'), 'users', 'alice')));
+  it('本人（アカウント削除。ADR 0021）と管理者は消せる。他人は消せない', async () => {
+    await assertFails(deleteDoc(doc(as('bob'), 'users', 'alice')));
+    await assertSucceeds(deleteDoc(doc(as('alice'), 'users', 'alice')));
+    await assertSucceeds(deleteDoc(doc(as('root'), 'users', 'bob')));
   });
 });
 
@@ -179,6 +180,11 @@ describe('投稿者名をいまのニックネームにそろえる（ADR 0019 �
 
   it('他人のマーカーの投稿者名は変えられない', async () => {
     await assertFails(align('bob', 'bob さん'));
+  });
+
+  it('名前が同じまま updatedAt だけを進める「空の更新」は拒否（印なしで何度も書かせない）', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'm3'), storedMarker('alice')));
+    await assertFails(updateDoc(doc(as('alice'), 'markers', 'm3'), { createdBy: 'alice さん', updatedAt: serverTimestamp() }));
   });
 
   it('そろえるついでにほかの項目は変えられない', async () => {

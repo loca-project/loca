@@ -13,6 +13,8 @@ export interface RequestStorePort extends Adapter {
   create(content: RequestContent): Promise<RequestEntry>;
   /** 本人のリクエストを取り下げる（論理削除）。熱量はその分戻る。 */
   withdraw(entry: { id: string; heat: number }): Promise<void>;
+  /** 本人のリクエストをすべて取り下げる（アカウント削除。ADR 0021）。取り下げた件数を返す。 */
+  withdrawAllMine(): Promise<number>;
   /**
    * sinceMs（requests.json の syncedAt）より後に作成・取り下げされたリクエストを購読する。
    * 取り下げられたものは removedIds で届く（同期より前に作られた行の取り下げも届く。ADR 0013）。

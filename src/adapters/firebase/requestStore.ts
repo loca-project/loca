@@ -12,6 +12,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   serverTimestamp,
@@ -54,6 +55,21 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
     }
   };
 
+  /** 本人のリクエストを 1 件取り下げ、熱量の印を同じバッチで減らす。 */
+  const withdraw = async (entry: { id: string; heat: number }): Promise<void> => {
+    const user = currentUser();
+    if (!user) throw new UpstreamError('取り下げるにはログインしてください。');
+    const used = await usedBy(user.uid);
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'requests', entry.id), { withdrawn: true, updatedAt: serverTimestamp() });
+    batch.set(doc(db, 'heatBudgets', user.uid), { used: Math.max(0, used - entry.heat), target: entry.id });
+    try {
+      await batch.commit();
+    } catch (e) {
+      throw toUpstream(e, '取り下げが拒否されました。本人のリクエストだけを取り下げられます。');
+    }
+  };
+
   return {
     name: 'firestore-requests',
 
@@ -93,18 +109,21 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
       return { ...content, id: ref.id, ownerUid: user.uid, createdAt: Date.now() };
     },
 
-    async withdraw(entry): Promise<void> {
+    withdraw,
+
+    async withdrawAllMine(): Promise<number> {
       const user = currentUser();
       if (!user) throw new UpstreamError('取り下げるにはログインしてください。');
-      const used = await usedBy(user.uid);
-      const batch = writeBatch(db);
-      batch.update(doc(db, 'requests', entry.id), { withdrawn: true, updatedAt: serverTimestamp() });
-      batch.set(doc(db, 'heatBudgets', user.uid), { used: Math.max(0, used - entry.heat), target: entry.id });
+      let alive: { id: string; heat: number }[];
       try {
-        await batch.commit();
+        const snap = await getDocs(query(collection(db, 'requests'), where('ownerUid', '==', user.uid)));
+        alive = snap.docs.filter((d) => d.data().withdrawn !== true).map((d) => ({ id: d.id, heat: Number(d.data().heat) }));
       } catch (e) {
-        throw toUpstream(e, '取り下げが拒否されました。本人のリクエストだけを取り下げられます。');
+        throw toUpstream(e, 'リクエストを読み込めませんでした。');
       }
+      // 熱量の印は 1 件ずつしか動かせない（ルール）。合計 5 までなので多くても 5 回
+      for (const entry of alive) await withdraw(entry);
+      return alive.length;
     },
 
     subscribeChanges(sinceMs, onChange, onError): Unsubscribe {
