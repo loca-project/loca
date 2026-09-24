@@ -34,6 +34,12 @@ jobs:
         env:
           # 投稿導線の向き先。リポジトリ名から自動で決まる
           VITE_GITHUB_REPO: ${{ github.repository }}
+          # Firebase のウェブ設定（ADR 0010）。公開してよい値なのでリポジトリの Variables に置く。
+          # 未登録なら空になり、ログインと保存が無効のまま公開される
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
       - run: npm run verify
       - uses: actions/upload-pages-artifact@v3
         with:

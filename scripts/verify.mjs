@@ -7,6 +7,7 @@
  * 実行: npm run verify   失敗が 1 件でもあれば非ゼロ終了。
  */
 
+import { execFileSync } from 'node:child_process';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -70,6 +71,22 @@ record('import.meta.env を読むのは runtime/config.ts のみ', envUsers.leng
 const secret = /(AIza[0-9A-Za-z_-]{30,}|sk-[0-9A-Za-z]{20,}|ghp_[0-9A-Za-z]{30,})/;
 const secrets = sources.filter((s) => secret.test(s.text));
 record('ソースに API キーが直書きされていない', secrets.length === 0, secrets.map((l) => l.file).join(', '));
+
+// 5b. 実際の設定値を持つ .env* が git 管理下に無いこと（.env.example だけは見本として管理する）
+//     .gitignore の書き換えや git add -f で入り込むのを防ぐ。
+const tracked = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' }).split('\0');
+const trackedEnv = tracked.filter((f) => /(^|\/)\.env(\.|$)/.test(f) && !f.endsWith('.env.example'));
+record('.env.example 以外の .env* が git 管理下に無い', trackedEnv.length === 0, trackedEnv.join(', '));
+
+// 5c. 見本の .env.example に値が書かれていないこと（実際の値の貼り付けを防ぐ）
+//     既定値として意味を持つ VITE_DATA_BASE_URL だけは許す。
+const ALLOW_EXAMPLE_VALUE = new Set(['VITE_DATA_BASE_URL']);
+const exampleLines = (await readFile(path.join(ROOT, '.env.example'), 'utf8')).split(/\r?\n/);
+const filled = exampleLines
+  .map((line) => /^\s*([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line))
+  .filter((m) => m && m[2].trim() !== '' && !ALLOW_EXAMPLE_VALUE.has(m[1]))
+  .map((m) => m[1]);
+record('.env.example に値が書かれていない', filled.length === 0, filled.join(', '));
 
 // 6. CP-2: 1 ファイル 400 行以内
 const tooLong = sources.filter((s) => s.text.split('\n').length > 400);
