@@ -150,6 +150,66 @@ service cloud.firestore {
       allow delete: if canWrite() && isAdmin();
     }
 
+    // ---- 撮影リクエスト（熱量 1〜5。1 利用者の合計も 5 まで）----
+    // リクエストは 1 件ずつ requests/{id} に置き、同じバッチで heatBudgets/{uid} を
+    // { used: 使った熱量の合計, target: <リクエスト ID> } に更新させる。
+    // リクエスト側は「印が自分を指していること」、印側は「増えた分がリクエストの熱量と一致し、5 を超えないこと」を見る。
+    // 地点ごとの集計（合計・件数）は画面と日次の同期がまとめる。
+
+    function validRequest(d) {
+      return d.keys().hasOnly([
+          'lat', 'lng', 'heat', 'season', 'timeOfDay', 'atmosphere', 'equipment',
+          'ownerUid', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['lat', 'lng', 'heat', 'equipment', 'ownerUid', 'createdAt', 'updatedAt'])
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180
+        && d.heat is int && d.heat >= 1 && d.heat <= 5
+        && optString(d, 'season', 40)
+        && optString(d, 'timeOfDay', 40)
+        && optString(d, 'atmosphere', 40)
+        && validEquipment(d.equipment)
+        && d.createdAt == request.time
+        && d.updatedAt == request.time;
+    }
+
+    match /requests/{requestId} {
+      allow read: if true;
+      allow create: if canWrite()
+        && validRequest(request.resource.data)
+        && request.resource.data.ownerUid == request.auth.uid
+        && getAfter(docPath('heatBudgets', request.auth.uid)).data.target == requestId;
+      // 取り下げ・変更は今は無い。消せるのは管理者だけ
+      allow update: if false;
+      allow delete: if canWrite() && isAdmin();
+    }
+
+    // この書き込みで新しく作られたリクエストが本人のもので、熱量が delta と一致するか
+    function pairedRequest(uid, target, delta) {
+      let path = docPath('requests', target);
+      return !exists(path)
+        && existsAfter(path)
+        && getAfter(path).data.ownerUid == uid
+        && getAfter(path).data.heat == delta;
+    }
+
+    function validBudget(uid, before) {
+      let d = request.resource.data;
+      return canWrite()
+        && request.auth.uid == uid
+        && d.keys().hasOnly(['used', 'target'])
+        && d.used is int && d.used >= 1 && d.used <= 5
+        && reqString(d, 'target', 1, 128)
+        && pairedRequest(uid, d.target, d.used - before);
+    }
+
+    match /heatBudgets/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if validBudget(uid, 0);
+      allow update: if validBudget(uid, resource.data.used);
+      // 消して上限をリセットさせない
+      allow delete: if false;
+    }
+
     // ---- 管理者とブラックリスト（要件 5.x）----
     // 追加・削除は管理者だけ。本人は自分の行があるかどうかだけ読める（表示の切り替え用）
 

@@ -6,7 +6,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { EquipmentDef, MarkerData, RequestMarkerData } from '@/core/types';
+import type { EquipmentDef, MarkerData, RequestEntry, RequestMarkerData } from '@/core/types';
+import { mergeRequestEntries } from '@/core/logic/requests';
 import { setHealth } from '@/runtime/health';
 import { useServices } from './useServices';
 
@@ -22,15 +23,18 @@ export interface Catalog {
   upsertMarker: (marker: MarkerData) => void;
   /** 論理削除したマーカーを手元の一覧から外す。 */
   removeMarker: (id: string) => void;
+  /** 保存した撮影リクエストを地点の集計に足す（同じ ID は二重に数えない）。 */
+  addRequestEntries: (entries: RequestEntry[]) => void;
 }
 
 export function useCatalog(): Catalog {
-  const { catalog, markerStore } = useServices();
+  const { catalog, markerStore, requestStore } = useServices();
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [requestMarkers, setRequestMarkers] = useState<RequestMarkerData[]>([]);
   const [equipment, setEquipment] = useState<EquipmentDef[]>([]);
   const [generatedAt, setGeneratedAt] = useState(0);
   const [syncedAt, setSyncedAt] = useState(0);
+  const [requestsSyncedAt, setRequestsSyncedAt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [nonce, setNonce] = useState(0);
 
@@ -47,6 +51,7 @@ export function useCatalog(): Catalog {
         setEquipment(snapshot.equipment);
         setGeneratedAt(snapshot.generatedAt);
         setSyncedAt(snapshot.syncedAt);
+        setRequestsSyncedAt(snapshot.requestsSyncedAt);
         setHealth({
           generatedAt: snapshot.generatedAt,
           dataUnavailable: snapshot.markers.length === 0 && snapshot.equipment.length === 0,
@@ -87,6 +92,18 @@ export function useCatalog(): Catalog {
     );
   }, [markerStore, loading, syncedAt]);
 
+  const addRequestEntries = useCallback((entries: RequestEntry[]) => {
+    setRequestMarkers((prev) => mergeRequestEntries(prev, entries));
+  }, []);
+
+  // 撮影リクエストの差分（作成だけ。変更と取り下げは無い）
+  useEffect(() => {
+    if (!requestStore || loading) return undefined;
+    return requestStore.subscribeChanges(requestsSyncedAt, addRequestEntries, (e) => {
+      console.error('[loca] 撮影リクエストの購読に失敗しました', e);
+    });
+  }, [requestStore, loading, requestsSyncedAt, addRequestEntries]);
+
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   const upsertMarker = useCallback((marker: MarkerData) => {
     setMarkers((prev) => [marker, ...prev.filter((m) => m.id !== marker.id)]);
@@ -96,7 +113,7 @@ export function useCatalog(): Catalog {
   }, []);
 
   return useMemo(
-    () => ({ markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker }),
-    [markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker],
+    () => ({ markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker, addRequestEntries }),
+    [markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker, addRequestEntries],
   );
 }

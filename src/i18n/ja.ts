@@ -29,6 +29,9 @@ export const ja = {
     deleted: 'マーカーを削除しました',
     loginRequired: '登録するにはログインしてください（右上のメニュー）',
     note: '登録すると、すぐに地図に表示されます。',
+    submitRequest: 'リクエストする',
+    requestSaved: '撮影リクエストを登録しました',
+    heatLeft: '使える熱量の残り: {left} / {max}（1 人あたりの合計）',
   },
 
   sidebar: {

@@ -129,6 +129,15 @@ record(
   `scripts=${scriptList.length} / src=${tsList.length}`,
 );
 
+// 8b. 撮影リクエストの「同じ地点」のしきい値が、画面（src）と日次の同期（scripts）で一致していること
+//     ずれると、同期のたびに地点が分かれたりまとまったりする。
+const { SAME_SPOT_EPS: scriptEps } = await import('./lib/merge-requests.mjs');
+const srcEps = Number(/SAME_SPOT_EPS\s*=\s*([\d.]+)/.exec(
+  await readFile(path.join(ROOT, 'src', 'core', 'logic', 'requests.ts'), 'utf8'),
+)?.[1]);
+record('撮影リクエストの地点のしきい値が scripts と src で一致', scriptEps === srcEps,
+  `scripts=${scriptEps} / src=${srcEps}`);
+
 // 9. Issue フォームが事前入力できる型になっていること
 //    GitHub は dropdown と checkboxes をクエリパラメータで埋められない（input/textarea のみ）。
 //    ここを間違えると、サイトで選んだ値が Issue に反映されない。

@@ -8,7 +8,6 @@
  * エミュレータのテスト（tests/store/）で同じコードを動かすため。
  */
 
-import { FirebaseError } from 'firebase/app';
 import {
   Timestamp,
   collection,
@@ -25,22 +24,14 @@ import type { MarkerContent, MarkerData } from '@/core/types';
 import { pseudonymOf } from '@/core/logic/format';
 import type { AuthUser, MarkerStorePort, Unsubscribe } from '@/ports';
 import { UpstreamError } from '@/ports';
+import { toUpstream } from './errors';
 
-const MESSAGES: Record<string, string> = {
-  'permission-denied':
-    '保存が拒否されました。前回の保存から 6 秒以上あけてもう一度お試しください。本人以外のマーカーは変更できません。',
-  unavailable: '通信に失敗しました。ネットワークを確認してください。',
-  'resource-exhausted': '本日の保存の上限に達しました。日本時間の 16〜17 時以降にもう一度お試しください。',
-};
+const DENIED =
+  '保存が拒否されました。前回の保存から 6 秒以上あけてもう一度お試しください。本人以外のマーカーは変更できません。';
 
 /** Firestore は undefined を保存できないので、値の無い項目を落とす。 */
 function defined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
-}
-
-function toUpstream(e: unknown): UpstreamError {
-  const code = e instanceof FirebaseError ? e.code : '';
-  return new UpstreamError(MESSAGES[code] ?? `保存に失敗しました（${code || '不明なエラー'}）。`, e);
 }
 
 /** Firestore の行をドメイン型にする。時刻は epoch ms（ADR 0012 決定 2）。 */
@@ -72,7 +63,7 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
     try {
       await batch.commit();
     } catch (e) {
-      throw toUpstream(e);
+      throw toUpstream(e, DENIED);
     }
   };
 
@@ -120,7 +111,7 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
             .map((c) => toMarker(c.doc.id, c.doc.data({ serverTimestamps: 'estimate' })));
           if (rows.length > 0) onChange(rows);
         },
-        (e) => onError(toUpstream(e)),
+        (e) => onError(toUpstream(e, DENIED)),
       );
     },
   };

@@ -36,6 +36,9 @@ export const en: DeepPartial<Dictionary> = {
     deleted: 'Marker deleted',
     loginRequired: 'Sign in to register (menu at the top right)',
     note: 'Your marker appears on the map right away.',
+    submitRequest: 'Request',
+    requestSaved: 'Shooting request registered',
+    heatLeft: 'Heat left: {left} / {max} (total per person)',
   },
 
   sidebar: {

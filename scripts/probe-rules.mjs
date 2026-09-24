@@ -25,6 +25,8 @@ const probes = [
     expect: 403,
   },
   { name: '未ログインで admins を読めない', method: 'GET', url: `${base}/admins?pageSize=1`, expect: 403 },
+  { name: '未ログインで requests を読める', method: 'GET', url: `${base}/requests?pageSize=1`, expect: 200 },
+  { name: '未ログインで heatBudgets を読めない', method: 'GET', url: `${base}/heatBudgets?pageSize=1`, expect: 403 },
 ];
 
 let passed = 0;

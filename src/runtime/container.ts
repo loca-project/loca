@@ -3,10 +3,18 @@
  *
  * 配信先が GitHub Pages に決まったため、各層の実装は 1 つずつに固定した。
  * 地図と地名はすべて国土地理院に統一し、予備の実装は持たない（ADR 0011）。
- * 認証と保存は Firebase の設定値がそろったときだけ読み込む。無ければ auth・markerStore は null で、閲覧だけで動く（ADR 0010）。
+ * 認証と保存は Firebase の設定値がそろったときだけ読み込む。無ければ auth・markerStore・requestStore は null で、閲覧だけで動く（ADR 0010）。
  */
 
-import type { AuthPort, CatalogPort, GeocodePort, MapPort, MarkerStorePort, VideoMetaPort } from '@/ports';
+import type {
+  AuthPort,
+  CatalogPort,
+  GeocodePort,
+  MapPort,
+  MarkerStorePort,
+  RequestStorePort,
+  VideoMetaPort,
+} from '@/ports';
 import { staticCatalogAdapter } from '@/adapters/staticData';
 import { oembedVideoAdapter } from '@/adapters/video/oembed';
 import { gsiGeocodeAdapter } from '@/adapters/geocode/gsi';
@@ -21,24 +29,24 @@ export interface Services {
   auth: AuthPort | null;
   /** auth と同じく、Firebase が使えないときは null。 */
   markerStore: MarkerStorePort | null;
+  requestStore: RequestStorePort | null;
 }
 
 let services: Promise<Services> | null = null;
 
-interface WriteServices {
-  auth: AuthPort | null;
-  markerStore: MarkerStorePort | null;
-}
+type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore'>;
 
-/** Firebase が使えない・初期化に失敗したときは両方 null。閲覧は止めない。 */
+const NO_WRITE: WriteServices = { auth: null, markerStore: null, requestStore: null };
+
+/** Firebase が使えない・初期化に失敗したときはすべて null。閲覧は止めない。 */
 async function loadFirebase(): Promise<WriteServices> {
-  if (!canUseFirebase()) return { auth: null, markerStore: null };
+  if (!canUseFirebase()) return NO_WRITE;
   try {
     const { createFirebaseServices } = await import('@/adapters/firebase');
     return await createFirebaseServices();
   } catch (e) {
     console.error('[firebase] 初期化に失敗したため、ログインと保存を無効にして起動します', e);
-    return { auth: null, markerStore: null };
+    return NO_WRITE;
   }
 }
 

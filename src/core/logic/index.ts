@@ -6,3 +6,4 @@ export * from './ranking';
 export * from './equipment';
 export * from './statistics';
 export * from './format';
+export * from './requests';

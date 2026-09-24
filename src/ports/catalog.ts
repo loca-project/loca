@@ -19,6 +19,8 @@ export interface CatalogSnapshot {
   generatedAt: number;
   /** Firestore と最後に同期した時刻（epoch ms）。これより後の変更だけを購読する。0 なら全件 */
   syncedAt: number;
+  /** requests.json の同期時刻。意味は syncedAt と同じ */
+  requestsSyncedAt: number;
 }
 
 export const EMPTY_SNAPSHOT: CatalogSnapshot = {
@@ -27,4 +29,5 @@ export const EMPTY_SNAPSHOT: CatalogSnapshot = {
   equipment: [],
   generatedAt: 0,
   syncedAt: 0,
+  requestsSyncedAt: 0,
 };

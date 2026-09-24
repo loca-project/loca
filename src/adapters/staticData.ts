@@ -18,6 +18,7 @@ interface MarkerBundle {
 
 interface RequestBundle {
   generatedAt?: number;
+  syncedAt?: number;
   markers?: RequestMarkerData[];
 }
 
@@ -67,6 +68,7 @@ export const staticCatalogAdapter: CatalogPort = {
       equipment: equipment ?? [],
       generatedAt: (Array.isArray(markerBundle) ? 0 : markerBundle?.generatedAt) ?? 0,
       syncedAt: (Array.isArray(markerBundle) ? 0 : markerBundle?.syncedAt) ?? 0,
+      requestsSyncedAt: (Array.isArray(requestBundle) ? 0 : requestBundle?.syncedAt) ?? 0,
     };
   },
 };

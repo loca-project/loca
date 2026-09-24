@@ -36,6 +36,8 @@ interface SidebarContentProps {
   usesStore: boolean;
   /** ログイン中のユーザーの uid。未ログインなら null */
   currentUid: string | null;
+  /** ログイン中のユーザーが使った熱量。不明なら null */
+  heatUsed: number | null;
 }
 
 export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): string {
@@ -49,7 +51,14 @@ export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): 
   return t.headers.mapSearch;
 }
 
-export default function SidebarContent({ app, handlers, busy, usesStore, currentUid }: SidebarContentProps) {
+export default function SidebarContent({
+  app,
+  handlers,
+  busy,
+  usesStore,
+  currentUid,
+  heatUsed,
+}: SidebarContentProps) {
   const { t } = useI18n();
 
   if (app.tab !== TabMode.MAP) {
@@ -116,6 +125,8 @@ export default function SidebarContent({ app, handlers, busy, usesStore, current
             onChange={(patch) => app.setRequestForm((prev) => ({ ...prev, ...patch }))}
             onSubmit={handlers.onSubmitRequest}
             onCancel={app.resetToSearch}
+            usesStore={usesStore}
+            heatUsed={heatUsed}
           />
         )}
       </div>

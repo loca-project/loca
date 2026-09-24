@@ -5,3 +5,4 @@ export * from './video';
 export * from './geocode';
 export * from './auth';
 export * from './markerStore';
+export * from './requestStore';

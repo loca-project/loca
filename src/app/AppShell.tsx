@@ -28,6 +28,7 @@ import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
 import { usePins } from './usePins';
 import { useMarkerSubmit } from './useMarkerSubmit';
+import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
 
 export default function AppShell() {
@@ -36,6 +37,7 @@ export default function AppShell() {
   const app = useLocaApp();
   const auth = useAuth();
   const { submit, remove, loading: submitting, usesStore } = useMarkerSubmit();
+  const requestSubmit = useRequestSubmit(auth.user?.uid ?? null);
   const search = useSearchAndRanking();
 
   const pins = usePins(
@@ -44,7 +46,7 @@ export default function AppShell() {
     app.handleMarkerClick,
     app.handleRequestClick,
   );
-  const busy = submitting || search.loading || app.catalog.loading;
+  const busy = submitting || requestSubmit.loading || search.loading || app.catalog.loading;
 
   // インフォウィンドウ内のボタンは CustomEvent 経由で受け取る
   useEffect(() => installInfoWindowDelegate(), []);
@@ -130,31 +132,17 @@ export default function AppShell() {
     [app, auth.enabled, auth.user, toast, t],
   );
 
-  const handleSubmitRequest = useCallback(() => {
+  const handleSubmitRequest = useCallback(async () => {
     if (!app.tempPos) return;
-    const f = app.requestForm;
-    const opened = openIssueForm(
-      'request',
-      {
-        lat: app.tempPos.lat.toFixed(6),
-        lng: app.tempPos.lng.toFixed(6),
-        heat: String(f.heat),
-        season: f.season,
-        'time-of-day': f.timeOfDay,
-        atmosphere: f.atmosphere,
-        manufacturer: f.manufacturer,
-        series: f.series,
-        model: f.model,
-      },
-      `${app.tempPos.lat.toFixed(4)}, ${app.tempPos.lng.toFixed(4)} 熱量${f.heat}`,
-    );
-    if (!opened) {
-      toast.error(t.contribute.notConfigured);
+    const result = await requestSubmit.submit(app.requestForm, app.tempPos);
+    if (!result.ok) {
+      toast.error(result.message);
       return;
     }
-    toast.success(t.contribute.openedTitle);
+    toast.success(result.message);
+    if (result.saved) app.catalog.addRequestEntries([result.saved]);
     app.resetToSearch();
-  }, [app, toast, t]);
+  }, [app, requestSubmit, toast]);
 
   const handleShare = useCallback(async () => {
     if (!app.selectedMarker) return;
@@ -229,6 +217,7 @@ export default function AppShell() {
           busy={busy}
           usesStore={usesStore}
           currentUid={auth.user?.uid ?? null}
+          heatUsed={requestSubmit.heatUsed}
           handlers={{
             onSearch: handleSearch,
             onStartDrawing: () => app.setDrawing(true),
