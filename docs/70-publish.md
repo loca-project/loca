@@ -90,6 +90,31 @@ npm run deploy -- "地図タイルを差し替え"
 push すると `.github/workflows/deploy.yml` が走り、数分で Pages に反映される。
 進捗はリポジトリの **Actions** タブで見られる。
 
+## Firestore のルールの反映
+
+ルールの本体は `project/firestore.rules`（方式は ADR 0012）。サイトの公開（`npm run deploy`）とは**別の操作**で、
+Actions も反映しない。`firestore.rules` を変えたら、次の手順で本番の `loca-d3792` に反映する。
+
+1. Firebase CLI にログインする（初回と、トークンが切れたとき）。`loca-d3792` のオーナーのアカウントを選ぶ。
+
+   ```powershell
+   npx --prefix project firebase login --reauth
+   ```
+
+2. 反映する。エミュレータのテスト（`npm run test:rules`。JDK 11 以上が要る）が通ったときだけ反映される。
+
+   ```powershell
+   npm --prefix project run deploy:rules
+   ```
+
+3. Firebase コンソールの **Firestore → ルール** で、中身が `firestore.rules` と一致することを確かめる。
+
+戻すときは、コンソールの **ルール** の履歴から前の版を選んで公開する。
+
+最初の管理者は、ルールでは誰も作れない（ADR 0012）。コンソールの **Firestore → データ** で
+`admins` コレクションに、ドキュメント ID を自分の UID（**Authentication → ユーザー** で確認）にしたドキュメントを手で作る。
+ルールはドキュメントの有無だけを見るので、フィールドは何でもよい（例: `note` に `初期管理者`）。
+
 ## ワークフローの構成
 
 3 本に分かれている。分けているのは GitHub の仕様上の制約による。

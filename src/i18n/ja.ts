@@ -11,6 +11,13 @@ export const ja = {
     language: '言語',
   },
 
+  auth: {
+    signIn: 'Google でログイン',
+    signOut: 'ログアウト',
+    signedIn: 'ログインしました',
+    signedOut: 'ログアウトしました',
+  },
+
   sidebar: {
     map: '地図',
     request: 'リクエスト',

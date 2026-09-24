@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
           manualChunks(id: string) {
             if (!id.includes('node_modules')) return undefined;
             if (id.includes('maplibre-gl')) return 'vendor-maplibre';
+            // Firebase は設定値があるときだけ遅延 import する。初期の vendor に混ぜない
+            if (/[\\/]node_modules[\\/](@firebase|firebase)[\\/]/.test(id)) return 'vendor-firebase';
             if (id.includes('react')) return 'vendor-react';
             return 'vendor';
           },

@@ -18,6 +18,13 @@ export const en: DeepPartial<Dictionary> = {
     language: 'Language',
   },
 
+  auth: {
+    signIn: 'Sign in with Google',
+    signOut: 'Sign out',
+    signedIn: 'Signed in',
+    signedOut: 'Signed out',
+  },
+
   sidebar: {
     map: 'Map',
     request: 'Requests',

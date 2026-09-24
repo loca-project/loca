@@ -2,15 +2,16 @@
  * 画面右上のメニュー。
  *
  * ボタンを 5 つ並べると地図を隠すので、1 つのプルダウンに集約している。
- * 認証は未導入のため、ここに「ログイン」は無い。
- * 導入するときはこのプルダウンの最上段に足す想定（[ADR 0009] 参照）。
+ * ログイン・ログアウトはこのプルダウンの最上段に出す（ADR 0010）。ログイン中はボタンにアイコンを出す。
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { issueListUrl } from '@/features/contribute/issueUrl';
 import { canContribute } from '@/runtime/config';
+import { useAuth } from '@/shared/hooks/useAuth';
 import DataFreshness from './DataFreshness';
+import AuthMenuItems, { UserAvatar } from './AuthMenuItems';
 
 interface HeaderBarProps {
   onOpenStats: () => void;
@@ -22,6 +23,7 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const repoUrl = issueListUrl();
+  const auth = useAuth();
 
   // メニューの外側をクリック、または Esc で閉じる
   useEffect(() => {
@@ -54,7 +56,7 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
         title={t.menu.label}
         className="flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 shadow-md hover:bg-gray-50"
       >
-        <i className="fa-solid fa-bars" />
+        {auth.user ? <UserAvatar photoUrl={auth.user.photoUrl} size="h-4 w-4" /> : <i className="fa-solid fa-bars" />}
         <span className="hidden sm:inline">{t.menu.label}</span>
       </button>
 
@@ -63,6 +65,8 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
           role="menu"
           className="absolute right-0 mt-2 w-60 overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl"
         >
+          <AuthMenuItems auth={auth} itemClassName={item} onDone={() => setOpen(false)} />
+
           <button
             type="button"
             role="menuitem"
