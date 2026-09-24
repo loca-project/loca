@@ -46,6 +46,37 @@ function tryGit(args) {
   }
 }
 
+/** refspec を push し、出力を見せる。失敗は例外にせず、git の出力を返す。 */
+function pushRef(refspec) {
+  process.stdout.write(`\n$ git push -u origin ${refspec}\n`);
+  try {
+    const out = execFileSync('git', ['push', '-u', 'origin', refspec], { cwd: CWD, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+    process.stdout.write(out);
+    return { ok: true, text: '' };
+  } catch (e) {
+    const text = `${e?.stdout ?? ''}${e?.stderr ?? ''}`;
+    process.stdout.write(text);
+    return { ok: false, text };
+  }
+}
+
+/**
+ * push する。GitHub が 500（Internal Server Error）を返したら、未 push のコミットを古い順に 1 件ずつ push し直す。
+ * 2026-09-24 に 2 件まとめての push が 3 回続けて 500 になり、1 件ずつなら通った（原因は未確認）。
+ * ほかの失敗（拒否・認証など）は直さずに止める（CP-4）。
+ */
+function push(branch) {
+  const first = pushRef(branch);
+  if (first.ok) return;
+  if (!/Internal Server Error|HTTP 5\d\d/i.test(first.text)) throw new Error(first.text.trim());
+  const pending = tryGit(['rev-list', '--reverse', `origin/${branch}..HEAD`]).out.split('\n').filter(Boolean);
+  console.log(`\nGitHub が 500 を返したので、未 push の ${pending.length} 件を 1 件ずつ push し直します。`);
+  for (const sha of pending) {
+    const one = pushRef(`${sha}:refs/heads/${branch}`);
+    if (!one.ok) throw new Error(`1 件ずつの push も ${sha.slice(0, 7)} で失敗しました。\n${one.text.trim()}`);
+  }
+}
+
 /**
  * npm スクリプトを実行する。
  * npm は Windows では npm.cmd なので shell が要る。渡す引数に空白は無い。
@@ -121,7 +152,7 @@ try {
   }
 
   const branch = tryGit(['rev-parse', '--abbrev-ref', 'HEAD']).out;
-  git(['push', '-u', 'origin', branch]);
+  push(branch);
 
   console.log(`\nOK: ${remote.out} の ${branch} に push しました。`);
   console.log('GitHub Actions がビルドして Pages に公開します（数分）。');

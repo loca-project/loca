@@ -107,7 +107,8 @@ Actions も反映しない。`firestore.rules` を変えたら、次の手順で
    npm --prefix project run deploy:rules
    ```
 
-3. Firebase コンソールの **Firestore → ルール** で、中身が `firestore.rules` と一致することを確かめる。
+3. `deploy:rules` の最後に `npm run rules:diff` が走り、本番に反映中のルールが手元の `firestore.rules` と一致することを確かめる
+   （単独でも実行できる。食い違えば終了コード 1）。
 
 戻すときは、コンソールの **ルール** の履歴から前の版を選んで公開する。
 
@@ -119,6 +120,7 @@ Actions も反映しない。`firestore.rules` を変えたら、次の手順で
 | 操作 | コマンド |
 |---|---|
 | 一覧 | `npm run admin:list` |
+| 利用者の一覧（最後のログイン・管理者・ブラックリスト。メールは伏せる） | `npm run admin:accounts` |
 | 追加 | `npm run admin:add -- <メールアドレスか uid>` |
 | 削除 | `npm run admin:remove -- <メールアドレスか uid>` |
 
@@ -215,3 +217,5 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 | ピンが出ない | `project/public/data/markers.json` が空。`npm run seed` で復旧できる |
 | ログインが出ない・投稿タブが「受け付けていません」 | Firebase の設定値が空。本番はリポジトリの Variables、ローカルは `.env.local` の `VITE_FIREBASE_*` を確認する |
 | 公開データに消したはずの行が残る | 物理削除は購読に届かない。`gh workflow run sync-firestore.yml` で作り直す |
+| 管理者モードが出ない | 別のアカウントでログインしていることが多い。`npm run admin:accounts` で最後にログインしたアカウントを確かめる |
+| push が `Internal Server Error` で拒否される | GitHub 側の一時的な失敗。`npm run deploy` は未 push のコミットを 1 件ずつ push し直す（2026-09-24 に 2 件まとめてが 3 回失敗し、1 件ずつなら通った） |
