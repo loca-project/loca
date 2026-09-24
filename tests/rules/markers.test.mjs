@@ -97,7 +97,14 @@ describe('入力の検証', () => {
     ['経度が文字列', { lng: '139' }],
     ['YouTube 以外の URL', { youtubeUrl: 'https://example.com/watch?v=x' }],
     ['知らない項目', { likes: 100 }],
-    ['感情タグの欠け', { tags: { action: '', atmosphere: '' } }],
+    ['映っているものの欠け', { tags: { mood: 'calm' } }],
+    ['雰囲気が一覧に無い', { tags: { subject: 'nature', mood: 'happy' } }],
+    ['旧形式の感情タグ', { tags: { action: 'a', atmosphere: 'b', emotion: 'c' } }],
+    ['撮影の季節が一覧に無い', { tags: { subject: 'nature', mood: 'calm', season: 'rainy' } }],
+    ['タグに知らない項目', { tags: { subject: 'nature', mood: 'calm', weather: 'sunny' } }],
+    ['現地メモが 81 字', { memo: 'あ'.repeat(81) }],
+    ['現地メモが空', { memo: '' }],
+    ['現地メモに改行', { memo: '1 行目\n2 行目' }],
     ['タイトルが長すぎる', { title: 'あ'.repeat(301) }],
     ['必須の createdBy が無い', { createdBy: undefined }],
   ];
@@ -106,6 +113,18 @@ describe('入力の検証', () => {
       const data = newMarker('alice', overrides);
       for (const key of Object.keys(data)) if (data[key] === undefined) delete data[key];
       await assertFails(stampedWrite(alice(), 'alice', 'm1', data));
+    });
+  }
+
+  const accepted = [
+    ['任意のタグをすべて埋めたもの', {
+      tags: { subject: 'festival', mood: 'lively', season: 'summer', timeOfDay: 'night', style: 'walking' },
+    }],
+    ['現地メモが 80 字', { memo: 'あ'.repeat(80) }],
+  ];
+  for (const [label, overrides] of accepted) {
+    it(`${label} は通る`, async () => {
+      await assertSucceeds(stampedWrite(alice(), 'alice', 'm1', newMarker('alice', overrides)));
     });
   }
 });

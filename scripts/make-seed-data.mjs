@@ -33,9 +33,12 @@ const SPOTS = [
   { name: '積丹岬', pref: '北海道', city: '積丹町', lat: 43.3406, lng: 140.4636 },
 ];
 
-const ACTIONS = ['訪問/地域紹介', '映像制作', 'お祭り/イベント', '機器/技術紹介'];
-const ATMOSPHERES = ['明るい', '真面目', '落ち着いた', '緊張', '幻想的', 'スマート'];
-const EMOTIONS = ['喜び', '興奮', '癒し', '驚き', '恐怖', '悲しみ', '希望'];
+// タグのキー（要件 3.3。src/core/constants/tags.ts と同じ）
+const SUBJECTS = ['nature', 'townscape', 'festival', 'food', 'transport', 'heritage', 'life'];
+const MOODS = ['lively', 'calm', 'dreamy', 'grand', 'nostalgic', 'thrill'];
+const SEASONS = ['spring', 'summer', 'autumn', 'winter'];
+const TIMES = ['sunrise', 'morning', 'daytime', 'evening', 'night'];
+const STYLES = ['aerial', 'walking', 'vehicle', 'fixed'];
 const GEAR = [
   { manufacturer: 'DJI', series: 'Mavic', model: 'Mavic 3 Pro' },
   { manufacturer: 'DJI', series: 'Mini', model: 'Mini 4 Pro' },
@@ -65,11 +68,14 @@ const markers = SPOTS.map((spot, i) => {
     youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
     lat: spot.lat,
     lng: spot.lng,
+    // 任意のタグは一部の行だけに付ける（未設定の行が絞り込みで当たらないことを確かめられるように）
     tags: {
-      action: ACTIONS[i % ACTIONS.length],
-      atmosphere: ATMOSPHERES[i % ATMOSPHERES.length],
-      emotion: EMOTIONS[i % EMOTIONS.length],
+      subject: SUBJECTS[i % SUBJECTS.length],
+      mood: MOODS[i % MOODS.length],
+      ...(i % 2 === 0 ? { season: SEASONS[i % SEASONS.length], timeOfDay: TIMES[i % TIMES.length] } : {}),
+      ...(i % 3 === 0 ? { style: STYLES[i % STYLES.length] } : {}),
     },
+    ...(i % 4 === 0 ? { memo: `${spot.name}の展望台から撮影（サンプル）` } : {}),
     equipment: GEAR[i % GEAR.length],
     title: `${spot.name}のサンプル映像`,
     channelTitle: `サンプルチャンネル ${(i % 5) + 1}`,

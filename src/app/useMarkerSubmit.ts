@@ -9,6 +9,7 @@ import { useCallback } from 'react';
 import type { MarkerContent, MarkerData, PlaceMeta, VideoMeta } from '@/core/types';
 import { getYoutubeId } from '@/core/logic/youtube';
 import { validateMarkerDraft } from '@/core/logic/validation';
+import { normalizeMemo, toMarkerTags } from '@/core/logic/tags';
 import { isValidEquipment } from '@/core/logic/equipment';
 import { findDuplicateByVideoId } from '@/core/logic/search';
 import { pseudonymOf } from '@/core/logic/format';
@@ -40,7 +41,9 @@ function contentOf(form: MarkerFormState, videoId: string, meta: VideoMeta, plac
     videoId,
     lat: Number(form.lat),
     lng: Number(form.lng),
-    tags: { action: form.tagAction, atmosphere: form.tagAtmosphere, emotion: form.tagEmotion },
+    tags: toMarkerTags(form.tags),
+    // 空にしたときも項目を残す（更新でアダプタが古いメモを消せるように）
+    memo: normalizeMemo(form.memo),
     equipment: { manufacturer: form.manufacturer, series: form.series, model: form.model },
     title: meta.title,
     channelTitle: meta.channelTitle,

@@ -1,6 +1,7 @@
 /** 入力バリデーション。UI にもバッチにも使えるよう純関数で持つ。 */
 
-import type { EmotionTags, MarkerDraft } from '@/core/types';
+import type { MarkerDraft } from '@/core/types';
+import { isValidMemo, isValidTagInput } from './tags';
 import { isValidYoutubeUrl } from './youtube';
 
 export interface ValidationIssue {
@@ -19,10 +20,6 @@ export function validateLng(value: string | number): boolean {
   return Number.isFinite(n) && n >= -180 && n <= 180;
 }
 
-export function hasAllTags(tags: Partial<EmotionTags>): tags is EmotionTags {
-  return Boolean(tags.action && tags.atmosphere && tags.emotion);
-}
-
 /** 登録・更新前の一括チェック。空配列なら妥当。 */
 export function validateMarkerDraft(draft: Partial<MarkerDraft>): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
@@ -36,8 +33,11 @@ export function validateMarkerDraft(draft: Partial<MarkerDraft>): ValidationIssu
   if (!validateLng(draft.lng ?? NaN)) {
     issues.push({ field: 'lng', messageKey: 'invalidCoord' });
   }
-  if (!hasAllTags(draft.tags ?? {})) {
+  if (!isValidTagInput(draft.tags ?? {})) {
     issues.push({ field: 'tags', messageKey: 'missingTags' });
+  }
+  if (!isValidMemo(draft.memo)) {
+    issues.push({ field: 'memo', messageKey: 'memoTooLong' });
   }
   return issues;
 }

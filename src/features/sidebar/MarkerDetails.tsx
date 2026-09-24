@@ -6,6 +6,7 @@
 import React from 'react';
 import type { MarkerData } from '@/core/types';
 import { formatDate } from '@/core/logic/format';
+import { TAG_FIELDS, tagLabel } from '@/core/constants';
 import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 
@@ -40,7 +41,7 @@ export default function MarkerDetails({
   onDelete,
   busy = false,
 }: MarkerDetailsProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const equipment = [marker.equipment?.manufacturer, marker.equipment?.series, marker.equipment?.model]
     .filter(Boolean)
     .join(' / ');
@@ -75,9 +76,10 @@ export default function MarkerDetails({
 
       <dl>
         <Row label={t.filters.prefecture} value={`${marker.prefecture ?? '-'} ${marker.city ?? ''}`} />
-        <Row label={t.filters.tagAction} value={marker.tags?.action ?? '-'} />
-        <Row label={t.filters.tagAtmosphere} value={marker.tags?.atmosphere ?? '-'} />
-        <Row label={t.filters.tagEmotion} value={marker.tags?.emotion ?? '-'} />
+        {TAG_FIELDS.map((field) => (
+          <Row key={field} label={t.tags[field]} value={tagLabel(marker.tags?.[field], lang) || '-'} />
+        ))}
+        {marker.memo && <Row label={t.tags.memo} value={marker.memo} />}
         <Row label={t.form.equipment} value={equipment || '-'} />
         <Row label={t.details.registeredAt} value={formatDate(marker.createdAt)} />
         <Row label={t.details.contributor} value={marker.createdBy || '-'} />

@@ -8,7 +8,7 @@ import { mergeMarkers } from '../../scripts/lib/merge-markers.mjs';
 
 const fs = (id, over = {}) => ({
   id, youtubeUrl: `https://www.youtube.com/watch?v=${id}`, lat: 35, lng: 139,
-  tags: { action: 'a', atmosphere: 'b', emotion: 'c' }, equipment: { manufacturer: '', series: '', model: '' },
+  tags: { subject: 'nature', mood: 'calm' }, memo: 'メモ', equipment: { manufacturer: '', series: '', model: '' },
   ownerUid: 'u1', createdBy: 'user-u1', createdAt: 2000, updatedAt: 2000, deleted: false, ...over,
 });
 
@@ -18,6 +18,12 @@ describe('mergeMarkers', () => {
     assert.deepEqual(r.markers.map((m) => m.id), ['a']);
     assert.equal('deleted' in r.markers[0], false);
     assert.equal(r.deleted, 1);
+  });
+
+  it('タグと現地メモは公開データに含まれる', () => {
+    const [m] = mergeMarkers([fs('a')], []).markers;
+    assert.deepEqual(m.tags, { subject: 'nature', mood: 'calm' });
+    assert.equal(m.memo, 'メモ');
   });
 
   it('Firestore に無い古い行は残さない（公開データは Firestore から作り直す）', () => {

@@ -3,12 +3,13 @@
 import React, { useMemo, useState } from 'react';
 import type { MarkerData } from '@/core/types';
 import { computeStatistics, withinRegisteredRange } from '@/core/logic/statistics';
+import { TAG_FIELDS, tagLabel } from '@/core/constants';
 import { Field, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import BarList from '@/shared/components/BarList';
 
 export default function StatisticsTab({ markers }: { markers: MarkerData[] }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
@@ -36,9 +37,13 @@ export default function StatisticsTab({ markers }: { markers: MarkerData[] }) {
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-        <BarList title={t.filters.tagAction} rows={stats.action} />
-        <BarList title={t.filters.tagAtmosphere} rows={stats.atmosphere} />
-        <BarList title={t.filters.tagEmotion} rows={stats.emotion} />
+        {TAG_FIELDS.map((field) => (
+          <BarList
+            key={field}
+            title={t.tags[field]}
+            rows={stats.tags[field].map((r) => ({ ...r, label: tagLabel(r.label, lang) }))}
+          />
+        ))}
         <BarList title={t.form.maker} rows={stats.manufacturer} />
         <BarList title={t.form.series} rows={stats.series} />
         <BarList title={t.form.model} rows={stats.model} />

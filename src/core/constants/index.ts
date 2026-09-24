@@ -1,5 +1,5 @@
 export * from './prefectures';
 export * from './tags';
-export * from './emotion';
+export * from './colors';
 export * from './report';
 export * from './requestOptions';

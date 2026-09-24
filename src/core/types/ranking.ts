@@ -6,6 +6,14 @@
  * 元の要件 4.1/4.2 の「再生数順」「投稿日フィルタ」「長さフィルタ」はこの置き換えで代替する。
  */
 
+import type { TagField } from '@/core/constants/tags';
+
+/**
+ * タグの絞り込み。項目の中は OR、項目の間は AND（要件 4.2・ADR 0015）。
+ * 未定義・空配列の項目では絞らない。値はタグのキー。
+ */
+export type TagSelection = Partial<Record<TagField, string[]>>;
+
 /** Loca への登録日を基準にした期間フィルタ。 */
 export type PeriodFilter = 'all' | '1y' | '6m' | '3m' | '1m' | '2w' | 'today';
 export type SeasonFilter = '1-3' | '4-6' | '7-9' | '10-12';
@@ -30,14 +38,14 @@ export interface RankingFilter {
     model: string;
   };
 
-  /** 感情タグ（複数選択可、OR 条件） */
-  tags: string[];
+  /** タグ（複数選択可） */
+  tags: TagSelection;
 }
 
 export const DEFAULT_RANKING_FILTER: RankingFilter = {
   period: 'all',
   limit: 30,
-  tags: [],
+  tags: {},
 };
 
 /** 1 画面に載せる上限。これを超える分はフィルタで絞ってもらう。 */

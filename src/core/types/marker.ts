@@ -1,13 +1,22 @@
 /** マーカー（登録済み動画）のドメイン型。 */
 
-/** 感情タグ3カテゴリ。各カテゴリから1つだけ選ぶ（排他）。 */
-export interface EmotionTags {
-  /** 行動への影響 (Actionable Intent) */
-  action: string;
-  /** 動画の雰囲気 (Atmosphere/Vibe) */
-  atmosphere: string;
-  /** 感情の核 (Core Emotion)。マーカー色の決定に使う */
-  emotion: string;
+import type { MoodKey, SeasonKey, StyleKey, SubjectKey, TimeOfDayKey } from '@/core/constants/tags';
+
+/**
+ * タグ（要件 3.3・ADR 0014）。投稿者が現地や映像を見て付ける。各項目は 1 つだけ選ぶ。
+ * 任意の項目は、未選択なら項目ごと持たない（空文字にしない）。
+ */
+export interface MarkerTags {
+  /** 映っているもの（必須） */
+  subject: SubjectKey;
+  /** 雰囲気（必須）。マーカー色の決定に使う */
+  mood: MoodKey;
+  /** 撮影の季節 */
+  season?: SeasonKey;
+  /** 撮影の時間帯 */
+  timeOfDay?: TimeOfDayKey;
+  /** 撮り方 */
+  style?: StyleKey;
 }
 
 /** 撮影機器。未選択は空文字で表す。 */
@@ -45,7 +54,9 @@ export interface MarkerData {
   lat: number;
   lng: number;
 
-  tags: EmotionTags;
+  tags: MarkerTags;
+  /** 現地メモ（任意・80 字まで・改行なし）。空なら項目ごと持たない */
+  memo?: string;
   equipment: Equipment;
 
   // oEmbed から取得した情報
@@ -76,7 +87,7 @@ export type MarkerDraft = Omit<MarkerData, 'id' | 'createdAt' | 'updatedAt'>;
  */
 export type MarkerContent = Pick<
   MarkerData,
-  'youtubeUrl' | 'lat' | 'lng' | 'tags' | 'equipment' | 'title' | 'channelTitle' | 'thumbnailUrl' | 'prefecture' | 'city'
+  'youtubeUrl' | 'lat' | 'lng' | 'tags' | 'memo' | 'equipment' | 'title' | 'channelTitle' | 'thumbnailUrl' | 'prefecture' | 'city'
 > & { videoId: string };
 
 /** 地図上の矩形範囲（範囲指定検索で使う）。 */

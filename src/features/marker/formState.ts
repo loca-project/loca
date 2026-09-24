@@ -1,6 +1,7 @@
 /** マーカー登録・編集フォームの状態と、ドメイン型への変換。 */
 
 import type { MarkerData, MarkerDraft } from '@/core/types';
+import { EMPTY_TAG_INPUT, normalizeMemo, toMarkerTags, toTagInput, type TagInput } from '@/core/logic/tags';
 
 export interface MarkerFormState {
   youtubeUrl: string;
@@ -10,9 +11,10 @@ export interface MarkerFormState {
   manufacturer: string;
   series: string;
   model: string;
-  tagAction: string;
-  tagAtmosphere: string;
-  tagEmotion: string;
+  /** タグの選択（未選択は空文字） */
+  tags: TagInput;
+  /** 現地メモ（入力途中のまま持ち、保存時に整える） */
+  memo: string;
 }
 
 export const EMPTY_FORM: MarkerFormState = {
@@ -22,9 +24,8 @@ export const EMPTY_FORM: MarkerFormState = {
   manufacturer: '',
   series: '',
   model: '',
-  tagAction: '',
-  tagAtmosphere: '',
-  tagEmotion: '',
+  tags: EMPTY_TAG_INPUT,
+  memo: '',
 };
 
 export function formFromMarker(marker: MarkerData): MarkerFormState {
@@ -35,9 +36,8 @@ export function formFromMarker(marker: MarkerData): MarkerFormState {
     manufacturer: marker.equipment?.manufacturer ?? '',
     series: marker.equipment?.series ?? '',
     model: marker.equipment?.model ?? '',
-    tagAction: marker.tags?.action ?? '',
-    tagAtmosphere: marker.tags?.atmosphere ?? '',
-    tagEmotion: marker.tags?.emotion ?? '',
+    tags: toTagInput(marker.tags),
+    memo: marker.memo ?? '',
   };
 }
 
@@ -51,11 +51,8 @@ export function draftFromForm(
     youtubeUrl: form.youtubeUrl.trim(),
     lat: Number(form.lat),
     lng: Number(form.lng),
-    tags: {
-      action: form.tagAction,
-      atmosphere: form.tagAtmosphere,
-      emotion: form.tagEmotion,
-    },
+    tags: toMarkerTags(form.tags),
+    memo: normalizeMemo(form.memo),
     equipment: {
       manufacturer: form.manufacturer,
       series: form.series,

@@ -6,6 +6,7 @@
  */
 
 import type { Bounds, MarkerData } from '@/core/types';
+import { TAG_FIELDS, tagLabel } from '@/core/constants/tags';
 import { isInsideBounds } from './geo';
 
 /** 日本語を素朴に分かち書きする。非 ASCII を 1 文字ずつ区切る。 */
@@ -25,9 +26,9 @@ function haystack(m: MarkerData): string {
     m.channelTitle,
     m.prefecture,
     m.city,
-    m.tags?.action,
-    m.tags?.atmosphere,
-    m.tags?.emotion,
+    // タグはキーではなく語で当てる（日本語・英語のどちらで検索しても当たるように）
+    ...TAG_FIELDS.flatMap((field) => [tagLabel(m.tags?.[field], 'ja'), tagLabel(m.tags?.[field], 'en')]),
+    m.memo,
     m.equipment?.manufacturer,
     m.equipment?.series,
     m.equipment?.model,

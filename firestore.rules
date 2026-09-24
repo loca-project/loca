@@ -69,13 +69,27 @@ service cloud.firestore {
 
     // ---- マーカー ----
 
+    // タグ（要件 3.3・ADR 0014）。値は英小文字のキーで、一覧は src/core/constants/tags.ts と同じ。
+    // 映っているもの・雰囲気は必須、季節・時間帯・撮り方は任意（無いときは項目ごと省く）
+    function optEnum(data, key, values) {
+      return !(key in data) || data[key] in values;
+    }
+
     function validTags(t) {
       return t is map
-        && t.keys().hasOnly(['action', 'atmosphere', 'emotion'])
-        && t.keys().hasAll(['action', 'atmosphere', 'emotion'])
-        && reqString(t, 'action', 0, 40)
-        && reqString(t, 'atmosphere', 0, 40)
-        && reqString(t, 'emotion', 0, 40);
+        && t.keys().hasOnly(['subject', 'mood', 'season', 'timeOfDay', 'style'])
+        && t.keys().hasAll(['subject', 'mood'])
+        && t.subject in ['nature', 'townscape', 'festival', 'food', 'transport', 'heritage', 'life']
+        && t.mood in ['lively', 'calm', 'dreamy', 'grand', 'nostalgic', 'thrill']
+        && optEnum(t, 'season', ['spring', 'summer', 'autumn', 'winter'])
+        && optEnum(t, 'timeOfDay', ['sunrise', 'morning', 'daytime', 'evening', 'night'])
+        && optEnum(t, 'style', ['aerial', 'walking', 'vehicle', 'fixed']);
+    }
+
+    // 現地メモ: 1〜80 字、改行なし。空は項目ごと省く
+    function validMemo(d) {
+      return !('memo' in d)
+        || (d.memo is string && d.memo.size() <= 80 && d.memo.matches('[^\\r\\n]+'));
     }
 
     function validEquipment(e) {
@@ -91,7 +105,7 @@ service cloud.firestore {
     // URL は動画 ID から作った正規の形だけを許す（同じ動画を別の書き方で二重登録させないため）
     function validMarker(d) {
       return d.keys().hasOnly([
-          'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'equipment',
+          'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'memo', 'equipment',
           'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
           'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
         && d.keys().hasAll([
@@ -102,6 +116,7 @@ service cloud.firestore {
         && d.lat is number && d.lat >= -90 && d.lat <= 90
         && d.lng is number && d.lng >= -180 && d.lng <= 180
         && validTags(d.tags)
+        && validMemo(d)
         && validEquipment(d.equipment)
         && optString(d, 'title', 300)
         && optString(d, 'channelTitle', 200)

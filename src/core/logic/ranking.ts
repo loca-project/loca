@@ -14,6 +14,7 @@ import type {
   SeasonFilter,
 } from '@/core/types';
 import { RANKING_BASE_LIMIT } from '@/core/types';
+import { hasTagSelection, matchesTags } from './tags';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -40,12 +41,6 @@ export function matchesSeason(m: MarkerData, season?: SeasonFilter): boolean {
   return month >= from && month <= to;
 }
 
-/** 感情タグは OR 条件（要件 4.2）。 */
-export function matchesTags(m: MarkerData, tags: string[]): boolean {
-  if (tags.length === 0) return true;
-  const own = [m.tags?.action, m.tags?.atmosphere, m.tags?.emotion].filter(Boolean) as string[];
-  return tags.some((t) => own.includes(t));
-}
 
 /** 未選択（空文字）の項目はフィルタ対象外として扱う（要件 4.3）。 */
 export function matchesEquipment(m: MarkerData, eq?: RankingFilter['equipment']): boolean {
@@ -151,7 +146,7 @@ export function rankChannels(
 export function isLimitedByFilter(f: RankingFilter): boolean {
   return (
     f.period !== 'all' ||
-    f.tags.length > 0 ||
+    hasTagSelection(f.tags) ||
     Boolean(f.prefecture) ||
     Boolean(f.season) ||
     Boolean(f.equipment?.manufacturer)

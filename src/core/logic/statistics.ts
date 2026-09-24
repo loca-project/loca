@@ -1,5 +1,7 @@
 /** 統計集計（管理者モードの統計タブ / 要件 5.2.1）。markers.json だけで完結する。 */
 
+import type { TagField } from '@/core/constants/tags';
+import { TAG_FIELDS } from '@/core/constants/tags';
 import type { MarkerData } from '@/core/types';
 
 export interface CountRow {
@@ -31,9 +33,8 @@ function tally(values: (string | undefined)[]): CountRow[] {
 
 export interface MarkerStatistics {
   total: number;
-  action: CountRow[];
-  atmosphere: CountRow[];
-  emotion: CountRow[];
+  /** タグの項目ごとの件数。label はタグのキー（表示は画面が訳す） */
+  tags: Record<TagField, CountRow[]>;
   manufacturer: CountRow[];
   series: CountRow[];
   model: CountRow[];
@@ -44,9 +45,9 @@ export interface MarkerStatistics {
 export function computeStatistics(markers: MarkerData[]): MarkerStatistics {
   return {
     total: markers.length,
-    action: tally(markers.map((m) => m.tags?.action)),
-    atmosphere: tally(markers.map((m) => m.tags?.atmosphere)),
-    emotion: tally(markers.map((m) => m.tags?.emotion)),
+    tags: Object.fromEntries(
+      TAG_FIELDS.map((field) => [field, tally(markers.map((m) => m.tags?.[field]))]),
+    ) as Record<TagField, CountRow[]>,
     manufacturer: tally(markers.map((m) => m.equipment?.manufacturer)),
     series: tally(markers.map((m) => m.equipment?.series)),
     model: tally(markers.map((m) => m.equipment?.model)),

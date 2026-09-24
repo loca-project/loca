@@ -1,16 +1,17 @@
 /**
  * マーカー投稿フォーム（要件 3.3）。
- * 入力の並びは要件どおり URL → 感情タグ3種 → GPS → 撮影機器。
+ * 入力の並びは要件どおり URL → タグ（必須 → 任意）→ 現地メモ → GPS → 撮影機器。
  * 送信すると Firestore に保存し、すぐ地図に出る。
  */
 
 import React from 'react';
 import type { EquipmentDef } from '@/core/types';
-import { TAG_CATEGORIES } from '@/core/constants';
+import { MEMO_MAX_LENGTH, TAG_CATEGORIES, type TagCategory } from '@/core/constants';
 import { modelsOf, seriesOf } from '@/core/logic/equipment';
 import { Button, Field, RadioGroup, Select, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import type { MarkerFormState } from '@/features/marker/formState';
+import { chipOptions } from '@/features/tags/tagChips';
 
 interface MarkerFormProps {
   form: MarkerFormState;
@@ -23,12 +24,6 @@ interface MarkerFormProps {
   editing: boolean;
 }
 
-const TAG_FIELD: Record<string, keyof MarkerFormState> = {
-  action: 'tagAction',
-  atmosphere: 'tagAtmosphere',
-  emotion: 'tagEmotion',
-};
-
 export default function MarkerForm({
   form,
   equipment,
@@ -38,8 +33,18 @@ export default function MarkerForm({
   onCancel,
   editing,
 }: MarkerFormProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const submitLabel = editing ? t.store.update : t.store.submit;
+
+  const tagChips = (category: TagCategory, optional: boolean) => (
+    <RadioGroup
+      name={category.field}
+      options={chipOptions(category, lang)}
+      value={form.tags[category.field]}
+      allowDeselect={optional}
+      onChange={(v) => onChange({ tags: { ...form.tags, [category.field]: v } })}
+    />
+  );
 
   const makerOptions = [
     { value: '', label: t.form.selectMaker },
@@ -64,16 +69,32 @@ export default function MarkerForm({
         />
       </Field>
 
-      {TAG_CATEGORIES.map((category) => (
-        <Field key={category.key} label={t.form[category.labelKey as keyof typeof t.form] as string}>
-          <RadioGroup
-            name={category.key}
-            options={category.options}
-            value={form[TAG_FIELD[category.key]]}
-            onChange={(v) => onChange({ [TAG_FIELD[category.key]]: v } as Partial<MarkerFormState>)}
-          />
+      {TAG_CATEGORIES.filter((c) => c.required).map((category) => (
+        <Field key={category.field} label={`${t.tags[category.field]} (${t.tags.required})`}>
+          {tagChips(category, false)}
         </Field>
       ))}
+
+      <div className="flex flex-col gap-3 rounded border border-gray-100 bg-gray-50 p-2">
+        <span className="text-[11px] font-bold text-gray-500">
+          {t.tags.optionalGroup}
+          <span className="ml-1 font-normal">{t.tags.optionalHint}</span>
+        </span>
+        {TAG_CATEGORIES.filter((c) => !c.required).map((category) => (
+          <Field key={category.field} label={t.tags[category.field]}>
+            {tagChips(category, true)}
+          </Field>
+        ))}
+      </div>
+
+      <Field label={`${t.tags.memo} (${t.tags.optional}) ${[...form.memo].length}/${MEMO_MAX_LENGTH}`}>
+        <TextInput
+          value={form.memo}
+          maxLength={MEMO_MAX_LENGTH}
+          placeholder={t.tags.memoPlaceholder}
+          onChange={(e) => onChange({ memo: e.target.value })}
+        />
+      </Field>
 
       <div className="grid grid-cols-2 gap-2">
         <Field label={t.form.lat}>

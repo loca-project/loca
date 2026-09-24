@@ -87,9 +87,6 @@ export const ja = {
     maker: 'メーカー',
     series: 'シリーズ',
     model: 'モデル',
-    tagAction: '行動への影響 (必須)',
-    tagAtmosphere: '動画の雰囲気 (必須)',
-    tagEmotion: '感情の核 (必須)',
     selectMaker: 'メーカーを選択',
     selectSeries: 'シリーズを選択',
     selectModel: 'モデルを選択',
@@ -171,9 +168,23 @@ export const ja = {
     reportHarassment: '不適切な個人情報や誹謗中傷など、第三者への嫌がらせを目的とした情報を含む',
   },
 
+  tags: {
+    subject: '映っているもの',
+    mood: '雰囲気',
+    season: '撮影の季節',
+    timeOfDay: '撮影の時間帯',
+    style: '撮り方',
+    required: '必須',
+    optionalGroup: '分かれば（任意）',
+    optionalHint: 'もう一度押すと選択を外せます',
+    memo: '現地メモ',
+    optional: '任意',
+    memoPlaceholder: '例: 北側の展望台から撮影。駐車場あり',
+  },
+
   filters: {
     registeredRange: '登録日',
-    tags: '感情タグフィルタ',
+    tags: 'タグで絞り込む',
     prefecture: '都道府県',
     season: '登録した四半期',
     timeOfDay: '撮影時間帯',
@@ -197,9 +208,6 @@ export const ja = {
     q3: '7月-9月',
     q4: '10月-12月',
     allMakers: '全メーカー',
-    tagAction: '行動への影響',
-    tagAtmosphere: '動画の雰囲気',
-    tagEmotion: '感情の核',
   },
 
   results: {
@@ -226,7 +234,8 @@ export const ja = {
   alerts: {
     invalidUrl: 'Youtube URL の形式が正しくありません。',
     invalidCoord: '緯度・経度の値が正しくありません。',
-    missingTags: '感情タグをすべて選択してください。',
+    missingTags: '「映っているもの」と「雰囲気」を選択してください。',
+    memoTooLong: '現地メモは 80 字までです。',
     fetchFail:
       '動画情報の取得に失敗しました。URL が正しいか、動画が非公開になっていないか確認してください。',
     locFail: '地名の取得に失敗しました。場所を変えるか、しばらく待って再試行してください。',

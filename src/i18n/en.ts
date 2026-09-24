@@ -94,9 +94,6 @@ export const en: DeepPartial<Dictionary> = {
     maker: 'Manufacturer',
     series: 'Series',
     model: 'Model',
-    tagAction: 'Actionable intent (required)',
-    tagAtmosphere: 'Atmosphere / vibe (required)',
-    tagEmotion: 'Core emotion (required)',
     selectMaker: 'Select manufacturer',
     selectSeries: 'Select series',
     selectModel: 'Select model',
@@ -178,9 +175,23 @@ export const en: DeepPartial<Dictionary> = {
     reportHarassment: 'Personal information or harassment targeting a third party',
   },
 
+  tags: {
+    subject: 'What is in the video',
+    mood: 'Mood',
+    season: 'Season filmed',
+    timeOfDay: 'Time of day filmed',
+    style: 'How it was filmed',
+    required: 'Required',
+    optionalGroup: 'If you know (optional)',
+    optionalHint: 'Tap again to clear',
+    memo: 'On-site note',
+    optional: 'optional',
+    memoPlaceholder: 'e.g. Filmed from the north observation deck. Parking available',
+  },
+
   filters: {
     registeredRange: 'Registered',
-    tags: 'Emotion tags',
+    tags: 'Filter by tags',
     prefecture: 'Prefecture',
     season: 'Registered quarter',
     timeOfDay: 'Time of day',
@@ -204,9 +215,6 @@ export const en: DeepPartial<Dictionary> = {
     q3: 'Jul-Sep',
     q4: 'Oct-Dec',
     allMakers: 'All manufacturers',
-    tagAction: 'Actionable intent',
-    tagAtmosphere: 'Atmosphere / vibe',
-    tagEmotion: 'Core emotion',
   },
 
   results: {
@@ -233,7 +241,8 @@ export const en: DeepPartial<Dictionary> = {
   alerts: {
     invalidUrl: 'That YouTube URL is not valid.',
     invalidCoord: 'Latitude or longitude is out of range.',
-    missingTags: 'Please select every emotion tag.',
+    missingTags: 'Please choose what is in the video and its mood.',
+    memoTooLong: 'The on-site note can be up to 80 characters.',
     fetchFail: 'Failed to fetch video info. Check the URL or whether the video is private.',
     locFail: 'Failed to resolve the place name. Try another spot or retry shortly.',
     duplicateUrl: 'This video is already registered.',

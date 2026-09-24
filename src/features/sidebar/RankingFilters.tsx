@@ -10,6 +10,7 @@ import { PREFECTURES, REQUEST_OPTIONS, TAG_CATEGORIES } from '@/core/constants';
 import { modelsOf, seriesOf } from '@/core/logic/equipment';
 import { Button, CheckboxGroup, Field, Select } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { chipOptions } from '@/features/tags/tagChips';
 
 interface RankingFiltersProps {
   tab: TabMode;
@@ -28,7 +29,7 @@ export default function RankingFilters({
   onChange,
   onApply,
 }: RankingFiltersProps) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const eq = filter.equipment ?? { manufacturer: '', series: '', model: '' };
 
   const periodOptions = [
@@ -54,17 +55,12 @@ export default function RankingFilters({
       <div className="flex flex-col gap-2 rounded border border-gray-100 bg-gray-50 p-2">
         <span className="text-[11px] font-bold text-gray-500">{t.filters.tags}</span>
         {TAG_CATEGORIES.map((c) => (
-          <div key={c.key}>
-            <p className="mb-1 text-[10px] text-gray-400">
-              {t.filters[c.labelKey as keyof typeof t.filters] as string}
-            </p>
+          <div key={c.field}>
+            <p className="mb-1 text-[10px] text-gray-400">{t.tags[c.field]}</p>
             <CheckboxGroup
-              options={c.options}
-              values={filter.tags.filter((tag) => c.options.includes(tag))}
-              onChange={(next) => {
-                const others = filter.tags.filter((tag) => !c.options.includes(tag));
-                onChange({ tags: [...others, ...next] });
-              }}
+              options={chipOptions(c, lang)}
+              values={filter.tags[c.field] ?? []}
+              onChange={(next) => onChange({ tags: { ...filter.tags, [c.field]: next } })}
             />
           </div>
         ))}

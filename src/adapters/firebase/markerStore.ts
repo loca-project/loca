@@ -11,6 +11,7 @@
 import {
   Timestamp,
   collection,
+  deleteField,
   doc,
   getDoc,
   onSnapshot,
@@ -35,6 +36,13 @@ const BLOCKED = 'この動画は登録できません（管理者が禁止して
 /** Firestore は undefined を保存できないので、値の無い項目を落とす。 */
 function defined<T extends object>(obj: T): Partial<T> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
+}
+
+/** 保存する形にする。タグの中の未選択（undefined）も落とす（入れ子の undefined も保存できないため）。 */
+function toStored(content: Partial<MarkerContent>): DocumentData {
+  const data: DocumentData = defined(content);
+  if (content.tags) data.tags = defined(content.tags);
+  return data;
 }
 
 /** Firestore の行をドメイン型にする。時刻は epoch ms（ADR 0012 決定 2）。 */
@@ -118,7 +126,7 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
       await ensureFree(content.videoId);
       const id = doc(collection(db, 'markers')).id;
       const data = {
-        ...defined(content),
+        ...toStored(content),
         ownerUid: user.uid,
         createdBy: pseudonymOf(user.uid),
         createdAt: serverTimestamp(),
@@ -135,7 +143,10 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
       const moving = patch.videoId !== undefined && patch.videoId !== before;
       if (moving) await ensureFree(patch.videoId as string);
       const index = moving ? { add: patch.videoId, remove: await releasable(id, before) } : {};
-      await commit(user.uid, id, { ...defined(patch), updatedAt: serverTimestamp() }, 'update', index);
+      const data = toStored(patch);
+      // 現地メモを空にした更新は、項目ごと消す（落とすだけだと古いメモが残る）
+      if ('memo' in patch && patch.memo === undefined) data.memo = deleteField();
+      await commit(user.uid, id, { ...data, updatedAt: serverTimestamp() }, 'update', index);
     },
 
     async softDelete(id: string): Promise<void> {

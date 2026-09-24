@@ -80,70 +80,88 @@ export function Select({
   );
 }
 
-/** 排他選択。感情タグのように「各カテゴリから 1 つだけ」に使う。 */
+/** チップの選択肢。label が無ければ value をそのまま出す。color はマーカーと同じ色の印（雰囲気）。 */
+export interface ChipOption {
+  value: string;
+  label?: string;
+  color?: string;
+}
+
+const CHIP = 'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition';
+const CHIP_ON = 'border-loca-500 bg-loca-50 font-bold text-loca-700';
+const CHIP_OFF = 'border-gray-300 bg-white text-gray-600 hover:border-gray-400';
+
+function ChipBody({ option }: { option: ChipOption }) {
+  return (
+    <>
+      {option.color && (
+        <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: option.color }} />
+      )}
+      {option.label ?? option.value}
+    </>
+  );
+}
+
+/**
+ * 排他選択。タグのように「各項目から 1 つだけ」に使う。
+ * allowDeselect のとき、選択中をもう一度押すと未選択（空文字）に戻る（任意の項目用）。
+ */
 export function RadioGroup({
   name,
   options,
   value,
   onChange,
+  allowDeselect = false,
 }: {
   name: string;
-  options: string[];
+  options: ChipOption[];
   value: string;
   onChange: (v: string) => void;
+  allowDeselect?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div role="radiogroup" className="flex flex-wrap gap-1.5">
       {options.map((opt) => (
         <button
-          key={opt}
+          key={opt.value}
           type="button"
           role="radio"
-          aria-checked={value === opt}
+          aria-checked={value === opt.value}
           name={name}
-          onClick={() => onChange(opt)}
-          className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-            value === opt
-              ? 'border-loca-500 bg-loca-50 font-bold text-loca-700'
-              : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
-          }`}
+          onClick={() => onChange(allowDeselect && value === opt.value ? '' : opt.value)}
+          className={`${CHIP} ${value === opt.value ? CHIP_ON : CHIP_OFF}`}
         >
-          {opt}
+          <ChipBody option={opt} />
         </button>
       ))}
     </div>
   );
 }
 
-/** 複数選択。ランキングの感情タグフィルタ（OR 条件）に使う。 */
+/** 複数選択（フィルタ用）。 */
 export function CheckboxGroup({
   options,
   values,
   onChange,
 }: {
-  options: string[];
+  options: ChipOption[];
   values: string[];
   onChange: (next: string[]) => void;
 }) {
-  const toggle = (opt: string) =>
-    onChange(values.includes(opt) ? values.filter((v) => v !== opt) : [...values, opt]);
+  const toggle = (v: string) => onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
 
   return (
     <div className="flex flex-wrap gap-1.5">
       {options.map((opt) => (
         <button
-          key={opt}
+          key={opt.value}
           type="button"
           role="checkbox"
-          aria-checked={values.includes(opt)}
-          onClick={() => toggle(opt)}
-          className={`rounded-full border px-2.5 py-1 text-[11px] transition ${
-            values.includes(opt)
-              ? 'border-loca-500 bg-loca-50 font-bold text-loca-700'
-              : 'border-gray-300 bg-white text-gray-600 hover:border-gray-400'
-          }`}
+          aria-checked={values.includes(opt.value)}
+          onClick={() => toggle(opt.value)}
+          className={`${CHIP} ${values.includes(opt.value) ? CHIP_ON : CHIP_OFF}`}
         >
-          {opt}
+          <ChipBody option={opt} />
         </button>
       ))}
     </div>

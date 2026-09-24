@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { MarkerData, RequestMarkerData } from '@/core/types';
 import type { MapPinOptions } from '@/ports';
-import { REQUEST_HEX, emotionColor } from '@/core/constants';
+import { REQUEST_HEX, moodColor } from '@/core/constants';
 
 export function usePins(
   markers: MarkerData[],
@@ -15,8 +15,8 @@ export function usePins(
     const markerPins: MapPinOptions[] = markers.map((m) => ({
       id: `m_${m.id}`,
       position: { lat: m.lat, lng: m.lng },
-      // 要件 3.3: マーカー色は「感情の核」に対応する
-      color: emotionColor(m.tags?.emotion),
+      // 要件 3.3: マーカー色は「雰囲気」に対応する
+      color: moodColor(m.tags?.mood),
       onClick: () => onMarkerClick(m),
     }));
 

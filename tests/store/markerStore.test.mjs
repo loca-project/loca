@@ -35,7 +35,8 @@ const content = (videoId = nextVideoId()) => ({
   videoId,
   lat: 35.681,
   lng: 139.767,
-  tags: { action: '行きたい', atmosphere: '静か', emotion: '癒し' },
+  // 任意のタグの未選択は undefined で来る。保存時に落とされること
+  tags: { subject: 'nature', mood: 'calm', season: 'autumn', timeOfDay: undefined },
   equipment: { manufacturer: '', series: '', model: '' },
   title: 'テスト動画',
   city: undefined, // 値の無い項目は保存時に落とされること
@@ -57,6 +58,16 @@ describe('アダプタでの作成・更新・論理削除', () => {
     assert.equal(saved.createdBy, 'user-alice');
     assert.equal(saved.deleted, false);
     assert.equal('city' in saved, false);
+    assert.deepEqual(saved.tags, { subject: 'nature', mood: 'calm', season: 'autumn' });
+  });
+
+  it('現地メモを空にして更新すると、項目ごと消える', async () => {
+    const store = storeFor('alice');
+    const id = await store.create({ ...content(), memo: '北側の展望台から' });
+    assert.equal((await read(id)).memo, '北側の展望台から');
+    await expireStamp(env, 'alice');
+    await store.update(id, { memo: undefined });
+    assert.equal('memo' in (await read(id)), false);
   });
 
   it('本人は更新できる（6 秒あけたあと）', async () => {
