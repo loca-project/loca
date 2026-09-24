@@ -1,0 +1,53 @@
+    // ---- プロフィール（要件 1.1・2.5・2.6・ADR 0019）----
+    // users/{uid}。uid は Firebase Auth の uid なので Google アカウントに紐づく。
+    // 持つのはニックネームと同意の記録だけ（メールや本名は保存しない）。読めるのは本人と管理者。
+
+    function validNickname(d) {
+      return d.nickname is string
+        && d.nickname.size() >= 1 && d.nickname.size() <= 20
+        && d.nickname.matches('[^\\r\\n]+')
+        && d.nickname.trim() == d.nickname;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // 同意は全項目そろったときだけ作れる（画面が全部の印を求める）。同意の版と日時を記録する
+      allow create: if canWrite()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nickname', 'consentVersion', 'agreedAt', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['nickname', 'consentVersion', 'agreedAt', 'createdAt', 'updatedAt'])
+        && validNickname(request.resource.data)
+        && request.resource.data.consentVersion == 1
+        && request.resource.data.agreedAt == request.time
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      // 本人が変えられるのはニックネームだけ（要件 2.6）
+      allow update: if canWrite()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickname', 'updatedAt'])
+        && validNickname(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+      // 本人のアカウント削除は T54 で足す
+      allow delete: if canWrite() && isAdmin();
+    }
+
+    // ---- 管理者とブラックリスト（要件 5.x）----
+    // 追加・削除は管理者だけ。本人は自分の行があるかどうかだけ読める（表示の切り替え用）
+
+    match /admins/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if canWrite() && isAdmin();
+    }
+
+    // 定期処理の記録（ADR 0017）。Actions が IAM の経路で書き、管理者だけが読む
+    match /jobs/{jobId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /blacklist/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if canWrite() && isAdmin();
+    }
+  }
+}

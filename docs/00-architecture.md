@@ -42,7 +42,8 @@ Loca/                               ワークスペース（git の外）
    │  ├─ workflows/sync-firestore.yml 毎日 Firestore → JSON 再生成 → Pages
    │  └─ workflows/publish.yml        ビルドと公開の共通部分
    ├─ index.html / package.json / vite.config.ts
-   ├─ firestore.rules                セキュリティルール（tests/ がエミュレータで検査）
+   ├─ firestore.rules                セキュリティルール（生成物。rules/*.rules をつなぐ。ADR 0020）
+   ├─ rules/                         セキュリティルールの部品（tests/ がエミュレータで検査）
    ├─ public/data/*.json             公開データ（Firestore から毎晩作り直す閲覧の土台）
    ├─ scripts/                       検証・同期・公開・管理
    ├─ src/

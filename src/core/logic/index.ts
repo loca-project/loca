@@ -10,3 +10,4 @@ export * from './requests';
 export * from './reports';
 export * from './tags';
 export * from './mapFilter';
+export * from './profile';

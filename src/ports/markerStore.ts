@@ -5,7 +5,7 @@ import type { Adapter, Unsubscribe } from './common';
  * マーカーの書き込みポート（ADR 0010・0012）。
  * 閲覧の土台は CatalogPort（markers.json）。ここは書き込みと、その後の差分の購読を扱う（要件 1.4）。
  *
- * 持ち主（ownerUid）・投稿者名・時刻はアダプタがログイン中のユーザーから決める。
+ * 持ち主（ownerUid）・時刻はアダプタがログイン中のユーザーから、投稿者名はそのプロフィールのニックネームから決める（ADR 0019）。
  * 権限と間隔（6 秒）はセキュリティルールが守り、違反は UpstreamError になる。
  */
 export interface MarkerStorePort extends Adapter {

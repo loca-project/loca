@@ -5,12 +5,12 @@
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { expireStamp, newMarker, seed, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
+import { expireStamp, newMarker, seed, resetFirestore, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
 
 let env;
 before(async () => { env = await setupEnv(); });
 after(async () => { await env.cleanup(); });
-beforeEach(async () => { await env.clearFirestore(); });
+beforeEach(async () => { await resetFirestore(env); });
 
 const alice = () => env.authenticatedContext('alice').firestore();
 const bob = () => env.authenticatedContext('bob').firestore();

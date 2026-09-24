@@ -134,6 +134,13 @@ record(
 const categoryText = await readFile(path.join(ROOT, 'src', 'core', 'constants', 'equipment.ts'), 'utf8');
 const srcCategories = [...(categoryText.match(/EQUIPMENT_CATEGORY_KEYS = \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']+)'/g)].map((m) => m[1]);
 const rulesText = await readFile(path.join(ROOT, 'firestore.rules'), 'utf8');
+
+// 8c. firestore.rules が rules/ の部品から作ったものと一致していること（ADR 0020）
+const { buildRules } = await import('./build-rules.mjs');
+const builtRules = await buildRules();
+record('firestore.rules が rules/ の部品と一致', rulesText.replace(/\r\n/g, '\n') === builtRules.text,
+  `${builtRules.names.length} 部品`);
+
 const rulesCategories = [...(rulesText.match(/e\.category in \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']*)'/g)]
   .map((m) => m[1])
   .filter(Boolean);

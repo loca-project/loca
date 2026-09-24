@@ -24,7 +24,7 @@
 | `components/Sidebar/SearchPanel.tsx` | 124 | `src/features/sidebar/SearchPanel.tsx` | |
 | `components/Sidebar/RankingFilters.tsx` | 299 | `src/features/sidebar/RankingFilters.tsx` | |
 | `components/Sidebar/RequestView.tsx` | 204 | `src/features/sidebar/RequestView.tsx`, `RequestForm.tsx` | 閲覧と登録を分離 |
-| `components/ProfileModal.tsx` | 271 | `src/features/profile/ProfileModal.tsx` | |
+| `components/ProfileModal.tsx` | 271 | `src/features/profile/ProfileModal.tsx`, `RegisterModal.tsx`, `ProfileGate.tsx` | 登録と編集を分離。国籍・生年月日・性別は持たない（ADR 0019） |
 | `components/ReportModal.tsx` | 58 | `src/features/report/ReportModal.tsx` | 要件 3.8 の複数選択に修正 |
 | `components/MyMarkersModal.tsx` | 315 | `src/features/marker/MyMarkersModal.tsx` | |
 | `components/VideoDetailsModal.tsx` | 132 | `src/features/marker/VideoDetailsModal.tsx` | |

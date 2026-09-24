@@ -1,41 +1,18 @@
-/** 利用者プロフィールのドメイン型。 */
-
-export type Nationality = 'Japan' | 'Other';
-export type Gender = 'Male' | 'Female';
-/** active: 通常 / flagged: 要注意 / blacklisted: 認証拒否 */
-export type UserStatus = 'active' | 'flagged' | 'blacklisted';
-
+/**
+ * 利用者プロフィールのドメイン型（要件 1.1・2.5・2.6・ADR 0019）。
+ *
+ * uid は Firebase Auth の uid で、Google アカウントに紐づく。
+ * 持つのはニックネームと同意の記録だけ。メールや Google の表示名（本名のことが多い）は保存しない。
+ */
 export interface UserProfile {
   uid: string;
-  email?: string;
-  displayName?: string;
-  photoURL?: string;
-
-  nationality: Nationality;
-  /** YYYY-MM-DD */
-  dob: string;
-  gender: Gender;
-
-  status: UserStatus;
-  isAdmin: boolean;
-
-  /** コンテンツ利用に関する同意 */
-  agreedToPolicy: boolean;
-  /** 個人情報等の取得目的への同意 */
-  agreedToDataUsage: boolean;
+  /** 投稿者名として公開する名前。1〜20 字 */
+  nickname: string;
+  /** 同意した文面の版（CONSENT_VERSION）。文面を変えたら上げて、同意を取り直す */
+  consentVersion: number;
   /** 同意した日時（epoch ms） */
   agreedAt: number;
-
+  /** 登録日（epoch ms） */
   createdAt: number;
-  updatedAt?: number;
-}
-
-/** 認証基盤が返す最小限の利用者情報。プロフィール登録前でも存在しうる。 */
-export interface AuthUser {
-  uid: string;
-  email?: string;
-  displayName?: string;
-  photoURL?: string;
-  /** ローカルアダプタによる疑似ログインかどうか */
-  isLocal: boolean;
+  updatedAt: number;
 }

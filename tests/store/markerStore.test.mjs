@@ -9,7 +9,7 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import { createServer } from 'vite';
-import { expireStamp, newMarker, nextVideoId, seed, setupEnv, urlOf } from '../rules/helpers.mjs';
+import { expireStamp, newMarker, nextVideoId, seed, resetFirestore, setupEnv, urlOf } from '../rules/helpers.mjs';
 
 let env;
 let vite;
@@ -24,7 +24,7 @@ after(async () => {
   await env.cleanup();
   await vite.close();
 });
-beforeEach(async () => { await env.clearFirestore(); });
+beforeEach(async () => { await resetFirestore(env); });
 
 const user = (uid) => ({ uid, displayName: `${uid} さん`, email: null, photoUrl: null });
 const storeFor = (uid) => createMarkerStore(env.authenticatedContext(uid).firestore(), () => user(uid));
@@ -51,14 +51,18 @@ async function read(id) {
 }
 
 describe('アダプタでの作成・更新・論理削除', () => {
-  it('作成すると本人の uid と仮の投稿者名（本名ではない）、未削除で保存される', async () => {
+  it('作成すると本人の uid とプロフィールのニックネーム（本名ではない）、未削除で保存される', async () => {
     const id = await storeFor('alice').create(content());
     const saved = await read(id);
     assert.equal(saved.ownerUid, 'alice');
-    assert.equal(saved.createdBy, 'user-alice');
+    assert.equal(saved.createdBy, 'alice さん');
     assert.equal(saved.deleted, false);
     assert.equal('city' in saved, false);
     assert.deepEqual(saved.tags, { subject: 'nature', mood: 'calm', season: 'autumn' });
+  });
+
+  it('プロフィール未登録なら、登録を促すエラーで止まる（ADR 0019）', async () => {
+    await assert.rejects(storeFor('dave').create(content()), /プロフィールを登録/);
   });
 
   it('現地メモを空にして更新すると、項目ごと消える', async () => {

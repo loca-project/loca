@@ -3,7 +3,8 @@ import React from 'react';
 interface ModalProps {
   open: boolean;
   title: string;
-  onClose: () => void;
+  /** 省くと閉じるボタン・Esc・背景のクリックで閉じない（必ず選ばせる画面に使う） */
+  onClose?: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
   /** 画面幅いっぱいに近い大きさが要る管理者モードなどで指定する */
@@ -20,7 +21,7 @@ const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
 /** 画面中央に出すオーバーレイ。Esc と背景クリックで閉じる。 */
 export default function Modal({ open, title, onClose, children, footer, size = 'sm' }: ModalProps) {
   React.useEffect(() => {
-    if (!open) return undefined;
+    if (!open || !onClose) return undefined;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
@@ -34,7 +35,7 @@ export default function Modal({ open, title, onClose, children, footer, size = '
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) onClose?.();
       }}
     >
       <div
@@ -45,14 +46,16 @@ export default function Modal({ open, title, onClose, children, footer, size = '
       >
         <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
           <h2 className="text-sm font-bold text-gray-800">{title}</h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="閉じる"
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-          >
-            <i className="fa-solid fa-xmark" />
-          </button>
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="閉じる"
+              className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          )}
         </header>
 
         <div className="grow overflow-y-auto px-5 py-4 text-sm">{children}</div>

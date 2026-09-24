@@ -6,7 +6,7 @@ import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { createServer } from 'vite';
-import { seed, setupEnv, storedMarker } from '../rules/helpers.mjs';
+import { seed, resetFirestore, setupEnv, storedMarker } from '../rules/helpers.mjs';
 
 let env;
 let vite;
@@ -22,7 +22,7 @@ after(async () => {
   await vite.close();
 });
 beforeEach(async () => {
-  await env.clearFirestore();
+  await resetFirestore(env);
   await seed(env, (db) => setDoc(doc(db, 'markers', 'm1'), storedMarker('alice')));
 });
 

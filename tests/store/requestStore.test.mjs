@@ -5,7 +5,7 @@
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
-import { setupEnv } from '../rules/helpers.mjs';
+import { resetFirestore, setupEnv } from '../rules/helpers.mjs';
 
 let env;
 let vite;
@@ -24,7 +24,7 @@ after(async () => {
   await env.cleanup();
   await vite.close();
 });
-beforeEach(async () => { await env.clearFirestore(); });
+beforeEach(async () => { await resetFirestore(env); });
 
 const user = (uid) => ({ uid, displayName: uid, email: null, photoUrl: null });
 const storeFor = (uid) => createRequestStore(env.authenticatedContext(uid).firestore(), () => user(uid));

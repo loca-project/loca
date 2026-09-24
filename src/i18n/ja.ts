@@ -19,6 +19,34 @@ export const ja = {
     signedOut: 'ログアウトしました',
   },
 
+  // プロフィール（要件 2.5・2.6・ADR 0019）。同意の文面を変えたら CONSENT_VERSION を上げる
+  profile: {
+    menu: 'プロフィール',
+    registerTitle: 'プロフィールの登録',
+    registerLead: 'はじめてのログインです。投稿者名にするニックネームを決め、同意事項を確認してください。',
+    nickname: 'ニックネーム',
+    nicknameHint: '1〜20 字。マーカーの投稿者名として公開されます（Google の名前は公開しません）',
+    consentsTitle: '同意事項',
+    consents: {
+      rights: '登録する YouTube 動画は、自分が撮影・制作し、公開する権利（著作権など）を持つものです。第三者が制作した動画は登録しません。',
+      onSite: '登録する動画は、マーカーの場所で実際に撮影した実写の映像です。生成 AI で作った映像や、別の場所の映像は登録しません。',
+      data: 'ニックネーム・同意した日時・投稿した内容（動画の URL、位置、タグ、現地メモ、撮影機器）を、地図への表示と利用状況の統計のために Loca が保存し、ニックネームと投稿を公開することに同意します。',
+    },
+    privacyNote: 'メールアドレスと Google の名前はログインの仕組み（Firebase Authentication）の外には保存せず、公開もしません。',
+    register: '登録',
+    registered: 'プロフィールを登録しました',
+    cancelRegister: 'キャンセル（ログアウト）',
+    editTitle: 'プロフィール',
+    google: '連携中の Google アカウント',
+    createdAt: '登録日',
+    agreedAt: '同意した日時',
+    nicknameNote: '変えても、これまでのマーカーの投稿者名は変わりません',
+    update: '更新',
+    updated: 'プロフィールを更新しました',
+    loadFailed: 'プロフィールを読み込めませんでした。時間をおいて再読み込みしてください。',
+    needed: '投稿するにはプロフィールの登録が必要です',
+  },
+
   post: {
     pickHint: '地図をクリックすると、その場所が入ります（あとから動かせます）',
     needPlace: '地図をクリックして場所を選んでください',

@@ -13,7 +13,7 @@
     "check": "npm run typecheck && npm run build && npm run verify && npm run test:scripts",
     "test:scripts": "node --test tests/scripts/*.test.mjs",
     "smoke": "node scripts/smoke.mjs",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-loca \"node --test --test-concurrency=1 tests/rules/*.test.mjs tests/store/*.test.mjs\"",
+    "test:rules": "npm run rules:build && firebase emulators:exec --only firestore --project demo-loca \"node --test --test-concurrency=1 tests/rules/*.test.mjs tests/store/*.test.mjs\"",
     "deploy:rules": "npm run test:rules && firebase deploy --only firestore:rules --project loca-d3792 && npm run rules:probe",
     "rules:probe": "node scripts/probe-rules.mjs",
     "release": "node scripts/release.mjs",
@@ -28,7 +28,8 @@
     "data:sync": "node scripts/sync-firestore.mjs",
     "data:sync:check": "node scripts/sync-firestore.mjs --check",
     "data:reset": "node scripts/reset-data.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "rules:build": "node scripts/build-rules.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",

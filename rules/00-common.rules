@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// Loca の Firestore セキュリティルール（ADR 0010）。
+// 権限はすべてここで守る。クライアントの判定は表示の切り替えにしか使わない（決定 5）。
+// ここに無いコレクションは、どこにも一致しないので読み書きとも拒否される。
+//
+// 時刻はすべて Firestore の Timestamp で持ち、書き込み時は serverTimestamp() を使う
+// （rules では request.time と一致する）。epoch ms への変換はアダプタが行う。
+//
+// 確かめ方: npm run test:rules（エミュレータで tests/rules/ を実行する）
+//
+// firestore.rules は生成物。rules/*.rules を編集し、npm run rules:build でつなぐ（ADR 0020）。
+// 部品は名前順につながる。最初の部品が service と match を開き、最後の部品が閉じる。
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- 共通 ----
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function docPath(collection, id) {
+      return /databases/$(database)/documents/$(collection)/$(id);
+    }
+
+    function isAdmin() {
+      return signedIn() && exists(docPath('admins', request.auth.uid));
+    }
+
+    // ブラックリストの利用者はログインできても書き込めない（要件 5.x、判定 △）
+    function canWrite() {
+      return signedIn() && !exists(docPath('blacklist', request.auth.uid));
+    }
+
+    // プロフィール（users/{uid}）を登録済みか。投稿・撮影リクエスト・通報の作成に要る（要件 1.1・ADR 0019）
+    function registered() {
+      return exists(docPath('users', request.auth.uid));
+    }
+
+    function optString(data, key, maxLen) {
+      return !(key in data) || (data[key] is string && data[key].size() <= maxLen);
+    }
+
+    function reqString(data, key, minLen, maxLen) {
+      return data[key] is string && data[key].size() >= minLen && data[key].size() <= maxLen;
+    }
+
+    // ---- 利用者単位のレートリミット（要件 1.3）----
+    // マーカーを書くときは、同じバッチで rateLimits/{uid} を
+    // { lastWriteAt: serverTimestamp(), target: <マーカー ID> } に更新させる。
+    // target が 1 つなので、1 回の書き込みで作れるマーカーは 1 件に限られる。
+
+    function stampedFor(markerId) {
+      let stamp = getAfter(docPath('rateLimits', request.auth.uid)).data;
+      return stamp.lastWriteAt == request.time && stamp.target == markerId;
+    }
+
+    function validStamp(uid) {
+      let d = request.resource.data;
+      return canWrite()
+        && request.auth.uid == uid
+        && d.keys().hasOnly(['lastWriteAt', 'target'])
+        && d.lastWriteAt == request.time
+        && reqString(d, 'target', 1, 128);
+    }
+
+    match /rateLimits/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create: if validStamp(uid);
+      // 直前の書き込みから 6 秒以上あける（10 回/分に相当）
+      allow update: if validStamp(uid)
+        && request.time > resource.data.lastWriteAt + duration.value(6, 's');
+      // 消して間隔をリセットさせない
+      allow delete: if false;
+    }

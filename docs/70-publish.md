@@ -92,7 +92,7 @@ push すると `.github/workflows/deploy.yml` が走り、数分で Pages に反
 
 ## Firestore のルールの反映
 
-ルールの本体は `project/firestore.rules`（方式は ADR 0012）。サイトの公開（`npm run deploy`）とは**別の操作**で、
+ルールの本体は `project/rules/*.rules` で、`npm run rules:build` が反映する形の `project/firestore.rules` を作る（方式は ADR 0012・0020）。サイトの公開（`npm run deploy`）とは**別の操作**で、
 Actions も反映しない。`firestore.rules` を変えたら、次の手順で本番の `loca-d3792` に反映する。
 
 1. Firebase CLI にログインする（初回と、トークンが切れたとき）。`loca-d3792` のオーナーのアカウントを選ぶ。

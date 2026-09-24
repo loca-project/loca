@@ -1,0 +1,166 @@
+    // ---- マーカー ----
+
+    // タグ（要件 3.3・ADR 0014）。値は英小文字のキーで、一覧は src/core/constants/tags.ts と同じ。
+    // 映っているもの・雰囲気は必須、季節・時間帯・撮り方は任意（無いときは項目ごと省く）
+    function optEnum(data, key, values) {
+      return !(key in data) || data[key] in values;
+    }
+
+    function validTags(t) {
+      return t is map
+        && t.keys().hasOnly(['subject', 'mood', 'season', 'timeOfDay', 'style'])
+        && t.keys().hasAll(['subject', 'mood'])
+        && t.subject in ['nature', 'townscape', 'festival', 'food', 'transport', 'heritage', 'life']
+        && t.mood in ['lively', 'calm', 'dreamy', 'grand', 'nostalgic', 'thrill']
+        && optEnum(t, 'season', ['spring', 'summer', 'autumn', 'winter'])
+        && optEnum(t, 'timeOfDay', ['sunrise', 'morning', 'daytime', 'evening', 'night'])
+        && optEnum(t, 'style', ['aerial', 'walking', 'vehicle', 'fixed']);
+    }
+
+    // 現地メモ: 1〜80 字、改行なし。空は項目ごと省く
+    function validMemo(d) {
+      return !('memo' in d)
+        || (d.memo is string && d.memo.size() <= 80 && d.memo.matches('[^\\r\\n]+'));
+    }
+
+    // 撮影機器（分類 → メーカー → シリーズ → モデル。ADR 0018）。分類のキーは src/core/constants/equipment.ts と同じ。
+    // 未選択は空文字。組み合わせがマスタにあるかは画面が確かめる（マスタは公開データでルールから読めないため）
+    function validEquipment(e) {
+      return e is map
+        && e.keys().hasOnly(['category', 'manufacturer', 'series', 'model'])
+        && e.keys().hasAll(['category', 'manufacturer', 'series', 'model'])
+        && e.category in ['', 'drone', 'mirrorless', 'cinema', 'action', 'gimbal', 'camera360', 'smartphone', 'camcorder', 'other']
+        && reqString(e, 'manufacturer', 0, 80)
+        && reqString(e, 'series', 0, 80)
+        && reqString(e, 'model', 0, 80);
+    }
+
+    // 保存後の姿として正しいか（作成・更新の共通部分）
+    // URL は動画 ID から作った正規の形だけを許す（同じ動画を別の書き方で二重登録させないため）
+    function validMarker(d) {
+      return d.keys().hasOnly([
+          'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'memo', 'equipment',
+          'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
+          'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted',
+          // Actions だけが IAM の経路で書く（ADR 0017）。利用者の作成・更新では変えられない（touchesBatchOnly）
+          'youtube', 'deletedReason'])
+        && d.keys().hasAll([
+          'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'equipment',
+          'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
+        && d.videoId is string && d.videoId.matches('^[A-Za-z0-9_-]{11}$')
+        && d.youtubeUrl == 'https://www.youtube.com/watch?v=' + d.videoId
+        && d.lat is number && d.lat >= -90 && d.lat <= 90
+        && d.lng is number && d.lng >= -180 && d.lng <= 180
+        && validTags(d.tags)
+        && validMemo(d)
+        && validEquipment(d.equipment)
+        && optString(d, 'title', 300)
+        && optString(d, 'channelTitle', 200)
+        && optString(d, 'thumbnailUrl', 500)
+        && optString(d, 'prefecture', 20)
+        && optString(d, 'city', 50)
+        && reqString(d, 'ownerUid', 1, 128)
+        && reqString(d, 'createdBy', 1, 100)
+        && d.createdAt is timestamp
+        && d.updatedAt == request.time
+        && d.deleted is bool
+        && (!('youtube' in d) || d.youtube is map)
+        && (!('deletedReason' in d) || d.deletedReason in ['unavailable']);
+    }
+
+    // Actions だけが書く項目（再生数など・消えた動画の論理削除の理由）
+    function touchesBatchOnly(keys) {
+      return keys.hasAny(['youtube', 'deletedReason']);
+    }
+
+    // 作成後に誰も変えられない項目
+    function keepsIdentity() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['ownerUid', 'createdBy', 'createdAt']);
+    }
+
+    // ---- 動画の索引（重複の禁止と、動画 URL の禁止リスト）----
+    // videos/{videoId} = { markerId, ownerUid }。マーカーの作成・動画の差し替えと同じバッチで作らせる。
+    // 既にあれば作れないので、同じ動画は 1 件しか登録できない。管理者が blocked: true を付けた動画も同じ理由で登録できない。
+
+    // この書き込みで新しく作られた索引が、このマーカーを指しているか
+    function indexedFor(markerId, videoId) {
+      let path = docPath('videos', videoId);
+      return !exists(path)
+        && existsAfter(path)
+        && getAfter(path).data.markerId == markerId;
+    }
+
+    function isOwner() {
+      return resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /markers/{markerId} {
+      // 閲覧は誰でも可（onSnapshot で差分を埋めるため。要件 1.4）
+      allow read: if true;
+
+      // 要件 1.1: 未認証では登録させない
+      // 投稿者名はプロフィールのニックネーム（作成時点の値。あとで変えても既存のマーカーは変わらない）
+      allow create: if canWrite()
+        && registered()
+        && request.resource.data.createdBy == get(docPath('users', request.auth.uid)).data.nickname
+        && stampedFor(markerId)
+        && validMarker(request.resource.data)
+        && indexedFor(markerId, request.resource.data.videoId)
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.deleted == false
+        && !touchesBatchOnly(request.resource.data.keys());
+
+      // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
+      // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
+      allow update: if canWrite()
+        && validMarker(request.resource.data)
+        && keepsIdentity()
+        // 再生数などは誰も変えられない。論理削除の理由は、管理者が復元するときだけ外せる
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['youtube'])
+        && (isAdmin() || !touchesBatchOnly(request.resource.data.diff(resource.data).affectedKeys()))
+        // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
+        && (request.resource.data.videoId == resource.data.videoId
+          || indexedFor(markerId, request.resource.data.videoId))
+        && (
+          isAdmin()
+          || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
+        );
+
+      // 物理削除は管理者だけ（要件 1.4）
+      allow delete: if canWrite() && isAdmin();
+    }
+
+    function indexOwnMarker(videoId) {
+      let d = request.resource.data;
+      let marker = getAfter(docPath('markers', d.markerId)).data;
+      return d.keys().hasOnly(['markerId', 'ownerUid'])
+        && d.ownerUid == request.auth.uid
+        && existsAfter(docPath('markers', d.markerId))
+        && marker.videoId == videoId
+        && marker.ownerUid == request.auth.uid;
+    }
+
+    function blockInAdvance() {
+      let d = request.resource.data;
+      return isAdmin() && d.keys().hasOnly(['blocked', 'reason']) && d.blocked == true;
+    }
+
+    match /videos/{videoId} {
+      // 画面が登録前に「登録済み・禁止」を知らせるため、誰でも読める
+      allow read: if true;
+      // 本人が、同じバッチで作る・差し替えるマーカーのために作る。
+      // 管理者は、まだ登録されていない動画を前もって禁止できる
+      allow create: if canWrite() && (indexOwnMarker(videoId) || blockInAdvance());
+      // 禁止の印を付ける・外すのは管理者だけ
+      allow update: if canWrite() && isAdmin();
+      // 本人は、論理削除したか動画を差し替えたマーカーの索引だけ外せる（禁止の印が付いたものは外せない）
+      allow delete: if canWrite() && (
+        isAdmin()
+        || (resource.data.ownerUid == request.auth.uid
+          && resource.data.get('blocked', false) != true
+          && (getAfter(docPath('markers', resource.data.markerId)).data.deleted == true
+            || getAfter(docPath('markers', resource.data.markerId)).data.videoId != videoId))
+      );
+    }

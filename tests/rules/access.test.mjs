@@ -5,13 +5,13 @@
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { newMarker, seed, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
+import { newMarker, seed, resetFirestore, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
 
 let env;
 before(async () => { env = await setupEnv(); });
 after(async () => { await env.cleanup(); });
 beforeEach(async () => {
-  await env.clearFirestore();
+  await resetFirestore(env);
   await seed(env, async (db) => {
     await setDoc(doc(db, 'admins', 'root'), { note: '初期管理者' });
     await setDoc(doc(db, 'blacklist', 'mallory'), { reason: 'スパム' });
@@ -121,7 +121,7 @@ describe('定期処理の記録（jobs。ADR 0017）', () => {
 
 describe('ルールに無いコレクションは拒否', () => {
   it('未定義のコレクションは読み書きとも拒否', async () => {
-    await assertFails(getDoc(doc(as('root'), 'users', 'alice')));
-    await assertFails(setDoc(doc(as('root'), 'users', 'alice'), { a: 1 }));
+    await assertFails(getDoc(doc(as('root'), 'unknownCollection', 'x1')));
+    await assertFails(setDoc(doc(as('root'), 'unknownCollection', 'x1'), { a: 1 }));
   });
 });

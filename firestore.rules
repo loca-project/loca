@@ -8,6 +8,9 @@ rules_version = '2';
 // （rules では request.time と一致する）。epoch ms への変換はアダプタが行う。
 //
 // 確かめ方: npm run test:rules（エミュレータで tests/rules/ を実行する）
+//
+// firestore.rules は生成物。rules/*.rules を編集し、npm run rules:build でつなぐ（ADR 0020）。
+// 部品は名前順につながる。最初の部品が service と match を開き、最後の部品が閉じる。
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -28,6 +31,11 @@ service cloud.firestore {
     // ブラックリストの利用者はログインできても書き込めない（要件 5.x、判定 △）
     function canWrite() {
       return signedIn() && !exists(docPath('blacklist', request.auth.uid));
+    }
+
+    // プロフィール（users/{uid}）を登録済みか。投稿・撮影リクエスト・通報の作成に要る（要件 1.1・ADR 0019）
+    function registered() {
+      return exists(docPath('users', request.auth.uid));
     }
 
     function optString(data, key, maxLen) {
@@ -169,7 +177,10 @@ service cloud.firestore {
       allow read: if true;
 
       // 要件 1.1: 未認証では登録させない
+      // 投稿者名はプロフィールのニックネーム（作成時点の値。あとで変えても既存のマーカーは変わらない）
       allow create: if canWrite()
+        && registered()
+        && request.resource.data.createdBy == get(docPath('users', request.auth.uid)).data.nickname
         && stampedFor(markerId)
         && validMarker(request.resource.data)
         && indexedFor(markerId, request.resource.data.videoId)
@@ -258,6 +269,7 @@ service cloud.firestore {
     match /requests/{requestId} {
       allow read: if true;
       allow create: if canWrite()
+        && registered()
         && validRequest(request.resource.data)
         && request.resource.data.get('withdrawn', false) == false
         && request.resource.data.ownerUid == request.auth.uid
@@ -355,9 +367,42 @@ service cloud.firestore {
     match /reports/{reportId} {
       // まだ無い文書も読めるようにする（画面が「通報済みか」を確かめるため。無いことが分かるだけで漏れる情報は無い）
       allow read: if signedIn() && (isAdmin() || resource == null || resource.data.reporterUid == request.auth.uid);
-      allow create: if canWrite() && validReport(reportId);
+      allow create: if canWrite() && registered() && validReport(reportId);
       // 対応済みにする・消すのは管理者。本人は理由と詳細を置き換えて、確認待ちに戻せる
       allow update: if canWrite() && (isAdmin() || reportAgain());
+      allow delete: if canWrite() && isAdmin();
+    }
+
+    // ---- プロフィール（要件 1.1・2.5・2.6・ADR 0019）----
+    // users/{uid}。uid は Firebase Auth の uid なので Google アカウントに紐づく。
+    // 持つのはニックネームと同意の記録だけ（メールや本名は保存しない）。読めるのは本人と管理者。
+
+    function validNickname(d) {
+      return d.nickname is string
+        && d.nickname.size() >= 1 && d.nickname.size() <= 20
+        && d.nickname.matches('[^\\r\\n]+')
+        && d.nickname.trim() == d.nickname;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      // 同意は全項目そろったときだけ作れる（画面が全部の印を求める）。同意の版と日時を記録する
+      allow create: if canWrite()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nickname', 'consentVersion', 'agreedAt', 'createdAt', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['nickname', 'consentVersion', 'agreedAt', 'createdAt', 'updatedAt'])
+        && validNickname(request.resource.data)
+        && request.resource.data.consentVersion == 1
+        && request.resource.data.agreedAt == request.time
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      // 本人が変えられるのはニックネームだけ（要件 2.6）
+      allow update: if canWrite()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nickname', 'updatedAt'])
+        && validNickname(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+      // 本人のアカウント削除は T54 で足す
       allow delete: if canWrite() && isAdmin();
     }
 

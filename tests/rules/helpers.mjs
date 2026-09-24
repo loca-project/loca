@@ -26,6 +26,23 @@ export async function seed(env, fn) {
   await env.withSecurityRulesDisabled(async (ctx) => fn(ctx.firestore()));
 }
 
+/** テストに出てくる利用者。投稿にはプロフィールの登録が要るので、既定で全員登録済みにしておく。 */
+export const REGISTERED = ['alice', 'bob', 'carol', 'mallory', 'root'];
+
+/** 登録済みのプロフィール（seed 用）。ニックネームは newMarker の createdBy と同じ。 */
+export function storedProfile(uid) {
+  const past = Timestamp.fromMillis(Date.parse('2026-01-01T00:00:00Z'));
+  return { nickname: `${uid} さん`, consentVersion: 1, agreedAt: past, createdAt: past, updatedAt: past };
+}
+
+/** Firestore を空にし、REGISTERED の全員のプロフィールを置く。 */
+export async function resetFirestore(env, registered = REGISTERED) {
+  await env.clearFirestore();
+  await seed(env, async (db) => {
+    for (const uid of registered) await setDoc(doc(db, 'users', uid), storedProfile(uid));
+  });
+}
+
 let videoSeq = 0;
 
 /** 呼ぶたびに別の 11 文字の動画 ID（重複の禁止に引っかからないように）。 */

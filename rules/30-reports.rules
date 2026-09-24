@@ -1,0 +1,41 @@
+    // ---- 通報（要件 3.8）----
+    // reports/{markerId}_{uid}。ID を「マーカー × 通報者」にして 1 人 1 件にし、通報した人数を数えられるようにする。
+    // 同じ人の 2 回目は、理由と詳細の置き換え（確認待ちに戻す）になる。読めるのは管理者と通報した本人。
+
+    function validReportBody(d) {
+      return d.reasons is list && d.reasons.size() >= 1 && d.reasons.size() <= 5
+        && d.reasons.toSet().hasOnly(['copyright', 'illegal', 'misleading_location', 'disinformation', 'harassment'])
+        && optString(d, 'detail', 1000);
+    }
+
+    function validReport(reportId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['markerId', 'reporterUid', 'reasons', 'detail', 'status', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['markerId', 'reporterUid', 'reasons', 'status', 'createdAt', 'updatedAt'])
+        && reqString(d, 'markerId', 1, 128)
+        && reportId == d.markerId + '_' + request.auth.uid
+        && d.reporterUid == request.auth.uid
+        && validReportBody(d)
+        && d.status == 'open'
+        && d.createdAt == request.time
+        && d.updatedAt == request.time
+        && exists(docPath('markers', d.markerId));
+    }
+
+    function reportAgain() {
+      let d = request.resource.data;
+      return resource.data.reporterUid == request.auth.uid
+        && d.diff(resource.data).affectedKeys().hasOnly(['reasons', 'detail', 'status', 'updatedAt'])
+        && validReportBody(d)
+        && d.status == 'open'
+        && d.updatedAt == request.time;
+    }
+
+    match /reports/{reportId} {
+      // まだ無い文書も読めるようにする（画面が「通報済みか」を確かめるため。無いことが分かるだけで漏れる情報は無い）
+      allow read: if signedIn() && (isAdmin() || resource == null || resource.data.reporterUid == request.auth.uid);
+      allow create: if canWrite() && registered() && validReport(reportId);
+      // 対応済みにする・消すのは管理者。本人は理由と詳細を置き換えて、確認待ちに戻せる
+      allow update: if canWrite() && (isAdmin() || reportAgain());
+      allow delete: if canWrite() && isAdmin();
+    }

@@ -7,3 +7,4 @@ export * from './auth';
 export * from './markerStore';
 export * from './requestStore';
 export * from './reportStore';
+export * from './profileStore';

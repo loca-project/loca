@@ -4,13 +4,13 @@
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
 import { deleteDoc, doc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { newMarker, seed, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
+import { newMarker, seed, resetFirestore, setupEnv, stampedWrite, storedMarker } from './helpers.mjs';
 
 let env;
 before(async () => { env = await setupEnv(); });
 after(async () => { await env.cleanup(); });
 beforeEach(async () => {
-  await env.clearFirestore();
+  await resetFirestore(env);
   await seed(env, async (db) => {
     await setDoc(doc(db, 'admins', 'root'), { note: '初期管理者' });
     await setDoc(doc(db, 'markers', 'm1'), storedMarker('alice', { videoId: 'aaaaaaaaaaa', youtubeUrl: 'https://www.youtube.com/watch?v=aaaaaaaaaaa' }));

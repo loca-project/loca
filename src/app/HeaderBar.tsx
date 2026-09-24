@@ -1,13 +1,15 @@
 /**
  * 画面右上のボタンは 1 つだけ。未ログインなら「ログイン」、ログイン後は Google のような丸いアイコン。
  * 押すとプルダウンに、アカウント（ログイン／名前・メール・ログアウト）とメニュー（統計・投稿の流れ・言語）を出す。
- * 迷わせないよう項目を絞る（リポジトリやデータの生成日時は出さない）。プロフィールと管理者モードはここに足す。
+ * 迷わせないよう項目を絞る（リポジトリやデータの生成日時は出さない）。登録済みならプロフィールを出す（管理者モードは T27 で足す）。
+ * 名前は登録したニックネームを出す（Google の名前は本名のことが多いため、登録前だけ使う）。
  * Firebase の設定が無い構成では「≡」の丸いボタンになり、メニューだけを出す。
  */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { useToast } from '@/shared/components/Toast';
 
 interface HeaderBarProps {
@@ -35,6 +37,8 @@ function Avatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
 export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) {
   const { t, lang, changeLanguage } = useI18n();
   const auth = useAuth();
+  const { profile, setEditorOpen } = useProfile();
+  const shownName = profile?.nickname ?? auth.user?.displayName ?? '';
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -94,7 +98,7 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
   // 右上のボタンは 1 つだけ。押すとアカウントとメニューをまとめたプルダウンを出す
   let trigger: React.ReactNode;
   if (auth.user) {
-    trigger = <Avatar photoUrl={auth.user.photoUrl} name={auth.user.displayName} />;
+    trigger = <Avatar photoUrl={auth.user.photoUrl} name={shownName} />;
   } else if (auth.enabled) {
     trigger = (
       <span className="inline-flex h-9 items-center rounded-full bg-loca-500 px-4 text-xs font-bold text-white hover:bg-loca-600">
@@ -113,8 +117,8 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
     <div ref={ref} className="absolute right-4 top-4 z-40">
       <button
         type="button"
-        aria-label={auth.user?.displayName ?? (auth.enabled ? t.auth.login : t.menu.label)}
-        title={auth.user?.displayName ?? (auth.enabled ? t.auth.login : t.menu.label)}
+        aria-label={auth.user ? shownName : auth.enabled ? t.auth.login : t.menu.label}
+        title={auth.user ? shownName : auth.enabled ? t.auth.login : t.menu.label}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
@@ -128,9 +132,15 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
           {auth.user && (
             <>
               <div className="px-3 py-2">
-                <p className="truncate text-xs font-bold text-gray-800">{auth.user.displayName}</p>
+                <p className="truncate text-xs font-bold text-gray-800">{shownName}</p>
                 {auth.user.email && <p className="truncate text-[11px] text-gray-400">{auth.user.email}</p>}
               </div>
+              {profile && (
+                <button type="button" role="menuitem" className={ITEM} onClick={choose(() => setEditorOpen(true))}>
+                  <i className="fa-solid fa-user w-4 text-gray-400" />
+                  {t.profile.menu}
+                </button>
+              )}
               {divider}
             </>
           )}

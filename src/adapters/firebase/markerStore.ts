@@ -23,7 +23,6 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import type { MarkerContent, MarkerData } from '@/core/types';
-import { pseudonymOf } from '@/core/logic/format';
 import type { AuthUser, MarkerStorePort, Unsubscribe } from '@/ports';
 import { UpstreamError } from '@/ports';
 import { toUpstream } from './errors';
@@ -32,6 +31,7 @@ const DENIED =
   '保存が拒否されました。前回の保存から 6 秒以上あけてもう一度お試しください。本人以外のマーカーは変更できません。';
 const DUPLICATE = 'この動画はすでに登録されています。';
 const BLOCKED = 'この動画は登録できません（管理者が禁止しています）。';
+const UNREGISTERED = '投稿するにはプロフィールを登録してください。';
 
 /** Firestore は undefined を保存できないので、値の無い項目を落とす。 */
 function defined<T extends object>(obj: T): Partial<T> {
@@ -65,6 +65,13 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
     const user = currentUser();
     if (!user) throw new UpstreamError('保存するにはログインしてください。');
     return user;
+  };
+
+  /** 投稿者名にするプロフィールのニックネーム。未登録なら UpstreamError（ルールでも拒否する。ADR 0019）。 */
+  const authorOf = async (uid: string): Promise<string> => {
+    const nickname = (await getDoc(doc(db, 'users', uid))).data()?.nickname;
+    if (typeof nickname !== 'string') throw new UpstreamError(UNREGISTERED);
+    return nickname;
   };
 
   /** 動画の索引の状態。登録前に知らせるため（ルールでも同じことを拒否する）。 */
@@ -126,12 +133,13 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
 
     async create(content: MarkerContent): Promise<string> {
       const user = requireUser();
+      const createdBy = await authorOf(user.uid);
       await ensureFree(content.videoId);
       const id = doc(collection(db, 'markers')).id;
       const data = {
         ...toStored(content),
         ownerUid: user.uid,
-        createdBy: pseudonymOf(user.uid),
+        createdBy,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         deleted: false,

@@ -12,10 +12,10 @@ import { validateMarkerDraft } from '@/core/logic/validation';
 import { normalizeMemo, toMarkerTags } from '@/core/logic/tags';
 import { isValidEquipment } from '@/core/logic/equipment';
 import { findDuplicateByVideoId } from '@/core/logic/search';
-import { pseudonymOf } from '@/core/logic/format';
 import type { AuthUser } from '@/ports';
 import { useServices } from '@/shared/hooks/useServices';
 import { useExclusive } from '@/shared/hooks/useExclusive';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { draftFromForm, type MarkerFormState } from '@/features/marker/formState';
 
@@ -55,13 +55,13 @@ function contentOf(form: MarkerFormState, videoId: string, meta: VideoMeta, plac
 }
 
 /** 保存直後に手元の一覧へ入れる形。時刻は端末の時計で近似する（正確な値は Firestore 側にある）。 */
-function localMarker(id: string, content: MarkerContent, user: AuthUser, prev: MarkerData | null): MarkerData {
+function localMarker(id: string, content: MarkerContent, user: AuthUser, author: string, prev: MarkerData | null): MarkerData {
   const now = Date.now();
   return {
     ...content,
     id,
     ownerUid: prev?.ownerUid ?? user.uid,
-    createdBy: prev?.createdBy ?? pseudonymOf(user.uid),
+    createdBy: prev?.createdBy ?? author,
     createdAt: prev?.createdAt ?? now,
     updatedAt: now,
     deleted: false,
@@ -72,12 +72,15 @@ export function useMarkerSubmit() {
   const { video, geocode, auth, markerStore } = useServices();
   const { t } = useI18n();
   const { loading, exclusive } = useExclusive();
+  const { profile } = useProfile();
 
   const submit = useCallback(
     async (ctx: SubmitContext): Promise<SubmitResult | undefined> => {
       const user = auth?.currentUser() ?? null;
       if (!markerStore) return { ok: false, message: t.store.unavailable };
       if (!user) return { ok: false, message: t.store.loginRequired };
+      // 投稿者名はプロフィールのニックネーム（ADR 0019）。アダプタとルールでも確かめる
+      if (!profile) return { ok: false, message: t.profile.needed };
 
       const issues = validateMarkerDraft(draftFromForm(ctx.form, ''));
       if (issues.length > 0) {
@@ -108,21 +111,20 @@ export function useMarkerSubmit() {
           const meta = metaResult.value;
           const place = placeResult.status === 'fulfilled' ? placeResult.value : null;
 
-
           const content = contentOf(ctx.form, videoId, meta, place, ctx.editing);
           const id = ctx.editing ? ctx.editing.id : await markerStore.create(content);
           if (ctx.editing) await markerStore.update(id, content);
           return {
             ok: true,
             message: ctx.editing ? t.store.updated : t.store.saved,
-            saved: localMarker(id, content, user, ctx.editing),
+            saved: localMarker(id, content, user, profile.nickname, ctx.editing),
           };
         } catch (e) {
           return { ok: false, message: e instanceof Error ? e.message : String(e) };
         }
       });
     },
-    [video, geocode, auth, markerStore, exclusive, t],
+    [video, geocode, auth, markerStore, profile, exclusive, t],
   );
 
   /** 本人のマーカーを論理削除する。 */
