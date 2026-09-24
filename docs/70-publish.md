@@ -53,6 +53,7 @@ Issue の取り込みが `public/data/*.json` を push するために必要。
 |---|---|
 | `npm run seed` | ローカル確認用のサンプル 20 件を入れる。**実在しない動画なので公開してはいけない** |
 | `npm run data:clear` | 空に戻す。公開前に実行する |
+| `npm run data:reset` | **サービス開始前だけ**。本番の Firestore の試験データの件数を出す。消すのは `project/` で `node scripts/reset-data.mjs --yes`、そのあと同期（手順は `/reset-data`） |
 
 `npm run verify` が `seed` で始まる ID を検出すると落ちるので、
 サンプルを入れたまま公開することはできない（`npm run deploy` も途中で止まる）。

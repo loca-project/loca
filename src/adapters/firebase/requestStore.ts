@@ -3,6 +3,8 @@
  *
  * リクエストと heatBudgets/{uid}（使った熱量の合計と、このリクエストの ID）を同じバッチで書く。
  * 合計が 5 を超える・印と熱量が合わない書き込みはルールが拒否する。取り下げも同じで、印を減らして熱量を戻す。
+ * 取り下げは論理削除（withdrawn: true と updatedAt の更新）。物理削除すると、同期より前に作られた行の
+ * 取り下げが差分の購読に届かず、次の同期まで古い姿が残るため（ADR 0013）。
  */
 
 import {
@@ -93,7 +95,7 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
       if (!user) throw new UpstreamError('取り下げるにはログインしてください。');
       const used = await usedBy(user.uid);
       const batch = writeBatch(db);
-      batch.delete(doc(db, 'requests', entry.id));
+      batch.update(doc(db, 'requests', entry.id), { withdrawn: true, updatedAt: serverTimestamp() });
       batch.set(doc(db, 'heatBudgets', user.uid), { used: Math.max(0, used - entry.heat), target: entry.id });
       try {
         await batch.commit();
@@ -103,16 +105,17 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
     },
 
     subscribeChanges(sinceMs, onChange, onError): Unsubscribe {
-      // リクエストは作成後に変わらないので createdAt で絞る（単一項目の範囲条件）
-      const recent = query(collection(db, 'requests'), where('createdAt', '>', Timestamp.fromMillis(sinceMs)));
+      // マーカーと同じく updatedAt で絞る。作成も取り下げも updatedAt を進めるので、同期より前に作られた行の取り下げも届く
+      const changed = query(collection(db, 'requests'), where('updatedAt', '>', Timestamp.fromMillis(sinceMs)));
       return onSnapshot(
-        recent,
+        changed,
         (snap) => {
-          const changes = snap.docChanges();
-          const added = changes
-            .filter((c) => c.type === 'added')
-            .map((c) => toEntry(c.doc.id, c.doc.data({ serverTimestamps: 'estimate' })));
-          const removed = changes.filter((c) => c.type === 'removed').map((c) => c.doc.id);
+          const rows = snap
+            .docChanges()
+            .filter((c) => c.type !== 'removed')
+            .map((c) => ({ id: c.doc.id, data: c.doc.data({ serverTimestamps: 'estimate' }) }));
+          const added = rows.filter((r) => r.data.withdrawn !== true).map((r) => toEntry(r.id, r.data));
+          const removed = rows.filter((r) => r.data.withdrawn === true).map((r) => r.id);
           if (added.length > 0 || removed.length > 0) onChange(added, removed);
         },
         (e) => onError(toUpstream(e, DENIED)),

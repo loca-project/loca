@@ -94,10 +94,10 @@ describe('熱量の印（heatBudgets）', () => {
   });
 });
 
-/** アプリと同じ手順の取り下げ: リクエストの削除と熱量の印の減算を同じバッチで。 */
+/** アプリと同じ手順の取り下げ（論理削除）: withdrawn を立てるのと熱量の印の減算を同じバッチで。 */
 function withdraw(db, uid, requestId, used) {
   const batch = writeBatch(db);
-  batch.delete(doc(db, 'requests', requestId));
+  batch.update(doc(db, 'requests', requestId), { withdrawn: true, updatedAt: serverTimestamp() });
   batch.set(doc(db, 'heatBudgets', uid), { used, target: requestId });
   return batch.commit();
 }
@@ -121,8 +121,26 @@ describe('取り下げ（熱量が戻る）', () => {
     await assertFails(withdraw(as('alice'), 'alice', 'r1', 0));
   });
 
-  it('印を減らさない削除は拒否', async () => {
+  it('印を減らさない取り下げは拒否', async () => {
+    const ref = doc(as('alice'), 'requests', 'r1');
+    await assertFails(updateDoc(ref, { withdrawn: true, updatedAt: serverTimestamp() }));
+  });
+
+  it('取り下げ済みをもう一度取り下げて熱量を二重に戻すのは拒否', async () => {
+    await withdraw(as('alice'), 'alice', 'r1', 2);
+    await assertFails(withdraw(as('alice'), 'alice', 'r1', 0));
+  });
+
+  it('本人でも物理削除は拒否（取り下げは論理削除だけ。ADR 0013）', async () => {
     await assertFails(deleteDoc(doc(as('alice'), 'requests', 'r1')));
+  });
+
+  it('取り下げと一緒に熱量など他の項目は変えられない', async () => {
+    const db = as('alice');
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'requests', 'r1'), { withdrawn: true, heat: 1, updatedAt: serverTimestamp() });
+    batch.set(doc(db, 'heatBudgets', 'alice'), { used: 2, target: 'r1' });
+    await assertFails(batch.commit());
   });
 
   it('他人のリクエストは取り下げられない', async () => {

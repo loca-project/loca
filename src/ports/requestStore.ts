@@ -11,11 +11,11 @@ export interface RequestStorePort extends Adapter {
   heatUsed(): Promise<number>;
   /** 作成して、集計に足せる形で返す。上限を超える・未ログインなら UpstreamError。 */
   create(content: RequestContent): Promise<RequestEntry>;
-  /** 本人のリクエストを取り下げる。熱量はその分戻る。 */
+  /** 本人のリクエストを取り下げる（論理削除）。熱量はその分戻る。 */
   withdraw(entry: { id: string; heat: number }): Promise<void>;
   /**
-   * sinceMs（requests.json の syncedAt）より後に作られたリクエストを購読する。
-   * 取り下げられたものは removedIds で届く（購読の範囲内のものだけ。範囲外は日次の同期で消える）。
+   * sinceMs（requests.json の syncedAt）より後に作成・取り下げされたリクエストを購読する。
+   * 取り下げられたものは removedIds で届く（同期より前に作られた行の取り下げも届く。ADR 0013）。
    */
   subscribeChanges(
     sinceMs: number,

@@ -26,6 +26,7 @@
     "data:ingest": "node scripts/ingest-issue.mjs",
     "data:sync": "node scripts/sync-firestore.mjs",
     "data:sync:check": "node scripts/sync-firestore.mjs --check",
+    "data:reset": "node scripts/reset-data.mjs",
     "deploy": "node scripts/deploy.mjs"
   },
   "dependencies": {

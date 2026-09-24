@@ -5,7 +5,7 @@
  * SAME_SPOT_EPS は両方で揃える（npm run verify が一致を検査する）。
  *
  * - GitHub Issue 経由のリクエスト（ID が re_ で始まる）は残す。
- * - Firestore 由来のリクエストは毎回すべて入れ直す（管理者が消した行を落とすため）。
+ * - Firestore 由来のリクエストは毎回すべて入れ直す（管理者が消した行・取り下げた行を落とすため）。
  * - リクエストが 1 件も無くなった地点は消す。
  * - 作り直した地点は、前回の同じ ID の地点から地名を引き継ぐ（毎日の問い合わせを減らすため）。
  */
@@ -22,7 +22,8 @@ export function mergeRequests(firestoreRows, currentSpots) {
     .map((s) => ({ ...s, entries: (s.entries ?? []).filter(fromIssue) }))
     .filter((s) => s.entries.length > 0);
 
-  const sorted = [...firestoreRows].sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+  // 取り下げ済み（論理削除）は含めない
+  const sorted = [...firestoreRows].filter((r) => r.withdrawn !== true).sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
   for (const row of sorted) {
     let spot = spots.find((s) => isNear(s, row));
     if (!spot) {

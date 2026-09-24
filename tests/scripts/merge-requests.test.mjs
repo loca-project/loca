@@ -35,6 +35,12 @@ describe('mergeRequests', () => {
     assert.equal(again[0].totalHeat, 2);
   });
 
+  it('取り下げ済み（withdrawn: true）は含めない', () => {
+    const spots = mergeRequests([fsRow('a', 2), { ...fsRow('b', 3), withdrawn: true }], []);
+    assert.equal(spots[0].totalHeat, 2);
+    assert.equal(spots[0].requestCount, 1);
+  });
+
   it('熱量の多い順に並ぶ', () => {
     const spots = mergeRequests([fsRow('a', 1), fsRow('b', 5, 36.0)], []);
     assert.deepEqual(spots.map((s) => s.totalHeat), [5, 1]);

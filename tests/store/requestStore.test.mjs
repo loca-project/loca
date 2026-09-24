@@ -107,6 +107,25 @@ describe('取り下げ（熱量が戻る）', () => {
     await storeFor('alice').withdraw({ id: entry.id, heat: entry.heat });
     assert.deepEqual(await removed, [entry.id]);
   });
+  it('同期より前に作られたリクエストの取り下げも、購読で届く（ADR 0013 の回帰テスト）', async () => {
+    const entry = await storeFor('alice').create(content(1));
+    // 作成の後に同期が走った、という状況（syncedAt が作成より後）
+    await new Promise((r) => setTimeout(r, 50));
+    const syncedAt = Date.now();
+    const viewer = createRequestStore(env.unauthenticatedContext().firestore(), () => null);
+    const removed = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { stop(); reject(new Error('5 秒以内に通知が来ない')); }, 5000);
+      const stop = viewer.subscribeChanges(syncedAt, (_added, ids) => {
+        if (!ids.includes(entry.id)) return;
+        clearTimeout(timer);
+        stop();
+        resolve(ids);
+      }, reject);
+    });
+    await new Promise((r) => setTimeout(r, 300));
+    await storeFor('alice').withdraw({ id: entry.id, heat: entry.heat });
+    assert.deepEqual(await removed, [entry.id]);
+  });
 });
 
 describe('集計から外す・内訳（removeRequestEntries / requestBreakdown）', () => {
