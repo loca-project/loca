@@ -184,10 +184,11 @@ export const ja = {
   },
 
   mapFilter: {
-    label: '地図フィルタ',
+    label: '地図フィルター',
     videos: '動画',
     requests: '撮影リクエスト',
-    more: '絞り込み',
+    more: 'フィルター',
+    kinds: '表示するもの',
     clear: '条件をクリア',
     close: '閉じる',
     showing: '動画 {shown} / {total} 件',

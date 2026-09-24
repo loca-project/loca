@@ -195,6 +195,7 @@ export const en: DeepPartial<Dictionary> = {
     videos: 'Videos',
     requests: 'Requests',
     more: 'Filter',
+    kinds: 'Show',
     clear: 'Clear',
     close: 'Close',
     showing: 'Videos {shown} / {total}',

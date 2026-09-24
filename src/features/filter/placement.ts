@@ -8,8 +8,8 @@ import { FILTER_BAR_RIGHT } from './MapFilterBar';
 /** 結果パネルの幅。ResultsPanel の w-[min(28rem,calc(100vw-5.5rem))] と同じ。 */
 const resultsPanelWidth = (viewport: number) => Math.min(448, viewport - 88);
 
-/** 列を出すのに要る最小の幅（切り替え 2 つと「絞り込み」が見える程度）。 */
-const MIN_BAR_WIDTH = 220;
+/** 置くのに要る最小の幅（「フィルター」ボタンと、条件の数が収まる程度）。 */
+const MIN_BAR_WIDTH = 140;
 const GAP = 8;
 
 export interface FilterBarContext {
