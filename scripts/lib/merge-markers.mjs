@@ -9,7 +9,7 @@
 
 /** 公開する項目だけに絞る（Firestore の行に余計な項目が混ざっても出さない）。 */
 const PUBLIC_KEYS = [
-  'id', 'youtubeUrl', 'lat', 'lng', 'tags', 'equipment', 'title', 'channelTitle', 'thumbnailUrl',
+  'id', 'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'equipment', 'title', 'channelTitle', 'thumbnailUrl',
   'prefecture', 'city', 'ownerUid', 'createdBy', 'createdAt', 'updatedAt',
 ];
 

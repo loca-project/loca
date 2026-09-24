@@ -12,41 +12,9 @@
  * メールアドレスは Firebase Auth（Identity Toolkit）で uid に引く。サイトに一度もログインしていない人は引けない。
  */
 
-import { createRequire } from 'node:module';
+import { FIRESTORE, PROJECT, call, fail, ownerToken } from './lib/owner-auth.mjs';
 
-const PROJECT = 'loca-d3792';
-const FIRESTORE = `https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/(default)/documents`;
 const IDENTITY = `https://identitytoolkit.googleapis.com/v1/projects/${PROJECT}/accounts:lookup`;
-const SCOPES = ['https://www.googleapis.com/auth/cloud-platform'];
-
-function fail(message, code = 1) {
-  console.error(`NG: ${message}`);
-  process.exit(code);
-}
-
-/** Firebase CLI のログイン情報からアクセストークンを得る（値は出力しない）。 */
-async function accessToken() {
-  const require = createRequire(import.meta.url);
-  const auth = require('firebase-tools/lib/auth');
-  const account = auth.getGlobalDefaultAccount();
-  const refresh = account?.tokens?.refresh_token;
-  if (!refresh) fail('Firebase CLI にログインしていません。/firebase-rules の手順 2 でログインしてください。', 2);
-  try {
-    return { token: (await auth.getAccessToken(refresh, SCOPES)).access_token, email: account.user?.email };
-  } catch {
-    return fail('Firebase CLI のログインが切れています。/firebase-rules の手順 2 でログインし直してください。', 2);
-  }
-}
-
-async function call(token, method, url, body) {
-  const res = await fetch(url, {
-    method,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok && res.status !== 404) fail(`${method} ${url.replace(/\?.*/, '')} が ${res.status} を返しました: ${await res.text()}`);
-  return res.status === 404 ? null : res.json();
-}
 
 /** メールアドレスなら uid に引く。uid ならそのまま返す。 */
 async function resolveUid(token, target) {
@@ -58,7 +26,7 @@ async function resolveUid(token, target) {
 }
 
 const [command, target] = process.argv.slice(2);
-const { token, email: operator } = await accessToken();
+const { token, email: operator } = await ownerToken();
 
 if (command === 'list') {
   const body = await call(token, 'GET', `${FIRESTORE}/admins?pageSize=300`);

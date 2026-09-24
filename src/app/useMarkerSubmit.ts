@@ -39,6 +39,7 @@ export interface SubmitResult {
 function contentOf(form: MarkerFormState, videoId: string, meta: VideoMeta, place: PlaceMeta | null, prev: MarkerData | null) {
   const content: MarkerContent = {
     youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
+    videoId,
     lat: Number(form.lat),
     lng: Number(form.lng),
     tags: { action: form.tagAction, atmosphere: form.tagAtmosphere, emotion: form.tagEmotion },

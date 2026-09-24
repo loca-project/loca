@@ -88,16 +88,17 @@ service cloud.firestore {
     }
 
     // 保存後の姿として正しいか（作成・更新の共通部分）
+    // URL は動画 ID から作った正規の形だけを許す（同じ動画を別の書き方で二重登録させないため）
     function validMarker(d) {
       return d.keys().hasOnly([
-          'youtubeUrl', 'lat', 'lng', 'tags', 'equipment',
+          'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'equipment',
           'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
           'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
         && d.keys().hasAll([
-          'youtubeUrl', 'lat', 'lng', 'tags', 'equipment',
+          'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'equipment',
           'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
-        && reqString(d, 'youtubeUrl', 1, 300)
-        && d.youtubeUrl.matches('^https://((www|m)[.])?(youtube[.]com|youtu[.]be)/.+')
+        && d.videoId is string && d.videoId.matches('^[A-Za-z0-9_-]{11}$')
+        && d.youtubeUrl == 'https://www.youtube.com/watch?v=' + d.videoId
         && d.lat is number && d.lat >= -90 && d.lat <= 90
         && d.lng is number && d.lng >= -180 && d.lng <= 180
         && validTags(d.tags)
@@ -120,6 +121,18 @@ service cloud.firestore {
         .hasAny(['ownerUid', 'createdBy', 'createdAt']);
     }
 
+    // ---- 動画の索引（重複の禁止と、動画 URL の禁止リスト）----
+    // videos/{videoId} = { markerId, ownerUid }。マーカーの作成・動画の差し替えと同じバッチで作らせる。
+    // 既にあれば作れないので、同じ動画は 1 件しか登録できない。管理者が blocked: true を付けた動画も同じ理由で登録できない。
+
+    // この書き込みで新しく作られた索引が、このマーカーを指しているか
+    function indexedFor(markerId, videoId) {
+      let path = docPath('videos', videoId);
+      return !exists(path)
+        && existsAfter(path)
+        && getAfter(path).data.markerId == markerId;
+    }
+
     function isOwner() {
       return resource.data.ownerUid == request.auth.uid;
     }
@@ -132,6 +145,7 @@ service cloud.firestore {
       allow create: if canWrite()
         && stampedFor(markerId)
         && validMarker(request.resource.data)
+        && indexedFor(markerId, request.resource.data.videoId)
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdAt == request.time
         && request.resource.data.deleted == false;
@@ -141,6 +155,9 @@ service cloud.firestore {
       allow update: if canWrite()
         && validMarker(request.resource.data)
         && keepsIdentity()
+        // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
+        && (request.resource.data.videoId == resource.data.videoId
+          || indexedFor(markerId, request.resource.data.videoId))
         && (
           isAdmin()
           || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
@@ -148,6 +165,39 @@ service cloud.firestore {
 
       // 物理削除は管理者だけ（要件 1.4）
       allow delete: if canWrite() && isAdmin();
+    }
+
+    function indexOwnMarker(videoId) {
+      let d = request.resource.data;
+      let marker = getAfter(docPath('markers', d.markerId)).data;
+      return d.keys().hasOnly(['markerId', 'ownerUid'])
+        && d.ownerUid == request.auth.uid
+        && existsAfter(docPath('markers', d.markerId))
+        && marker.videoId == videoId
+        && marker.ownerUid == request.auth.uid;
+    }
+
+    function blockInAdvance() {
+      let d = request.resource.data;
+      return isAdmin() && d.keys().hasOnly(['blocked', 'reason']) && d.blocked == true;
+    }
+
+    match /videos/{videoId} {
+      // 画面が登録前に「登録済み・禁止」を知らせるため、誰でも読める
+      allow read: if true;
+      // 本人が、同じバッチで作る・差し替えるマーカーのために作る。
+      // 管理者は、まだ登録されていない動画を前もって禁止できる
+      allow create: if canWrite() && (indexOwnMarker(videoId) || blockInAdvance());
+      // 禁止の印を付ける・外すのは管理者だけ
+      allow update: if canWrite() && isAdmin();
+      // 本人は、論理削除したか動画を差し替えたマーカーの索引だけ外せる（禁止の印が付いたものは外せない）
+      allow delete: if canWrite() && (
+        isAdmin()
+        || (resource.data.ownerUid == request.auth.uid
+          && resource.data.get('blocked', false) != true
+          && (getAfter(docPath('markers', resource.data.markerId)).data.deleted == true
+            || getAfter(docPath('markers', resource.data.markerId)).data.videoId != videoId))
+      );
     }
 
     // ---- 撮影リクエスト（熱量 1〜5。1 利用者の合計も 5 まで）----

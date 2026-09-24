@@ -40,6 +40,8 @@ export interface PlaceMeta {
 export interface MarkerData {
   id: string;
   youtubeUrl: string;
+  /** YouTube の動画 ID（11 文字）。重複の禁止の索引 videos/{videoId} のキー。GitHub 経由の古い投稿には無い */
+  videoId?: string;
   lat: number;
   lng: number;
 
@@ -75,7 +77,7 @@ export type MarkerDraft = Omit<MarkerData, 'id' | 'createdAt' | 'updatedAt'>;
 export type MarkerContent = Pick<
   MarkerData,
   'youtubeUrl' | 'lat' | 'lng' | 'tags' | 'equipment' | 'title' | 'channelTitle' | 'thumbnailUrl' | 'prefecture' | 'city'
->;
+> & { videoId: string };
 
 /** 地図上の矩形範囲（範囲指定検索で使う）。 */
 export interface Bounds {

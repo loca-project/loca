@@ -20,6 +20,7 @@
     "admin:list": "node scripts/admins.mjs list",
     "admin:add": "node scripts/admins.mjs add",
     "admin:remove": "node scripts/admins.mjs remove",
+    "migrate:video-index": "node scripts/migrate-video-index.mjs",
     "data:seed": "node scripts/make-seed-data.mjs",
     "data:clear": "node scripts/clear-data.mjs",
     "data:ingest": "node scripts/ingest-issue.mjs",

@@ -26,10 +26,22 @@ export async function seed(env, fn) {
   await env.withSecurityRulesDisabled(async (ctx) => fn(ctx.firestore()));
 }
 
-/** 正しい形の新規マーカー。上書きしたい項目だけ渡す。 */
+let videoSeq = 0;
+
+/** 呼ぶたびに別の 11 文字の動画 ID（重複の禁止に引っかからないように）。 */
+export function nextVideoId() {
+  videoSeq += 1;
+  return `vid${String(videoSeq).padStart(8, '0')}`;
+}
+
+export const urlOf = (videoId) => `https://www.youtube.com/watch?v=${videoId}`;
+
+/** 正しい形の新規マーカー。上書きしたい項目だけ渡す。動画は毎回別のものになる。 */
 export function newMarker(uid, overrides = {}) {
+  const videoId = overrides.videoId ?? nextVideoId();
   return {
-    youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+    youtubeUrl: urlOf(videoId),
+    videoId,
     lat: 35.681,
     lng: 139.767,
     tags: { action: '行きたい', atmosphere: '静か', emotion: '癒し' },
@@ -54,12 +66,14 @@ export function storedMarker(uid, overrides = {}) {
  * アプリと同じ手順でマーカーを書く: 同じバッチで rateLimits/{uid} に印を付ける。
  * mode は 'set'（作成）か 'update'。
  */
-export function stampedWrite(db, uid, markerId, data, mode = 'set') {
+export function stampedWrite(db, uid, markerId, data, mode = 'set', { index = mode === 'set' } = {}) {
   const batch = writeBatch(db);
   batch.set(doc(db, 'rateLimits', uid), { lastWriteAt: serverTimestamp(), target: markerId });
   const ref = doc(db, 'markers', markerId);
   if (mode === 'set') batch.set(ref, data);
   else batch.update(ref, data);
+  // 作成（と動画の差し替え）では、動画の索引も同じバッチで作る
+  if (index && data.videoId) batch.set(doc(db, 'videos', data.videoId), { markerId, ownerUid: uid });
   return batch.commit();
 }
 

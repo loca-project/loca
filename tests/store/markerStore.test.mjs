@@ -7,9 +7,9 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { doc, getDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import { createServer } from 'vite';
-import { expireStamp, setupEnv } from '../rules/helpers.mjs';
+import { expireStamp, newMarker, nextVideoId, seed, setupEnv, urlOf } from '../rules/helpers.mjs';
 
 let env;
 let vite;
@@ -29,15 +29,17 @@ beforeEach(async () => { await env.clearFirestore(); });
 const user = (uid) => ({ uid, displayName: `${uid} さん`, email: null, photoUrl: null });
 const storeFor = (uid) => createMarkerStore(env.authenticatedContext(uid).firestore(), () => user(uid));
 
-const content = {
-  youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+/** 登録内容。動画は呼ぶたびに別のもの（同じ動画は重複の禁止で拒否されるため）。 */
+const content = (videoId = nextVideoId()) => ({
+  youtubeUrl: urlOf(videoId),
+  videoId,
   lat: 35.681,
   lng: 139.767,
   tags: { action: '行きたい', atmosphere: '静か', emotion: '癒し' },
   equipment: { manufacturer: '', series: '', model: '' },
   title: 'テスト動画',
   city: undefined, // 値の無い項目は保存時に落とされること
-};
+});
 
 async function read(id) {
   let data;
@@ -49,7 +51,7 @@ async function read(id) {
 
 describe('アダプタでの作成・更新・論理削除', () => {
   it('作成すると本人の uid と仮の投稿者名（本名ではない）、未削除で保存される', async () => {
-    const id = await storeFor('alice').create(content);
+    const id = await storeFor('alice').create(content());
     const saved = await read(id);
     assert.equal(saved.ownerUid, 'alice');
     assert.equal(saved.createdBy, 'user-alice');
@@ -59,7 +61,7 @@ describe('アダプタでの作成・更新・論理削除', () => {
 
   it('本人は更新できる（6 秒あけたあと）', async () => {
     const store = storeFor('alice');
-    const id = await store.create(content);
+    const id = await store.create(content());
     await expireStamp(env, 'alice');
     await store.update(id, { title: '書き換えた' });
     assert.equal((await read(id)).title, '書き換えた');
@@ -67,7 +69,7 @@ describe('アダプタでの作成・更新・論理削除', () => {
 
   it('本人は論理削除できる', async () => {
     const store = storeFor('alice');
-    const id = await store.create(content);
+    const id = await store.create(content());
     await expireStamp(env, 'alice');
     await store.softDelete(id);
     assert.equal((await read(id)).deleted, true);
@@ -92,7 +94,7 @@ describe('1.4 差分の購読（別のタブの変更が届く）', () => {
   it('未ログインの閲覧者に、他人の新規登録が届く', async () => {
     const viewer = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
     const arrived = waitFor(viewer, Date.now() - 60_000, (m) => m.title === 'テスト動画');
-    const id = await storeFor('alice').create(content);
+    const id = await storeFor('alice').create(content());
     const got = await arrived;
     assert.equal(got.id, id);
     assert.equal(got.deleted, false);
@@ -101,7 +103,7 @@ describe('1.4 差分の購読（別のタブの変更が届く）', () => {
 
   it('論理削除は deleted: true の行として届く', async () => {
     const store = storeFor('alice');
-    const id = await store.create(content);
+    const id = await store.create(content());
     await expireStamp(env, 'alice');
     const viewer = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
     const arrived = waitFor(viewer, Date.now() - 60_000, (m) => m.id === id && m.deleted);
@@ -110,27 +112,81 @@ describe('1.4 差分の購読（別のタブの変更が届く）', () => {
   });
 
   it('markers.json の生成時刻より前の行は届かない', async () => {
-    await storeFor('alice').create(content);
+    await storeFor('alice').create(content());
     const viewer = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
     const future = Date.now() + 3_600_000;
     await assert.rejects(waitFor(viewer, future, () => true), /5 秒以内/);
   });
 });
 
+describe('重複動画の禁止（videos/{videoId} の索引）', () => {
+  it('同じ動画は 2 件目を登録できない（別の利用者でも）', async () => {
+    const video = content();
+    await storeFor('alice').create(video);
+    await assert.rejects(storeFor('bob').create({ ...video }), { name: 'UpstreamError', message: /すでに登録/ });
+  });
+
+  it('画面の確認を飛ばしても、ルールが二重登録を拒否する', async () => {
+    const video = content();
+    await storeFor('alice').create(video);
+    await seed(env, (db) => deleteDoc(doc(db, 'videos', video.videoId)));
+    await seed(env, (db) => setDoc(doc(db, 'videos', video.videoId), { markerId: 'other', ownerUid: 'alice' }));
+    const bobDb = env.authenticatedContext('bob').firestore();
+    const batch = writeBatch(bobDb);
+    batch.set(doc(bobDb, 'rateLimits', 'bob'), { lastWriteAt: serverTimestamp(), target: 'm2' });
+    batch.set(doc(bobDb, 'markers', 'm2'), newMarker('bob', { videoId: video.videoId }));
+    batch.set(doc(bobDb, 'videos', video.videoId), { markerId: 'm2', ownerUid: 'bob' });
+    await assert.rejects(batch.commit());
+  });
+
+  it('管理者が禁止した動画は登録できない', async () => {
+    const video = content();
+    await seed(env, (db) => setDoc(doc(db, 'videos', video.videoId), { blocked: true, reason: 'スパム' }));
+    await assert.rejects(storeFor('alice').create(video), { name: 'UpstreamError', message: /登録できません/ });
+  });
+
+  it('本人が論理削除すると索引が外れ、同じ動画を登録し直せる', async () => {
+    const store = storeFor('alice');
+    const video = content();
+    const id = await store.create(video);
+    await expireStamp(env, 'alice');
+    await store.softDelete(id);
+    await expireStamp(env, 'alice');
+    await store.create({ ...video });
+  });
+
+  it('動画を差し替えると、古い動画の索引が外れて新しい動画の索引ができる', async () => {
+    const store = storeFor('alice');
+    const oldVideo = content();
+    const id = await store.create(oldVideo);
+    await expireStamp(env, 'alice');
+    const next = content();
+    await store.update(id, { youtubeUrl: next.youtubeUrl, videoId: next.videoId });
+    let oldIndex;
+    let newIndex;
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      oldIndex = (await getDoc(doc(ctx.firestore(), 'videos', oldVideo.videoId))).exists();
+      newIndex = (await getDoc(doc(ctx.firestore(), 'videos', next.videoId))).data();
+    });
+    assert.equal(oldIndex, false);
+    assert.equal(newIndex.markerId, id);
+  });
+});
+
 describe('拒否されたときのエラー', () => {
   it('6 秒以内の連続保存は UpstreamError（permission-denied）', async () => {
     const store = storeFor('alice');
-    await store.create(content);
-    await assert.rejects(store.create(content), { name: 'UpstreamError', message: /6 秒/ });
+    await store.create(content());
+    await assert.rejects(store.create(content()), { name: 'UpstreamError', message: /6 秒/ });
   });
 
   it('他人のマーカーは更新できない', async () => {
-    const id = await storeFor('alice').create(content);
+    const id = await storeFor('alice').create(content());
     await assert.rejects(storeFor('bob').update(id, { title: '乗っ取り' }), { name: 'UpstreamError' });
   });
 
   it('未ログインでは通信する前に UpstreamError', async () => {
     const guest = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
-    await assert.rejects(guest.create(content), { name: 'UpstreamError', message: /ログイン/ });
+    await assert.rejects(guest.create(content()), { name: 'UpstreamError', message: /ログイン/ });
   });
 });
