@@ -72,4 +72,16 @@ export const adminEn: DeepPartial<typeof adminJa> = {
   periodFrom: 'From',
   periodTo: 'To',
   total: 'Total',
+  tabReports: 'Reports',
+  reports: {
+    empty: 'No reports yet.',
+    gone: '(Not on the map. It may have been deleted.)',
+    counts: '{reporters} reporter(s), {open} waiting',
+    deleteMarker: 'Delete marker',
+    resolve: 'Mark as handled',
+    confirmDelete: 'Delete "{title}" (logically) and mark its reports as handled?',
+    confirmResolve: 'Mark the reports on "{title}" as handled? The marker stays on the map.',
+    deleted: 'Deleted the marker and marked its reports as handled',
+    resolved: 'Marked the reports as handled',
+  },
 };

@@ -11,9 +11,12 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
+  writeBatch,
   type Firestore,
 } from 'firebase/firestore';
 import type { ReportRecord, ReportSummary } from '@/core/types';
@@ -73,12 +76,27 @@ export function createReportStore(db: Firestore, currentUser: () => AuthUser | n
             reporterUid: data.reporterUid,
             reasons: data.reasons ?? [],
             status: data.status === 'open' ? 'open' : 'resolved',
+            ...(typeof data.detail === 'string' ? { detail: data.detail } : {}),
             updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toMillis() : 0,
           };
         });
         return summarizeReports(records);
       } catch (e) {
         throw toUpstream(e, '通報の集計は管理者だけが読めます。');
+      }
+    },
+
+    async resolve(markerId: string): Promise<number> {
+      try {
+        const snap = await getDocs(query(collection(db, 'reports'), where('markerId', '==', markerId)));
+        const open = snap.docs.filter((d) => d.data().status === 'open');
+        // 通報はマーカー 1 件あたり人数ぶんしかないので、1 回のバッチ（上限 500）に収まる
+        const batch = writeBatch(db);
+        open.forEach((d) => batch.update(d.ref, { status: 'resolved', updatedAt: serverTimestamp() }));
+        await batch.commit();
+        return open.length;
+      } catch (e) {
+        throw toUpstream(e, '通報を対応済みにできるのは管理者だけです。');
       }
     },
   };

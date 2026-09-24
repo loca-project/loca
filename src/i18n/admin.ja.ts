@@ -72,4 +72,17 @@ export const adminJa = {
   periodFrom: '開始',
   periodTo: '終了',
   total: '合計',
+  tabReports: '通報',
+  // 通報（要件 3.8・T61）
+  reports: {
+    empty: '通報はまだありません。',
+    gone: '（地図に無いマーカー。削除済みの可能性があります）',
+    counts: '通報 {reporters} 人・確認待ち {open} 人',
+    deleteMarker: 'マーカーを削除',
+    resolve: '対応済みにする',
+    confirmDelete: '「{title}」を削除（論理削除）し、通報を対応済みにしますか？',
+    confirmResolve: '「{title}」の通報を対応済みにしますか？マーカーは地図に残ります。',
+    deleted: 'マーカーを削除し、通報を対応済みにしました',
+    resolved: '通報を対応済みにしました',
+  },
 };

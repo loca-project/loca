@@ -5,8 +5,9 @@ import type { ReportRecord, ReportSummary } from '@/core/types';
 /** マーカーごとに人数・確認待ち・理由の内訳をまとめ、確認待ちの多い順（同じなら人数、新しい順）に並べる。 */
 export function summarizeReports(records: ReportRecord[]): ReportSummary[] {
   const byMarker = new Map<string, ReportSummary>();
-  for (const r of records) {
-    const s = byMarker.get(r.markerId) ?? { markerId: r.markerId, reporters: 0, open: 0, reasons: {}, latestAt: 0 };
+  for (const r of [...records].sort((a, b) => b.updatedAt - a.updatedAt)) {
+    const s = byMarker.get(r.markerId) ?? { markerId: r.markerId, reporters: 0, open: 0, reasons: {}, latestAt: 0, details: [] };
+    if (r.status === 'open' && r.detail?.trim()) s.details.push(r.detail.trim());
     s.reporters += 1;
     if (r.status === 'open') s.open += 1;
     for (const reason of new Set(r.reasons)) s.reasons[reason] = (s.reasons[reason] ?? 0) + 1;

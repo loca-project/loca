@@ -53,6 +53,24 @@ describe('通報のアダプタ', () => {
     assert.deepEqual(summary.reasons, { copyright: 2, illegal: 1 });
   });
 
+  it('集計に確認待ちの詳細が入り、対応済みにすると確認待ちが 0 になって詳細も外れる（T61）', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'admins', 'root'), { note: '管理者' }));
+    await storeFor('bob').submit({ markerId: 'm1', reasons: ['copyright'], detail: '本人の動画ではない' });
+    await storeFor('carol').submit({ markerId: 'm1', reasons: ['illegal'], detail: '' });
+    const root = storeFor('root');
+    assert.deepEqual((await root.summaries())[0].details, ['本人の動画ではない']);
+    assert.equal(await root.resolve('m1'), 2);
+    const [after] = await root.summaries();
+    assert.equal(after.open, 0);
+    assert.equal(after.reporters, 2);
+    assert.deepEqual(after.details, []);
+  });
+
+  it('管理者以外は対応済みにできない（UpstreamError）', async () => {
+    await storeFor('bob').submit({ markerId: 'm1', reasons: ['copyright'], detail: '' });
+    await assert.rejects(storeFor('carol').resolve('m1'), { name: 'UpstreamError' });
+  });
+
   it('管理者以外は集計を読めない（UpstreamError）', async () => {
     await assert.rejects(storeFor('bob').summaries(), { name: 'UpstreamError' });
   });

@@ -21,4 +21,6 @@ export interface ReportStorePort extends Adapter {
   submit(input: ReportInput): Promise<'created' | 'updated'>;
   /** マーカーごとの集計。管理者だけ（それ以外は UpstreamError）。 */
   summaries(): Promise<ReportSummary[]>;
+  /** マーカーへの確認待ちの通報をすべて対応済みにする。管理者だけ（T61）。対応済みにした件数を返す。 */
+  resolve(markerId: string): Promise<number>;
 }

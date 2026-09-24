@@ -13,6 +13,8 @@ export interface ReportRecord {
   reporterUid: string;
   reasons: ReportReason[];
   status: 'open' | 'resolved';
+  /** 任意の詳細（1000 字まで） */
+  detail?: string;
   updatedAt: number;
 }
 
@@ -27,6 +29,8 @@ export interface ReportSummary {
   reasons: Partial<Record<ReportReason, number>>;
   /** 最後に通報（再通報を含む）された時刻 */
   latestAt: number;
+  /** 確認待ちの通報に書かれた詳細（空は除く。新しい順） */
+  details: string[];
 }
 
 export interface ReportData {
