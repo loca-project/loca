@@ -74,6 +74,49 @@ describe('アダプタでの作成・更新・論理削除', () => {
   });
 });
 
+describe('1.4 差分の購読（別のタブの変更が届く）', () => {
+  /** 条件を満たす通知が来るまで待つ。来なければ 5 秒で失敗させる。 */
+  function waitFor(store, sinceMs, predicate) {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { stop(); reject(new Error('5 秒以内に通知が来ない')); }, 5000);
+      const stop = store.subscribeChanges(sinceMs, (rows) => {
+        const hit = rows.find(predicate);
+        if (!hit) return;
+        clearTimeout(timer);
+        stop();
+        resolve(hit);
+      }, (e) => { clearTimeout(timer); stop(); reject(e); });
+    });
+  }
+
+  it('未ログインの閲覧者に、他人の新規登録が届く', async () => {
+    const viewer = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
+    const arrived = waitFor(viewer, Date.now() - 60_000, (m) => m.title === 'テスト動画');
+    const id = await storeFor('alice').create(content);
+    const got = await arrived;
+    assert.equal(got.id, id);
+    assert.equal(got.deleted, false);
+    assert.ok(got.updatedAt > 0, 'updatedAt が epoch ms になっている');
+  });
+
+  it('論理削除は deleted: true の行として届く', async () => {
+    const store = storeFor('alice');
+    const id = await store.create(content);
+    await expireStamp(env, 'alice');
+    const viewer = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
+    const arrived = waitFor(viewer, Date.now() - 60_000, (m) => m.id === id && m.deleted);
+    await store.softDelete(id);
+    assert.equal((await arrived).deleted, true);
+  });
+
+  it('markers.json の生成時刻より前の行は届かない', async () => {
+    await storeFor('alice').create(content);
+    const viewer = createMarkerStore(env.unauthenticatedContext().firestore(), () => null);
+    const future = Date.now() + 3_600_000;
+    await assert.rejects(waitFor(viewer, future, () => true), /5 秒以内/);
+  });
+});
+
 describe('拒否されたときのエラー', () => {
   it('6 秒以内の連続保存は UpstreamError（permission-denied）', async () => {
     const store = storeFor('alice');

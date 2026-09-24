@@ -1,6 +1,8 @@
 /**
- * 公開データの読み込み。起動時に markers.json を 1 回読む。
- * Firestore に保存した直後は upsertMarker / removeMarker で手元の一覧だけを直す（再読み込みなしで地図に出すため）。
+ * 公開データの読み込み（要件 1.4 のハイブリッド）。
+ * 1. 起動時に markers.json（前日のバッチで作った確定データ）を読む。
+ * 2. Firebase が使える構成なら、その生成時刻より後に変わったマーカーを onSnapshot で購読し、一覧に合流させる。
+ * 自分の保存直後は upsertMarker / removeMarker でも直す（購読が届く前に地図へ出すため。同じ ID なら上書きされる）。
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -23,7 +25,7 @@ export interface Catalog {
 }
 
 export function useCatalog(): Catalog {
-  const { catalog } = useServices();
+  const { catalog, markerStore } = useServices();
   const [markers, setMarkers] = useState<MarkerData[]>([]);
   const [requestMarkers, setRequestMarkers] = useState<RequestMarkerData[]>([]);
   const [equipment, setEquipment] = useState<EquipmentDef[]>([]);
@@ -60,6 +62,28 @@ export function useCatalog(): Catalog {
       cancelled = true;
     };
   }, [catalog, nonce]);
+
+  // ベースを読み終えてから差分の購読を始める（generatedAt が決まってから）
+  useEffect(() => {
+    if (!markerStore || loading) return undefined;
+    return markerStore.subscribeChanges(
+      generatedAt,
+      (changed) => {
+        setMarkers((prev) => {
+          const byId = new Map(prev.map((m) => [m.id, m]));
+          for (const m of changed) {
+            if (m.deleted) byId.delete(m.id);
+            else byId.set(m.id, m);
+          }
+          return [...byId.values()];
+        });
+      },
+      (e) => {
+        console.error('[loca] 差分の購読に失敗しました', e);
+        setHealth({ notice: '最新の登録を受け取れませんでした。再読み込みすると直ることがあります。' });
+      },
+    );
+  }, [markerStore, loading, generatedAt]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   const upsertMarker = useCallback((marker: MarkerData) => {

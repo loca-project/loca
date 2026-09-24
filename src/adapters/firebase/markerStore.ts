@@ -9,10 +9,21 @@
  */
 
 import { FirebaseError } from 'firebase/app';
-import { collection, doc, serverTimestamp, writeBatch, type DocumentData, type Firestore } from 'firebase/firestore';
-import type { MarkerContent } from '@/core/types';
+import {
+  Timestamp,
+  collection,
+  doc,
+  onSnapshot,
+  query,
+  serverTimestamp,
+  where,
+  writeBatch,
+  type DocumentData,
+  type Firestore,
+} from 'firebase/firestore';
+import type { MarkerContent, MarkerData } from '@/core/types';
 import { pseudonymOf } from '@/core/logic/format';
-import type { AuthUser, MarkerStorePort } from '@/ports';
+import type { AuthUser, MarkerStorePort, Unsubscribe } from '@/ports';
 import { UpstreamError } from '@/ports';
 
 const MESSAGES: Record<string, string> = {
@@ -30,6 +41,18 @@ function defined<T extends object>(obj: T): Partial<T> {
 function toUpstream(e: unknown): UpstreamError {
   const code = e instanceof FirebaseError ? e.code : '';
   return new UpstreamError(MESSAGES[code] ?? `保存に失敗しました（${code || '不明なエラー'}）。`, e);
+}
+
+/** Firestore の行をドメイン型にする。時刻は epoch ms（ADR 0012 決定 2）。 */
+function toMarker(id: string, data: DocumentData): MarkerData {
+  const ms = (v: unknown) => (v instanceof Timestamp ? v.toMillis() : 0);
+  return {
+    ...(data as Omit<MarkerData, 'id' | 'createdAt' | 'updatedAt'>),
+    id,
+    createdAt: ms(data.createdAt),
+    updatedAt: ms(data.updatedAt),
+    deleted: data.deleted === true,
+  };
 }
 
 export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | null): MarkerStorePort {
@@ -82,6 +105,23 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
     async softDelete(id: string): Promise<void> {
       const user = requireUser();
       await commit(user.uid, id, { deleted: true, updatedAt: serverTimestamp() }, 'update');
+    },
+
+    subscribeChanges(sinceMs, onChange, onError): Unsubscribe {
+      // 差分だけを読む（読み取りの無料枠を守るため。要件 1.4）。単一項目の範囲条件なので複合インデックスは要らない
+      const changed = query(collection(db, 'markers'), where('updatedAt', '>', Timestamp.fromMillis(sinceMs)));
+      return onSnapshot(
+        changed,
+        (snap) => {
+          // 自分の保存直後は serverTimestamp が未確定なので、端末の時計で見積もった値を使う
+          const rows = snap
+            .docChanges()
+            .filter((c) => c.type !== 'removed')
+            .map((c) => toMarker(c.doc.id, c.doc.data({ serverTimestamps: 'estimate' })));
+          if (rows.length > 0) onChange(rows);
+        },
+        (e) => onError(toUpstream(e)),
+      );
     },
   };
 }
