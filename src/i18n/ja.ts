@@ -296,10 +296,28 @@ export const ja = {
     registered: '登録',
   },
 
+  // 管理者モード（要件 5・T27）
   admin: {
-    title: '統計とエクスポート',
+    mode: '管理者モード',
     tabStatistics: '統計分析',
     tabExport: 'データエクスポート',
+    tabJobs: '定期処理',
+    jobsEmpty: '定期処理の記録はまだありません。',
+    jobRanAt: '最後に動いた日時',
+    jobNames: {
+      'youtube-refresh': 'YouTube の情報の更新（毎晩）',
+      'purge-deleted': '30 日たった論理削除の物理削除（毎晩）',
+    },
+    jobValues: {
+      checked: '確かめたマーカー',
+      updated: '更新したマーカー',
+      gone: '消えた動画として論理削除',
+      blockedGone: '多すぎて止めた論理削除',
+      apiCalls: 'YouTube API の呼び出し',
+      markers: '消したマーカー',
+      requests: '消した撮影リクエスト',
+      videos: '消した動画の索引',
+    },
     exportCsv: 'CSV でエクスポート',
     exportJson: 'JSON でエクスポート',
     periodFrom: '開始',

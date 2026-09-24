@@ -2,7 +2,7 @@
  * 画面右上のボタンは 1 つだけ。未ログインなら「ログイン」、ログイン後は Google のような丸いアイコン。
  * 押すとプルダウンに、アカウント（ログイン／名前・メール・ログアウト）とメニュー（投稿の流れ・言語）を出す。
  * 迷わせないよう項目を絞る（リポジトリやデータの生成日時は出さない）。登録済みならプロフィールと自分の投稿を出す。
- * サイト全体の統計とエクスポートは管理者モード（T27）から開く（利用者向けは「自分の投稿」の統計とエクスポート）。
+ * 管理者（admins/{uid}）には「管理者モード」も出す。サイト全体の統計とエクスポートはそこから開く（利用者向けは「自分の投稿」）。
  * 名前は登録したニックネームを出す（Google の名前は本名のことが多いため、登録前だけ使う）。
  * Firebase の設定が無い構成では「≡」の丸いボタンになり、メニューだけを出す。
  */
@@ -16,6 +16,7 @@ import { useToast } from '@/shared/components/Toast';
 interface HeaderBarProps {
   onOpenGuide: () => void;
   onOpenMyPosts: () => void;
+  onOpenAdmin: () => void;
 }
 
 const PANEL = 'absolute right-0 mt-2 w-60 overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl';
@@ -35,10 +36,10 @@ function Avatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
   );
 }
 
-export default function HeaderBar({ onOpenGuide, onOpenMyPosts }: HeaderBarProps) {
+export default function HeaderBar({ onOpenGuide, onOpenMyPosts, onOpenAdmin }: HeaderBarProps) {
   const { t, lang, changeLanguage } = useI18n();
   const auth = useAuth();
-  const { profile, setEditorOpen } = useProfile();
+  const { profile, setEditorOpen, isAdmin } = useProfile();
   const shownName = profile?.nickname ?? auth.user?.displayName ?? '';
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -142,6 +143,13 @@ export default function HeaderBar({ onOpenGuide, onOpenMyPosts }: HeaderBarProps
                 <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenMyPosts)}>
                   <i className="fa-solid fa-list-ul w-4 text-gray-400" />
                   {t.myPosts.menu}
+                </button>
+              )}
+              {/* 要件 1.1: 管理者だけ「プロフィール」の下に「管理者モード」を足す */}
+              {isAdmin && (
+                <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenAdmin)}>
+                  <i className="fa-solid fa-user-shield w-4 text-gray-400" />
+                  {t.admin.mode}
                 </button>
               )}
               {divider}

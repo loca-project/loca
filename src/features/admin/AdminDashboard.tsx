@@ -1,9 +1,10 @@
 /**
- * サイト全体の統計とエクスポート（要件 5.2）。
+ * 管理者モード（要件 5・T27）。右上のメニューの「管理者モード」から開く（admins/{uid} がある人だけに出す）。
  *
- * もとは管理者モードのタブ。ログインを持たなかった間（2026-09-22〜）は誰でも開けたが、
- * 利用者向けは「自分の投稿」（自分の分だけの統計とエクスポート）にまとめたので、公開の入口は外した。
- * 管理者画面（T27）から開く。
+ * タブ: サイト全体の統計分析・データエクスポート（要件 5.2.1・5.2.2）、定期処理（jobs の記録）。
+ * ユーザー管理（T59）・マーカー管理とログ一覧（T60）・通報（T61）はここに足す。
+ * 利用者向けは「自分の投稿」（自分の分だけの統計とエクスポート）。タブの見た目は DashboardTabs で共有する。
+ * 画面の判定は表示の切り替えにだけ使い、権限はルールが守る。
  */
 
 import React, { useState } from 'react';
@@ -13,8 +14,9 @@ import DashboardTabs from '@/shared/components/DashboardTabs';
 import { useI18n } from '@/shared/hooks/useI18n';
 import StatisticsTab from './StatisticsTab';
 import ExportTab from './ExportTab';
+import JobsTab from './JobsTab';
 
-type TabId = 'statistics' | 'export';
+type TabId = 'statistics' | 'export' | 'jobs';
 
 interface AdminDashboardProps {
   open: boolean;
@@ -27,18 +29,20 @@ export default function AdminDashboard({ open, markers, onClose }: AdminDashboar
   const [tab, setTab] = useState<TabId>('statistics');
 
   return (
-    <Modal open={open} title={t.admin.title} size="lg" onClose={onClose}>
+    <Modal open={open} title={t.admin.mode} size="lg" onClose={onClose}>
       <DashboardTabs<TabId>
         value={tab}
         onChange={setTab}
         tabs={[
           { id: 'statistics', icon: 'fa-chart-pie', label: t.admin.tabStatistics },
           { id: 'export', icon: 'fa-file-export', label: t.admin.tabExport },
+          { id: 'jobs', icon: 'fa-clock-rotate-left', label: t.admin.tabJobs },
         ]}
       />
       <div className="min-h-[20rem]">
         {tab === 'statistics' && <StatisticsTab markers={markers} />}
         {tab === 'export' && <ExportTab markers={markers} />}
+        {tab === 'jobs' && <JobsTab />}
       </div>
     </Modal>
   );

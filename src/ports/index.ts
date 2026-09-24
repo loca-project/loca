@@ -8,3 +8,4 @@ export * from './markerStore';
 export * from './requestStore';
 export * from './reportStore';
 export * from './profileStore';
+export * from './adminStore';

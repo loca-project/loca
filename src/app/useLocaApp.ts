@@ -15,7 +15,7 @@ import { EMPTY_FORM, formFromMarker, type MarkerFormState } from '@/features/mar
 import { EMPTY_REQUEST_FORM, type RequestFormState } from '@/features/sidebar/RequestForm';
 import type { SearchTarget } from '@/features/sidebar/SearchPanel';
 
-export type ModalName = 'report' | 'videoDetails' | 'requestList' | 'guide' | 'myPosts';
+export type ModalName = 'admin' | 'report' | 'videoDetails' | 'requestList' | 'guide' | 'myPosts';
 
 export function useLocaApp() {
   const services = useServices();
@@ -48,6 +48,7 @@ export function useLocaApp() {
 
   const [filter, setFilter] = useState<RankingFilter>(DEFAULT_RANKING_FILTER);
   const [modals, setModals] = useState<Record<ModalName, boolean>>({
+    admin: false,
     report: false,
     videoDetails: false,
     requestList: false,

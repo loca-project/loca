@@ -3,13 +3,14 @@
  */
 
 import { getFirestore } from 'firebase/firestore';
-import type { AuthPort, MarkerStorePort, ProfileStorePort, ReportStorePort, RequestStorePort } from '@/ports';
+import type { AdminStorePort, AuthPort, MarkerStorePort, ProfileStorePort, ReportStorePort, RequestStorePort } from '@/ports';
 import { firebaseApp } from './app';
 import { FirebaseAuthAdapter } from './auth';
 import { createMarkerStore } from './markerStore';
 import { createRequestStore } from './requestStore';
 import { createReportStore } from './reportStore';
 import { createProfileStore } from './profileStore';
+import { createAdminStore } from './adminStore';
 
 export interface FirebaseServices {
   auth: AuthPort;
@@ -17,6 +18,7 @@ export interface FirebaseServices {
   requestStore: RequestStorePort;
   reportStore: ReportStorePort;
   profileStore: ProfileStorePort;
+  adminStore: AdminStorePort;
 }
 
 /** セッションの復元を待ってから返す。 */
@@ -31,5 +33,6 @@ export async function createFirebaseServices(): Promise<FirebaseServices> {
     requestStore: createRequestStore(db, user),
     reportStore: createReportStore(db, user),
     profileStore: createProfileStore(db, user),
+    adminStore: createAdminStore(db, user),
   };
 }

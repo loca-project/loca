@@ -7,6 +7,7 @@
  */
 
 import type {
+  AdminStorePort,
   AuthPort,
   CatalogPort,
   GeocodePort,
@@ -34,13 +35,14 @@ export interface Services {
   requestStore: RequestStorePort | null;
   reportStore: ReportStorePort | null;
   profileStore: ProfileStorePort | null;
+  adminStore: AdminStorePort | null;
 }
 
 let services: Promise<Services> | null = null;
 
-type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore' | 'reportStore' | 'profileStore'>;
+type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore' | 'reportStore' | 'profileStore' | 'adminStore'>;
 
-const NO_WRITE: WriteServices = { auth: null, markerStore: null, requestStore: null, reportStore: null, profileStore: null };
+const NO_WRITE: WriteServices = { auth: null, markerStore: null, requestStore: null, reportStore: null, profileStore: null, adminStore: null };
 
 /** Firebase が使えない・初期化に失敗したときはすべて null。閲覧は止めない。 */
 async function loadFirebase(): Promise<WriteServices> {

@@ -26,6 +26,7 @@ import { filterBarLeft } from '@/features/filter/placement';
 import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
 import HeaderBar from './HeaderBar';
 import MyPostsModal from '@/features/profile/MyPostsModal';
+import AdminDashboard from '@/features/admin/AdminDashboard';
 import HealthNotice from './HealthNotice';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
@@ -344,6 +345,7 @@ export default function AppShell() {
       <HeaderBar
         onOpenGuide={() => app.openModal('guide')}
         onOpenMyPosts={() => app.openModal('myPosts')}
+        onOpenAdmin={() => app.openModal('admin')}
       />
 
       {auth.user && (
@@ -372,6 +374,8 @@ export default function AppShell() {
       />
 
       <ContributeGuideModal open={app.modals.guide} onClose={() => app.openModal('guide', false)} />
+
+      <AdminDashboard open={app.modals.admin} markers={app.catalog.markers} onClose={() => app.openModal('admin', false)} />
     </div>
   );
 }

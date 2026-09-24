@@ -308,9 +308,26 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   admin: {
-    title: 'Statistics and export',
+    mode: 'Admin mode',
     tabStatistics: 'Statistics',
     tabExport: 'Data export',
+    tabJobs: 'Scheduled jobs',
+    jobsEmpty: 'No scheduled job has run yet.',
+    jobRanAt: 'Last run',
+    jobNames: {
+      'youtube-refresh': 'YouTube info refresh (nightly)',
+      'purge-deleted': 'Erase rows deleted 30+ days ago (nightly)',
+    },
+    jobValues: {
+      checked: 'Markers checked',
+      updated: 'Markers updated',
+      gone: 'Removed as unavailable videos',
+      blockedGone: 'Removals stopped (too many)',
+      apiCalls: 'YouTube API calls',
+      markers: 'Markers erased',
+      requests: 'Shooting requests erased',
+      videos: 'Video index entries erased',
+    },
     exportCsv: 'Export CSV',
     exportJson: 'Export JSON',
     periodFrom: 'From',
