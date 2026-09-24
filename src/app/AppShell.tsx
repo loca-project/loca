@@ -1,6 +1,6 @@
 /** 画面全体の組み立てと、各操作のつなぎ込み。 */
 
-import React, { Suspense, lazy, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import type { LatLng, ReportReason } from '@/core/types';
 import { MapMode, TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
@@ -18,14 +18,13 @@ import TabRail from '@/features/sidebar/TabRail';
 import SidebarPanel, { SIDEBAR_PANEL_WIDTH, SIDEBAR_RAIL_WIDTH } from '@/features/sidebar/SidebarPanel';
 import ResultsPanel from '@/features/results/ResultsPanel';
 import ReportModal from '@/features/report/ReportModal';
-import VideoDetailsModal from '@/features/marker/VideoDetailsModal';
-import ContributeGuideModal from '@/features/contribute/ContributeGuideModal';
 import EmptyMapNotice from '@/features/contribute/EmptyMapNotice';
 import MapFilterBar from '@/features/filter/MapFilterBar';
 import { filterBarLeft } from '@/features/filter/placement';
 import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
 import HeaderBar from './HeaderBar';
 import HealthNotice from './HealthNotice';
+import LazyModals from './LazyModals';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
 import { usePins } from './usePins';
@@ -33,10 +32,6 @@ import { useMapFilter } from './useMapFilter';
 import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
-
-// ログインして開くまで要らない画面は、開いたときに読み込む（初期読み込みの JS を 260 kB 以内に保つ）
-const MyPostsModal = lazy(() => import('@/features/profile/MyPostsModal'));
-const AdminDashboard = lazy(() => import('@/features/admin/AdminDashboard'));
 
 export default function AppShell() {
   const { t } = useI18n();
@@ -214,14 +209,6 @@ export default function AppShell() {
   );
 
   const jump = useCallback((pos: LatLng) => app.jumpTo(pos), [app]);
-  /** 自分の投稿の一覧で選んだら、一覧を閉じて地図をその地点へ移し、詳細を開く（T53） */
-  const pickMine =
-    <T extends LatLng>(select: (item: T) => void) =>
-    (item: T) => {
-      app.openModal('myPosts', false);
-      app.jumpTo({ lat: item.lat, lng: item.lng });
-      select(item);
-    };
   const sidebarOffset = SIDEBAR_RAIL_WIDTH + (app.sidebarOpen ? SIDEBAR_PANEL_WIDTH : 0);
   const filterLeft = filterBarLeft({
     viewportWidth,
@@ -350,21 +337,6 @@ export default function AppShell() {
         onOpenAdmin={() => app.openModal('admin')}
       />
 
-      {/* 自分の投稿と管理者モードは、開いたときに読み込む（初期読み込みの JS を増やさない） */}
-      {auth.user && app.modals.myPosts && (
-        <Suspense fallback={null}>
-          <MyPostsModal
-            open
-            uid={auth.user.uid}
-            markers={app.catalog.markers}
-            requestMarkers={app.catalog.requestMarkers}
-            onPickMarker={pickMine((m) => app.handleMarkerClick(m))}
-            onPickRequest={pickMine((r) => app.handleRequestClick(r))}
-            onClose={() => app.openModal('myPosts', false)}
-          />
-        </Suspense>
-      )}
-
       <ReportModal
         open={app.modals.report}
         submitting={report.loading}
@@ -372,28 +344,8 @@ export default function AppShell() {
         onSubmit={handleReportSubmit}
       />
 
-      <VideoDetailsModal
-        open={app.modals.videoDetails}
-        marker={app.selectedMarker}
-        onClose={() => app.openModal('videoDetails', false)}
-      />
-
-      <ContributeGuideModal open={app.modals.guide} onClose={() => app.openModal('guide', false)} />
-
-      {app.modals.admin && (
-        <Suspense fallback={null}>
-          <AdminDashboard
-            open
-            markers={app.catalog.markers}
-            onClose={() => app.openModal('admin', false)}
-            onJump={(m) => {
-              app.openModal('admin', false);
-              app.jumpTo({ lat: m.lat, lng: m.lng });
-              app.handleMarkerClick(m);
-            }}
-          />
-        </Suspense>
-      )}
+      {/* 自分の投稿・動画の詳細・投稿ガイド・管理者モードは、開いたときに読み込む */}
+      <LazyModals app={app} uid={auth.user?.uid ?? null} />
     </div>
   );
 }

@@ -5,7 +5,6 @@
 
 import type { LanguageCode } from '@/core/types';
 import { ja, type Dictionary } from './ja';
-import { en } from './en';
 
 const STORAGE_KEY = 'loca.lang';
 
@@ -35,12 +34,34 @@ function merge<T>(base: T, override: unknown): T {
   return result as T;
 }
 
-const dictionaries: Record<LanguageCode, Dictionary> = {
-  ja,
-  en: merge(ja, en),
-};
+/**
+ * 日本語は同梱し、英語は使うときだけ読み込む（初期読み込みの JS を減らすため。T62）。
+ * 読み込めるまでは日本語のまま動く。
+ */
+const dictionaries: Partial<Record<LanguageCode, Dictionary>> = { ja };
 
-let currentLanguage: LanguageCode = detectLanguage();
+async function loadDictionary(lang: LanguageCode): Promise<void> {
+  if (dictionaries[lang]) return;
+  const { en } = await import('./en');
+  dictionaries.en = merge(ja, en);
+}
+
+const initialLanguage = detectLanguage();
+let currentLanguage: LanguageCode = 'ja';
+/** 最後に頼まれた言語。読み込みの途中で別の言語が選ばれたら、古い方は反映しない。 */
+let requestedLanguage: LanguageCode = 'ja';
+
+/** 起動時の言語の辞書を読み込む。描画の前に待つ。読み込めなければ日本語で始める。 */
+export async function prepareLanguage(): Promise<void> {
+  if (initialLanguage === 'ja') return;
+  try {
+    await loadDictionary(initialLanguage);
+    currentLanguage = initialLanguage;
+    requestedLanguage = initialLanguage;
+  } catch (error) {
+    console.error(`[i18n] ${initialLanguage} の辞書を読み込めませんでした。日本語で表示します。`, error);
+  }
+}
 
 /** 言語の変更を待つ部品。変えたら全員に知らせ、開いている画面をまとめて描き直させる。 */
 const listeners = new Set<() => void>();
@@ -56,6 +77,19 @@ export function subscribeLanguage(listener: () => void): () => void {
 }
 
 export function setLanguage(lang: LanguageCode): void {
+  requestedLanguage = lang;
+  if (lang === currentLanguage) return;
+  loadDictionary(lang).then(
+    () => {
+      if (requestedLanguage === lang) applyLanguage(lang);
+    },
+    (error: unknown) => {
+      console.error(`[i18n] ${lang} の辞書を読み込めませんでした。言語は切り替えません。`, error);
+    },
+  );
+}
+
+function applyLanguage(lang: LanguageCode): void {
   if (lang === currentLanguage) return;
   currentLanguage = lang;
   try {
@@ -67,7 +101,8 @@ export function setLanguage(lang: LanguageCode): void {
 }
 
 export function t(): Dictionary {
-  return dictionaries[currentLanguage];
+  // currentLanguage は読み込み済みの言語にしか変わらない
+  return dictionaries[currentLanguage] ?? ja;
 }
 
 export type { Dictionary };

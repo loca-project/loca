@@ -5,7 +5,7 @@
  * ブラックリストの人は、登録画面を出す前にログアウトさせ、案内を出す（要件 5.2.4・T59）。
  */
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { interpolate } from '@/core/logic/format';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useExclusive } from '@/shared/hooks/useExclusive';
@@ -15,12 +15,22 @@ import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
 import Modal from '@/shared/components/Modal';
 import { Button } from '@/shared/components/Controls';
-import RegisterModal from './RegisterModal';
-import ProfileModal from './ProfileModal';
-import DeleteAccountModal from './DeleteAccountModal';
 import { useCloseAccount } from './useCloseAccount';
 
+// 登録・プロフィール・アカウント削除の画面は、ログインして出すときに読み込む（初期読み込みの JS を減らす。T62）
+const RegisterModal = lazy(() => import('./RegisterModal'));
+const ProfileModal = lazy(() => import('./ProfileModal'));
+const DeleteAccountModal = lazy(() => import('./DeleteAccountModal'));
+
 export default function ProfileGate() {
+  return (
+    <Suspense fallback={null}>
+      <ProfileGateBody />
+    </Suspense>
+  );
+}
+
+function ProfileGateBody() {
   const { profileStore } = useServices();
   const auth = useAuth();
   const { status, profile, editorOpen, setEditorOpen } = useProfile();
