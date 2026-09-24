@@ -1,6 +1,6 @@
 /**
- * 公開データの読み込み。
- * データベースを持たないので購読は無く、起動時に 1 回読むだけ。
+ * 公開データの読み込み。起動時に markers.json を 1 回読む。
+ * Firestore に保存した直後は upsertMarker / removeMarker で手元の一覧だけを直す（再読み込みなしで地図に出すため）。
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -16,6 +16,10 @@ export interface Catalog {
   generatedAt: number;
   loading: boolean;
   reload: () => void;
+  /** 保存したマーカーを手元の一覧に反映する（同じ ID があれば置き換える）。 */
+  upsertMarker: (marker: MarkerData) => void;
+  /** 論理削除したマーカーを手元の一覧から外す。 */
+  removeMarker: (id: string) => void;
 }
 
 export function useCatalog(): Catalog {
@@ -58,9 +62,15 @@ export function useCatalog(): Catalog {
   }, [catalog, nonce]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
+  const upsertMarker = useCallback((marker: MarkerData) => {
+    setMarkers((prev) => [marker, ...prev.filter((m) => m.id !== marker.id)]);
+  }, []);
+  const removeMarker = useCallback((id: string) => {
+    setMarkers((prev) => prev.filter((m) => m.id !== id));
+  }, []);
 
   return useMemo(
-    () => ({ markers, requestMarkers, equipment, generatedAt, loading, reload }),
-    [markers, requestMarkers, equipment, generatedAt, loading, reload],
+    () => ({ markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker }),
+    [markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker],
   );
 }

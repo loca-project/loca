@@ -11,11 +11,9 @@
 import { FirebaseError } from 'firebase/app';
 import { collection, doc, serverTimestamp, writeBatch, type DocumentData, type Firestore } from 'firebase/firestore';
 import type { MarkerContent } from '@/core/types';
+import { pseudonymOf } from '@/core/logic/format';
 import type { AuthUser, MarkerStorePort } from '@/ports';
 import { UpstreamError } from '@/ports';
-
-/** ルールの createdBy の上限（firestore.rules の reqString と揃える）。 */
-const MAX_CREATED_BY = 100;
 
 const MESSAGES: Record<string, string> = {
   'permission-denied':
@@ -68,7 +66,7 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
       await commit(user.uid, id, {
         ...defined(content),
         ownerUid: user.uid,
-        createdBy: user.displayName.slice(0, MAX_CREATED_BY),
+        createdBy: pseudonymOf(user.uid),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         deleted: false,

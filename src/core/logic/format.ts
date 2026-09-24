@@ -25,3 +25,11 @@ export function formatDateTime(value?: string | number): string {
 export function interpolate(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k: string) => String(vars[k] ?? `{${k}}`));
 }
+
+/**
+ * 公開する投稿者名。プロフィール（ニックネーム）が実装されるまでは uid から作る仮の名前にする。
+ * Google の表示名は本名のことが多く、誰でも読める markers に載せないため（要件 1.1 プライバシー）。
+ */
+export function pseudonymOf(uid: string): string {
+  return `user-${uid.slice(0, 6)}`;
+}

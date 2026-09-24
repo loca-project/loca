@@ -2,7 +2,7 @@
  * アプリの状態と操作をまとめた view-model。
  * App.tsx は、ここが返す値を描画するだけにする。
  *
- * 認証もデータベースも無いので、保持するのは UI 状態と読み込んだ公開データだけ。
+ * 保持するのは UI 状態と読み込んだ公開データだけ。保存は useMarkerSubmit がポート越しに行う。
  */
 
 import { useCallback, useMemo, useState } from 'react';
@@ -11,7 +11,7 @@ import { DEFAULT_RANKING_FILTER, MapMode, TabMode } from '@/core/types';
 import { JUMP_ZOOM } from '@/core/logic/geo';
 import { useCatalog } from '@/shared/hooks/useCatalog';
 import { useServices } from '@/shared/hooks/useServices';
-import { EMPTY_FORM, type MarkerFormState } from '@/features/marker/formState';
+import { EMPTY_FORM, formFromMarker, type MarkerFormState } from '@/features/marker/formState';
 import { EMPTY_REQUEST_FORM, type RequestFormState } from '@/features/sidebar/RequestForm';
 import type { SearchTarget } from '@/features/sidebar/SearchPanel';
 
@@ -32,6 +32,8 @@ export function useLocaApp() {
   const [form, setForm] = useState<MarkerFormState>(EMPTY_FORM);
   const [requestForm, setRequestForm] = useState<RequestFormState>(EMPTY_REQUEST_FORM);
   const [registerTab, setRegisterTab] = useState<'marker' | 'request'>('marker');
+  /** 編集中のマーカー（本人のみ）。新規登録なら null */
+  const [editing, setEditing] = useState<MarkerData | null>(null);
 
   const [searchTarget, setSearchTarget] = useState<SearchTarget>('map');
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,6 +61,7 @@ export function useLocaApp() {
     setSelectedRequest(null);
     setForm(EMPTY_FORM);
     setRequestForm(EMPTY_REQUEST_FORM);
+    setEditing(null);
     services.map.closeInfoWindow();
   }, [services.map]);
 
@@ -70,7 +73,7 @@ export function useLocaApp() {
     [services.map],
   );
 
-  /** 地図クリックで投稿モードに入る。認証が無いので誰でも入れる。 */
+  /** 地図クリックで投稿モードに入る。ログインが要る構成では AppShell が先に止める（要件 1.1）。 */
   const handleMapClick = useCallback(
     (pos: LatLng) => {
       if (drawing) return;
@@ -79,6 +82,7 @@ export function useLocaApp() {
       setMapMode(MapMode.REGISTER);
       setSelectedMarker(null);
       setSelectedRequest(null);
+      setEditing(null);
       setTempPos(pos);
       setForm({ ...EMPTY_FORM, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) });
       setSidebarOpen(true);
@@ -103,6 +107,22 @@ export function useLocaApp() {
     setMapMode(MapMode.REQUEST_VIEW);
     setSidebarOpen(true);
   }, []);
+
+  /** 本人のマーカーを編集フォームに読み込む（要件 3.x。GPS も変更できる）。 */
+  const startEdit = useCallback(
+    (marker: MarkerData) => {
+      services.map.closeInfoWindow();
+      setTab(TabMode.MAP);
+      setMapMode(MapMode.REGISTER);
+      setRegisterTab('marker');
+      setEditing(marker);
+      setSelectedMarker(null);
+      setTempPos({ lat: marker.lat, lng: marker.lng });
+      setForm(formFromMarker(marker));
+      setSidebarOpen(true);
+    },
+    [services.map],
+  );
 
   /** GPS 欄の手入力に合わせて仮マーカーと地図を動かす（要件 3.2）。 */
   const patchForm = useCallback(
@@ -149,6 +169,8 @@ export function useLocaApp() {
     setRequestForm,
     registerTab,
     setRegisterTab,
+    editing,
+    startEdit,
     searchTarget,
     setSearchTarget,
     searchQuery,

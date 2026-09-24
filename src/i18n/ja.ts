@@ -18,6 +18,19 @@ export const ja = {
     signedOut: 'ログアウトしました',
   },
 
+  store: {
+    submit: '登録する',
+    update: '更新する',
+    edit: '編集',
+    delete: '削除',
+    confirmDelete: 'このマーカーを削除しますか？削除すると元に戻せません。',
+    saved: 'マーカーを登録しました',
+    updated: 'マーカーを更新しました',
+    deleted: 'マーカーを削除しました',
+    loginRequired: '登録するにはログインしてください（右上のメニュー）',
+    note: '登録すると、すぐに地図に表示されます。',
+  },
+
   sidebar: {
     map: '地図',
     request: 'リクエスト',

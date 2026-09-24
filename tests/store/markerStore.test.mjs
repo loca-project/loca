@@ -48,11 +48,11 @@ async function read(id) {
 }
 
 describe('アダプタでの作成・更新・論理削除', () => {
-  it('作成すると本人の uid と表示名、未削除で保存される', async () => {
+  it('作成すると本人の uid と仮の投稿者名（本名ではない）、未削除で保存される', async () => {
     const id = await storeFor('alice').create(content);
     const saved = await read(id);
     assert.equal(saved.ownerUid, 'alice');
-    assert.equal(saved.createdBy, 'alice さん');
+    assert.equal(saved.createdBy, 'user-alice');
     assert.equal(saved.deleted, false);
     assert.equal('city' in saved, false);
   });

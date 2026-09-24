@@ -24,12 +24,18 @@ export interface SidebarHandlers {
   onAddRequest: () => void;
   onPostVideoFromRequest: () => void;
   onSearchRelated: () => void;
+  onEditMarker: () => void;
+  onDeleteMarker: () => void;
 }
 
 interface SidebarContentProps {
   app: LocaApp;
   handlers: SidebarHandlers;
   busy: boolean;
+  /** Firestore に保存する構成か */
+  usesStore: boolean;
+  /** ログイン中のユーザーの uid。未ログインなら null */
+  currentUid: string | null;
 }
 
 export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): string {
@@ -43,7 +49,7 @@ export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): 
   return t.headers.mapSearch;
 }
 
-export default function SidebarContent({ app, handlers, busy }: SidebarContentProps) {
+export default function SidebarContent({ app, handlers, busy, usesStore, currentUid }: SidebarContentProps) {
   const { t } = useI18n();
 
   if (app.tab !== TabMode.MAP) {
@@ -74,20 +80,22 @@ export default function SidebarContent({ app, handlers, busy }: SidebarContentPr
   if (app.mapMode === MapMode.REGISTER) {
     return (
       <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 overflow-hidden rounded border border-gray-300 text-[11px]">
-          {(['marker', 'request'] as const).map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => app.setRegisterTab(value)}
-              className={`py-1.5 font-bold transition ${
-                app.registerTab === value ? 'bg-loca-500 text-white' : 'bg-white text-gray-600'
-              }`}
-            >
-              {value === 'marker' ? t.form.tabRegister : t.form.tabRequest}
-            </button>
-          ))}
-        </div>
+        {!app.editing && (
+          <div className="grid grid-cols-2 overflow-hidden rounded border border-gray-300 text-[11px]">
+            {(['marker', 'request'] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => app.setRegisterTab(value)}
+                className={`py-1.5 font-bold transition ${
+                  app.registerTab === value ? 'bg-loca-500 text-white' : 'bg-white text-gray-600'
+                }`}
+              >
+                {value === 'marker' ? t.form.tabRegister : t.form.tabRequest}
+              </button>
+            ))}
+          </div>
+        )}
 
         {app.registerTab === 'marker' ? (
           <MarkerForm
@@ -97,6 +105,8 @@ export default function SidebarContent({ app, handlers, busy }: SidebarContentPr
             onChange={app.patchForm}
             onSubmit={handlers.onSubmitMarker}
             onCancel={app.resetToSearch}
+            usesStore={usesStore}
+            editing={app.editing !== null}
           />
         ) : (
           <RequestForm
@@ -113,6 +123,8 @@ export default function SidebarContent({ app, handlers, busy }: SidebarContentPr
   }
 
   if (app.mapMode === MapMode.EDIT && app.selectedMarker) {
+    // 本人判定は表示の切り替えだけ。GitHub 経由の投稿は ownerUid が無いので誰にも出ない
+    const isOwner = usesStore && currentUid !== null && app.selectedMarker.ownerUid === currentUid;
     return (
       <MarkerDetails
         marker={app.selectedMarker}
@@ -120,6 +132,9 @@ export default function SidebarContent({ app, handlers, busy }: SidebarContentPr
         onShare={handlers.onShare}
         onReport={handlers.onReport}
         onWatch={handlers.onWatch}
+        onEdit={isOwner ? handlers.onEditMarker : undefined}
+        onDelete={isOwner ? handlers.onDeleteMarker : undefined}
+        busy={busy}
       />
     );
   }

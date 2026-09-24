@@ -5,6 +5,7 @@ import type { LatLng, ReportReason } from '@/core/types';
 import { MapMode, TabMode } from '@/core/types';
 import { REPORT_REASONS } from '@/core/constants';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/Toast';
 import MapCanvas from '@/features/map/MapCanvas';
 import {
@@ -33,7 +34,8 @@ export default function AppShell() {
   const { t } = useI18n();
   const toast = useToast();
   const app = useLocaApp();
-  const { submit, loading: submitting } = useMarkerSubmit();
+  const auth = useAuth();
+  const { submit, remove, loading: submitting, usesStore } = useMarkerSubmit();
   const search = useSearchAndRanking();
 
   const pins = usePins(
@@ -91,14 +93,42 @@ export default function AppShell() {
       form: app.form,
       existing: app.catalog.markers,
       equipment: app.catalog.equipment,
+      editing: app.editing,
     });
     if (!result.ok) {
       toast.error(result.message);
       return;
     }
-    toast.success(`${t.contribute.openedTitle}\n${result.message}`);
+    toast.success(result.message);
+    if (result.saved) app.catalog.upsertMarker(result.saved);
     app.resetToSearch();
-  }, [app, submit, toast, t]);
+  }, [app, submit, toast]);
+
+  /** 本人のマーカーの論理削除（要件 3.x）。元に戻せないので確認を挟む。 */
+  const handleDeleteMarker = useCallback(async () => {
+    const marker = app.selectedMarker;
+    if (!marker || !window.confirm(t.store.confirmDelete)) return;
+    const result = await remove(marker);
+    if (!result.ok) {
+      toast.error(result.message);
+      return;
+    }
+    toast.success(result.message);
+    app.catalog.removeMarker(marker.id);
+    app.resetToSearch();
+  }, [app, remove, toast, t]);
+
+  /** ログインが要る構成で未ログインなら、登録モードに入れない（要件 1.1）。 */
+  const handleMapClick = useCallback(
+    (pos: LatLng) => {
+      if (auth.enabled && !auth.user) {
+        toast.info(t.store.loginRequired);
+        return;
+      }
+      app.handleMapClick(pos);
+    },
+    [app, auth.enabled, auth.user, toast, t],
+  );
 
   const handleSubmitRequest = useCallback(() => {
     if (!app.tempPos) return;
@@ -169,7 +199,7 @@ export default function AppShell() {
         ghost={app.tempPos}
         rectangle={app.rectangle}
         drawing={app.drawing}
-        onMapClick={app.handleMapClick}
+        onMapClick={handleMapClick}
         onRectangleDrawn={(bounds) => {
           app.setDrawing(false);
           app.setRectangle(bounds);
@@ -197,6 +227,8 @@ export default function AppShell() {
         <SidebarContent
           app={app}
           busy={busy}
+          usesStore={usesStore}
+          currentUid={auth.user?.uid ?? null}
           handlers={{
             onSearch: handleSearch,
             onStartDrawing: () => app.setDrawing(true),
@@ -214,6 +246,10 @@ export default function AppShell() {
             onShare: handleShare,
             onReport: () => app.openModal('report'),
             onWatch: () => app.openModal('videoDetails'),
+            onEditMarker: () => {
+              if (app.selectedMarker) app.startEdit(app.selectedMarker);
+            },
+            onDeleteMarker: handleDeleteMarker,
             onAddRequest: () => {
               if (!app.selectedRequest) return;
               app.setTempPos({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
@@ -222,7 +258,7 @@ export default function AppShell() {
             },
             onPostVideoFromRequest: () => {
               if (!app.selectedRequest) return;
-              app.handleMapClick({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
+              handleMapClick({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
               app.setRegisterTab('marker');
             },
             onSearchRelated: () => {

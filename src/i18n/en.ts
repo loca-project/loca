@@ -25,6 +25,19 @@ export const en: DeepPartial<Dictionary> = {
     signedOut: 'Signed out',
   },
 
+  store: {
+    submit: 'Register',
+    update: 'Update',
+    edit: 'Edit',
+    delete: 'Delete',
+    confirmDelete: 'Delete this marker? This cannot be undone.',
+    saved: 'Marker registered',
+    updated: 'Marker updated',
+    deleted: 'Marker deleted',
+    loginRequired: 'Sign in to register (menu at the top right)',
+    note: 'Your marker appears on the map right away.',
+  },
+
   sidebar: {
     map: 'Map',
     request: 'Requests',

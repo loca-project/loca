@@ -1,6 +1,6 @@
 /**
  * マーカー情報表示モード（要件 3.7）。
- * 編集は GitHub 上で行うため、ここは閲覧と通報の導線だけを持つ。
+ * 登録した本人にだけ「編集」「削除」を出す（要件 3.x。判定は表示用で、権限はルールが守る）。
  */
 
 import React from 'react';
@@ -15,6 +15,10 @@ interface MarkerDetailsProps {
   onShare: () => void;
   onReport: () => void;
   onWatch: () => void;
+  /** 本人のマーカーのときだけ渡す */
+  onEdit?: () => void;
+  onDelete?: () => void;
+  busy?: boolean;
 }
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
@@ -32,6 +36,9 @@ export default function MarkerDetails({
   onShare,
   onReport,
   onWatch,
+  onEdit,
+  onDelete,
+  busy = false,
 }: MarkerDetailsProps) {
   const { t } = useI18n();
   const equipment = [marker.equipment?.manufacturer, marker.equipment?.series, marker.equipment?.model]
@@ -59,6 +66,19 @@ export default function MarkerDetails({
         <Row label={t.form.lat} value={marker.lat.toFixed(6)} />
         <Row label={t.form.lng} value={marker.lng.toFixed(6)} />
       </dl>
+
+      {onEdit && onDelete && (
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={onEdit} disabled={busy}>
+            <i className="fa-solid fa-pen mr-1.5" />
+            {t.store.edit}
+          </Button>
+          <Button variant="secondary" onClick={onDelete} disabled={busy} title={t.store.delete}>
+            <i className="fa-solid fa-trash mr-1.5 text-red-500" />
+            {t.store.delete}
+          </Button>
+        </div>
+      )}
 
       <div className="flex gap-2">
         <Button variant="secondary" className="flex-1" onClick={onShare}>
