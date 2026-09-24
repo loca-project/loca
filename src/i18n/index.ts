@@ -42,17 +42,28 @@ const dictionaries: Record<LanguageCode, Dictionary> = {
 
 let currentLanguage: LanguageCode = detectLanguage();
 
+/** 言語の変更を待つ部品。変えたら全員に知らせ、開いている画面をまとめて描き直させる。 */
+const listeners = new Set<() => void>();
+
 export function getLanguage(): LanguageCode {
   return currentLanguage;
 }
 
+/** 言語の変更を購読する（useSyncExternalStore 用）。解除する関数を返す。 */
+export function subscribeLanguage(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
 export function setLanguage(lang: LanguageCode): void {
+  if (lang === currentLanguage) return;
   currentLanguage = lang;
   try {
     localStorage.setItem(STORAGE_KEY, lang);
   } catch {
     // 保存できなくても当該セッションでは切り替わる
   }
+  listeners.forEach((l) => l());
 }
 
 export function t(): Dictionary {
