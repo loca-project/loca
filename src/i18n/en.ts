@@ -27,8 +27,10 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   post: {
-    start: 'Post',
-    picking: 'Click the map to choose a place',
+    pickHint: 'Click the map to set the place (you can move it later)',
+    needPlace: 'Click the map to choose a place',
+    loginTitle: 'Sign in to post',
+    loginBody: 'Sign in with Google to post markers and shooting requests.',
   },
 
   store: {
@@ -49,6 +51,7 @@ export const en: DeepPartial<Dictionary> = {
 
   sidebar: {
     map: 'Map',
+    post: 'Post',
     request: 'Requests',
     region: 'Region',
     channel: 'Channel',
@@ -63,7 +66,8 @@ export const en: DeepPartial<Dictionary> = {
     channelRanking: 'Channel ranking',
     gearRanking: 'Equipment ranking',
     requestRanking: 'Shooting request ranking',
-    newReg: 'Submit a marker',
+    newReg: 'Post',
+    editMarker: 'Edit marker',
     viewMarker: 'Marker details',
     searchResults: 'Search results',
     requestTitle: 'Shooting request',
@@ -92,7 +96,7 @@ export const en: DeepPartial<Dictionary> = {
     apply: 'Apply',
     mapTab: 'Map',
     markerTab: 'Marker',
-    clickHint: 'Press "+ Post" below, then choose a place on the map',
+    clickHint: 'Use the Post tab on the left to add markers or shooting requests',
     jumpToMap: 'Jump to map',
     selectArea: 'Start area selection',
     clearArea: 'Clear area selection',
@@ -111,7 +115,7 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   empty: {
-    body: 'Nothing has been registered yet.\nUse "+ Post" below to leave the first place you filmed.',
+    body: 'Nothing has been registered yet.\nUse the Post tab on the left to leave the first place you filmed.',
     howTo: 'See how to submit',
     dismiss: 'Just browse the map',
   },
@@ -126,7 +130,7 @@ export const en: DeepPartial<Dictionary> = {
     openedBody:
       'Review it and create the issue. After automated checks it appears on the map within minutes.\nYour GitHub account serves as identity.',
     guideTitle: 'How submitting works',
-    guide1: 'Press "+ Post" and choose a place on the map',
+    guide1: 'Open the Post tab and choose a place on the map',
     guide2: 'Enter the video URL and tags',
     guide3: 'A GitHub form opens — review and submit it',
     guide4: 'Once checks pass it appears on the map within minutes',

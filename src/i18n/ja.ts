@@ -20,8 +20,10 @@ export const ja = {
   },
 
   post: {
-    start: '投稿する',
-    picking: '地図をクリックして場所を選んでください',
+    pickHint: '地図をクリックすると、その場所が入ります（あとから動かせます）',
+    needPlace: '地図をクリックして場所を選んでください',
+    loginTitle: '投稿するにはログインが必要です',
+    loginBody: 'Google アカウントでログインすると、マーカーと撮影リクエストを投稿できます。',
   },
 
   store: {
@@ -42,6 +44,7 @@ export const ja = {
 
   sidebar: {
     map: '地図',
+    post: '投稿',
     request: 'リクエスト',
     region: '地域別',
     channel: 'CH別',
@@ -56,7 +59,8 @@ export const ja = {
     channelRanking: 'チャンネルランキング',
     gearRanking: '機器別ランキング',
     requestRanking: '撮影リクエストランキング',
-    newReg: 'マーカーを投稿',
+    newReg: '投稿',
+    editMarker: 'マーカーを編集',
     viewMarker: 'マーカー情報',
     searchResults: '検索結果',
     requestTitle: '撮影リクエスト',
@@ -85,7 +89,7 @@ export const ja = {
     apply: '適用',
     mapTab: '地図',
     markerTab: 'マーカー',
-    clickHint: '下の「＋ 投稿する」を押してから、地図で場所を選ぶと投稿できます',
+    clickHint: '左の「投稿」タブから、マーカーや撮影リクエストを投稿できます',
     jumpToMap: '地図へジャンプ',
     selectArea: '範囲指定モードを開始',
     clearArea: '範囲指定をクリア',
@@ -104,7 +108,7 @@ export const ja = {
   },
 
   empty: {
-    body: 'まだ 1 件も登録がありません。\n下の「＋ 投稿する」から、あなたが撮った場所と動画を最初の 1 件として残してください。',
+    body: 'まだ 1 件も登録がありません。\n左の「投稿」タブから、あなたが撮った場所と動画を最初の 1 件として残してください。',
     howTo: '投稿のしかたを見る',
     dismiss: '地図を見る',
   },
@@ -119,7 +123,7 @@ export const ja = {
     openedBody:
       '内容を確認して Issue を作成すると、自動チェックのうえ数分で地図に反映されます。\nGitHub アカウントが本人確認を兼ねます。',
     guideTitle: '投稿の流れ',
-    guide1: '「＋ 投稿する」を押して、地図で場所を選ぶ',
+    guide1: '左の「投稿」タブを開き、地図で場所を選ぶ',
     guide2: '動画 URL とタグを入力する',
     guide3: 'GitHub の投稿フォームが開くので、内容を確認して送信する',
     guide4: '自動チェックを通ると数分で地図に反映される',

@@ -38,8 +38,6 @@ export function useLocaApp() {
   const [searchTarget, setSearchTarget] = useState<SearchTarget>('map');
   const [searchQuery, setSearchQuery] = useState('');
   const [drawing, setDrawing] = useState(false);
-  /** 「＋ 投稿する」を押して、地図のクリックで場所を選ぶのを待っている */
-  const [picking, setPicking] = useState(false);
   const [rectangle, setRectangle] = useState<Bounds | null>(null);
 
   const [filter, setFilter] = useState<RankingFilter>(DEFAULT_RANKING_FILTER);
@@ -55,8 +53,9 @@ export function useLocaApp() {
     setModals((prev) => ({ ...prev, [name]: open }));
   }, []);
 
-  /** 検索モードに戻し、仮マーカーと選択を解除する（要件 3.2）。 */
+  /** 地図タブの検索モードに戻し、仮マーカーと選択を解除する（要件 3.2）。 */
   const resetToSearch = useCallback(() => {
+    setTab(TabMode.MAP);
     setMapMode(MapMode.SEARCH);
     setTempPos(null);
     setSelectedMarker(null);
@@ -64,7 +63,6 @@ export function useLocaApp() {
     setForm(EMPTY_FORM);
     setRequestForm(EMPTY_REQUEST_FORM);
     setEditing(null);
-    setPicking(false);
     services.map.closeInfoWindow();
   }, [services.map]);
 
@@ -76,12 +74,26 @@ export function useLocaApp() {
     [services.map],
   );
 
-  /** 指定した地点で投稿モードに入る（「＋ 投稿する」の後のクリックや、撮影リクエストの地点から）。 */
+  /** 投稿タブを開く。場所は地図のクリックで選ぶ（編集中だったら新規の入力に戻す）。 */
+  const openPostTab = useCallback(() => {
+    services.map.closeInfoWindow();
+    setTab(TabMode.POST);
+    setMapMode(MapMode.REGISTER);
+    setSelectedMarker(null);
+    setSelectedRequest(null);
+    setSidebarOpen(true);
+    if (editing) {
+      setEditing(null);
+      setTempPos(null);
+      setForm(EMPTY_FORM);
+    }
+  }, [editing, services.map]);
+
+  /** 指定した地点で投稿タブを開く（撮影リクエストの地点から投稿・リクエストするとき）。 */
   const startRegisterAt = useCallback(
     (pos: LatLng) => {
       services.map.closeInfoWindow();
-      setPicking(false);
-      setTab(TabMode.MAP);
+      setTab(TabMode.POST);
       setMapMode(MapMode.REGISTER);
       setSelectedMarker(null);
       setSelectedRequest(null);
@@ -94,25 +106,20 @@ export function useLocaApp() {
   );
 
   /**
-   * 地図のクリック（指摘 9）。普段は何もしない（見ているだけの人を投稿画面に飛ばさない）。
-   * - 「＋ 投稿する」を押した直後だけ、その地点で投稿モードに入る。
-   * - 投稿モード中は、入力を保ったままピンの位置だけを動かす。
+   * 地図のクリック（指摘 9）。地図タブでは何もしない（見ているだけの人を投稿画面に飛ばさない）。
+   * 投稿タブの間だけ、入力を保ったままピンの位置を決める・動かす。
    */
   const handleMapClick = useCallback(
     (pos: LatLng) => {
       if (drawing) return;
-      if (mapMode === MapMode.REGISTER) {
+      if (tab === TabMode.POST) {
         setTempPos(pos);
         setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
         return;
       }
-      if (picking) {
-        startRegisterAt(pos);
-        return;
-      }
       services.map.closeInfoWindow();
     },
-    [drawing, mapMode, picking, startRegisterAt, services.map],
+    [drawing, tab, services.map],
   );
 
   const handleMarkerClick = useCallback((marker: MarkerData) => {
@@ -137,7 +144,7 @@ export function useLocaApp() {
   const startEdit = useCallback(
     (marker: MarkerData) => {
       services.map.closeInfoWindow();
-      setTab(TabMode.MAP);
+      setTab(TabMode.POST);
       setMapMode(MapMode.REGISTER);
       setRegisterTab('marker');
       setEditing(marker);
@@ -212,8 +219,7 @@ export function useLocaApp() {
     jumpTo,
     handleMapClick,
     startRegisterAt,
-    picking,
-    setPicking,
+    openPostTab,
     handleMarkerClick,
     handleRequestClick,
     requestEntriesOf,

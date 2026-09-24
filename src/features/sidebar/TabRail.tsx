@@ -7,10 +7,11 @@ import React from 'react';
 import { TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
 
-type TabLabelKey = 'map' | 'request' | 'region' | 'channel' | 'gear';
+type TabLabelKey = 'map' | 'post' | 'request' | 'region' | 'channel' | 'gear';
 
 export const TAB_ICONS: { mode: TabMode; icon: string; labelKey: TabLabelKey }[] = [
   { mode: TabMode.MAP, icon: 'fa-map', labelKey: 'map' },
+  { mode: TabMode.POST, icon: 'fa-circle-plus', labelKey: 'post' },
   { mode: TabMode.RANKING_REQUEST, icon: 'fa-fire', labelKey: 'request' },
   { mode: TabMode.RANKING_REGION, icon: 'fa-location-dot', labelKey: 'region' },
   { mode: TabMode.RANKING_CHANNEL, icon: 'fa-tv', labelKey: 'channel' },

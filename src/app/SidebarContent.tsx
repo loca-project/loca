@@ -1,9 +1,12 @@
-/** サイドメニューに何を出すかの振り分け。タブと地図モードだけで決まる。 */
+/**
+ * サイドメニューに何を出すかの振り分け。タブと地図モードだけで決まる。
+ * 投稿は「投稿」タブに分けた（指摘 9）。地図タブでは地図のクリックで投稿画面に移らない。
+ */
 
 import React from 'react';
 import { MapMode, TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
-import { Segmented } from '@/shared/components/Controls';
+import { Button, Segmented } from '@/shared/components/Controls';
 import SearchPanel from '@/features/sidebar/SearchPanel';
 import MarkerForm from '@/features/sidebar/MarkerForm';
 import MarkerDetails from '@/features/sidebar/MarkerDetails';
@@ -39,6 +42,9 @@ interface SidebarContentProps {
   currentUid: string | null;
   /** ログイン中のユーザーが使った熱量。不明なら null */
   heatUsed: number | null;
+  /** 投稿にログインが要るのに未ログイン */
+  needsLogin: boolean;
+  onSignIn: () => void;
 }
 
 export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): string {
@@ -46,7 +52,7 @@ export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): 
   if (app.tab === TabMode.RANKING_CHANNEL) return t.headers.channelRanking;
   if (app.tab === TabMode.RANKING_EQUIPMENT) return t.headers.gearRanking;
   if (app.tab === TabMode.RANKING_REQUEST) return t.headers.requestRanking;
-  if (app.mapMode === MapMode.REGISTER) return t.headers.newReg;
+  if (app.tab === TabMode.POST) return app.editing ? t.headers.editMarker : t.headers.newReg;
   if (app.mapMode === MapMode.REQUEST_VIEW) return t.headers.requestTitle;
   if (app.mapMode === MapMode.EDIT) return t.headers.viewMarker;
   return t.headers.mapSearch;
@@ -59,37 +65,33 @@ export default function SidebarContent({
   usesStore,
   currentUid,
   heatUsed,
+  needsLogin,
+  onSignIn,
 }: SidebarContentProps) {
   const { t } = useI18n();
 
-  if (app.tab !== TabMode.MAP) {
-    return (
-      <RankingFilters
-        tab={app.tab}
-        filter={app.filter}
-        equipment={app.catalog.equipment}
-        loading={busy}
-        onChange={(patch) => app.setFilter((prev) => ({ ...prev, ...patch }))}
-        onApply={handlers.onApplyRanking}
-      />
-    );
-  }
-
-  if (app.mapMode === MapMode.REQUEST_VIEW && app.selectedRequest) {
-    return (
-      <RequestView
-        marker={app.selectedRequest}
-        onAddRequest={handlers.onAddRequest}
-        onPostVideo={handlers.onPostVideoFromRequest}
-        onSearchRelated={handlers.onSearchRelated}
-        onCancel={app.resetToSearch}
-      />
-    );
-  }
-
-  if (app.mapMode === MapMode.REGISTER) {
+  if (app.tab === TabMode.POST) {
+    if (needsLogin) {
+      return (
+        <div className="flex flex-col items-center gap-3 rounded-md bg-gray-50 p-5 text-center">
+          <i className="fa-solid fa-circle-user text-3xl text-gray-300" />
+          <p className="text-xs font-bold text-gray-800">{t.post.loginTitle}</p>
+          <p className="text-[11px] leading-relaxed text-gray-500">{t.post.loginBody}</p>
+          <Button className="w-full" onClick={onSignIn}>
+            <i className="fa-brands fa-google mr-1.5" />
+            {t.auth.signIn}
+          </Button>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col gap-3">
+        {!app.tempPos && (
+          <p className="rounded-md bg-loca-50 p-2.5 text-[11px] font-bold text-loca-700">
+            <i className="fa-solid fa-crosshairs mr-1.5" />
+            {t.post.pickHint}
+          </p>
+        )}
         {!app.editing && (
           <Segmented
             value={app.registerTab}
@@ -125,6 +127,31 @@ export default function SidebarContent({
           />
         )}
       </div>
+    );
+  }
+
+  if (app.tab !== TabMode.MAP) {
+    return (
+      <RankingFilters
+        tab={app.tab}
+        filter={app.filter}
+        equipment={app.catalog.equipment}
+        loading={busy}
+        onChange={(patch) => app.setFilter((prev) => ({ ...prev, ...patch }))}
+        onApply={handlers.onApplyRanking}
+      />
+    );
+  }
+
+  if (app.mapMode === MapMode.REQUEST_VIEW && app.selectedRequest) {
+    return (
+      <RequestView
+        marker={app.selectedRequest}
+        onAddRequest={handlers.onAddRequest}
+        onPostVideo={handlers.onPostVideoFromRequest}
+        onSearchRelated={handlers.onSearchRelated}
+        onCancel={app.resetToSearch}
+      />
     );
   }
 

@@ -119,7 +119,8 @@ try {
 
   check('タイトルが Loca', (await run('document.title')) === 'Loca');
   check('地図の canvas がある', (await run(`document.querySelectorAll('canvas').length`)) === 1);
-  check('サイドメニューのタブが 6 個', (await run(`document.querySelectorAll('nav button').length`)) === 6);
+  // 開閉ボタン 1 ＋ タブ 6（地図・投稿・ランキング 4 種）
+  check('サイドメニューのボタンが 7 個', (await run(`document.querySelectorAll('nav button').length`)) === 7);
 
   // ここが本命。地図タイルが 1 枚も来ていなければ、画面は白か灰色のまま。
   check('地図タイルが取得されている', tiles.length > 0, `${tiles.length} 枚`);
@@ -131,10 +132,23 @@ try {
   await mkdir(path.dirname(SHOT), { recursive: true });
   await writeFile(SHOT, Buffer.from(shot.data, 'base64'));
 
+  // 投稿タブ（指摘 9）: 開くと、未ログインならログインの案内、ログイン済みなら場所の案内とフォームが出る
+  const opened = await run(`(() => {
+    const tab = [...document.querySelectorAll('nav button')].find((b) => /投稿|Post/.test(b.getAttribute('aria-label') ?? ''));
+    if (!tab) return false;
+    tab.click();
+    return true;
+  })()`);
+  await sleep(800);
+  const postText = opened ? await run('document.body.innerText') : '';
+  check('投稿タブを開ける', opened);
+  check('投稿タブに案内が出る', /ログインが必要|Sign in to post|地図をクリックすると|Click the map to set/.test(postText));
+  const postShot = await send(ws, 'Page.captureScreenshot', { format: 'png' }, sessionId);
+  await writeFile(SHOT.replace(/\.png$/, '-post.png'), Buffer.from(postShot.data, 'base64'));
   const passed = checks.filter((c) => c.ok).length;
   for (const c of checks) console.log(`${c.ok ? 'OK ' : 'NG '} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
   console.log(`\n${passed} / ${checks.length} 件 OK`);
-  console.log(`スクリーンショット: ${path.relative(process.cwd(), SHOT)}（目視でも確認すること）`);
+  console.log(`スクリーンショット: ${path.relative(process.cwd(), SHOT)} と -post.png（目視でも確認すること）`);
 
   ws.close();
   if (passed !== checks.length) process.exitCode = 1;

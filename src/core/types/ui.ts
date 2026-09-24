@@ -3,6 +3,8 @@
 /** サイドメニューのタブ。 */
 export enum TabMode {
   MAP = 'MAP',
+  /** 投稿（マーカーと撮影リクエスト）。このタブの間だけ地図のクリックで場所を選ぶ */
+  POST = 'POST',
   RANKING_REQUEST = 'RANKING_REQUEST',
   RANKING_REGION = 'RANKING_REGION',
   RANKING_CHANNEL = 'RANKING_CHANNEL',
