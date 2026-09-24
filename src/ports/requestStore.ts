@@ -11,6 +11,15 @@ export interface RequestStorePort extends Adapter {
   heatUsed(): Promise<number>;
   /** 作成して、集計に足せる形で返す。上限を超える・未ログインなら UpstreamError。 */
   create(content: RequestContent): Promise<RequestEntry>;
-  /** sinceMs（requests.json の syncedAt）より後に作られたリクエストを購読する。 */
-  subscribeChanges(sinceMs: number, onChange: (added: RequestEntry[]) => void, onError: (e: Error) => void): Unsubscribe;
+  /** 本人のリクエストを取り下げる。熱量はその分戻る。 */
+  withdraw(entry: { id: string; heat: number }): Promise<void>;
+  /**
+   * sinceMs（requests.json の syncedAt）より後に作られたリクエストを購読する。
+   * 取り下げられたものは removedIds で届く（購読の範囲内のものだけ。範囲外は日次の同期で消える）。
+   */
+  subscribeChanges(
+    sinceMs: number,
+    onChange: (added: RequestEntry[], removedIds: string[]) => void,
+    onError: (e: Error) => void,
+  ): Unsubscribe;
 }

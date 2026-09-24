@@ -26,6 +26,16 @@ export const ja = {
     loginBody: 'Google アカウントでログインすると、マーカーと撮影リクエストを投稿できます。',
   },
 
+  request: {
+    breakdown: 'このリクエストの中身（熱量の内訳）',
+    noBreakdown: '内訳はありません（古い形式のリクエストです）',
+    mine: 'あなたのリクエスト: 熱量 {heat}（{count} 件）',
+    withdraw: '自分のリクエストを取り下げる',
+    confirmWithdraw: 'この地点のあなたのリクエストを取り下げますか？使った熱量 {heat} が戻ります。',
+    withdrawn: 'リクエストを取り下げました（熱量が戻りました）',
+    howToAnswer: 'この条件で撮影して投稿すると、リクエストに応えられます。',
+  },
+
   store: {
     submit: '登録する',
     update: '更新する',

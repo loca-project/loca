@@ -5,7 +5,7 @@ import type { MarkerData } from '@/core/types';
 import { computeStatistics, withinRegisteredRange } from '@/core/logic/statistics';
 import { Field, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
-import BarList from './BarList';
+import BarList from '@/shared/components/BarList';
 
 export default function StatisticsTab({ markers }: { markers: MarkerData[] }) {
   const { t } = useI18n();

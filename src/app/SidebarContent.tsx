@@ -30,6 +30,7 @@ export interface SidebarHandlers {
   onSearchRelated: () => void;
   onEditMarker: () => void;
   onDeleteMarker: () => void;
+  onWithdrawRequests: (entries: { id: string; heat: number }[]) => void;
 }
 
 interface SidebarContentProps {
@@ -147,6 +148,9 @@ export default function SidebarContent({
     return (
       <RequestView
         marker={app.selectedRequest}
+        currentUid={currentUid}
+        busy={busy}
+        onWithdraw={handlers.onWithdrawRequests}
         onAddRequest={handlers.onAddRequest}
         onPostVideo={handlers.onPostVideoFromRequest}
         onSearchRelated={handlers.onSearchRelated}

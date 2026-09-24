@@ -13,8 +13,21 @@ export interface RequestMarkerData {
   updatedAt: number;
   prefecture?: string;
   city?: string;
-  /** 集計に含めたリクエストの ID と熱量。同じリクエストを二重に数えないために使う */
-  entries?: { id: string; heat: number }[];
+  /** 集計に含めたリクエスト。二重に数えないため・内訳を出すため・本人の取り下げのために使う */
+  entries?: RequestEntrySummary[];
+}
+
+/** 地点に集めたリクエスト 1 件の要約（requests.json の entries と同じ形）。 */
+export interface RequestEntrySummary {
+  id: string;
+  heat: number;
+  season?: string;
+  timeOfDay?: string;
+  atmosphere?: string;
+  equipment?: Equipment;
+  /** Firestore 由来なら投稿者の uid（本人の取り下げに使う）。GitHub 経由の古い行には無い */
+  ownerUid?: string;
+  createdAt?: number;
 }
 
 /** 保存する撮影リクエストの内容（Firestore の requests/{id}）。 */
@@ -32,6 +45,7 @@ export interface RequestContent {
 /** Firestore から届いた 1 件。地点ごとの集計（RequestMarkerData）の材料になる。 */
 export interface RequestEntry extends RequestContent {
   id: string;
+  ownerUid: string;
   /** epoch ms */
   createdAt: number;
 }

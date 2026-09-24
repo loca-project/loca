@@ -39,6 +39,8 @@ export function mergeRequests(firestoreRows, currentSpots) {
       timeOfDay: row.timeOfDay ?? '',
       atmosphere: row.atmosphere ?? '',
       equipment: row.equipment,
+      // 本人の取り下げに使う（uid は markers でも公開している識別子）
+      ownerUid: row.ownerUid,
       createdAt: row.createdAt ?? 0,
     });
   }

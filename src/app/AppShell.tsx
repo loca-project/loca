@@ -111,6 +111,21 @@ export default function AppShell() {
     app.resetToSearch();
   }, [app, submit, toast]);
 
+  /** 本人の撮影リクエストの取り下げ（熱量が戻る）。取り下げた分は集計から外す。 */
+  const handleWithdrawRequests = useCallback(
+    async (entries: { id: string; heat: number }[]) => {
+      const result = await requestSubmit.withdraw(entries);
+      app.catalog.removeRequestEntryIds(result.removedIds);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(result.message);
+      app.resetToSearch();
+    },
+    [app, requestSubmit, toast],
+  );
+
   /** 投稿タブのパネルからのログイン。 */
   const handleSignIn = useCallback(async () => {
     try {
@@ -250,6 +265,7 @@ export default function AppShell() {
               if (app.selectedMarker) app.startEdit(app.selectedMarker);
             },
             onDeleteMarker: handleDeleteMarker,
+            onWithdrawRequests: handleWithdrawRequests,
             onAddRequest: () => {
               if (!app.selectedRequest) return;
               app.startRegisterAt({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });

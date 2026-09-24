@@ -89,5 +89,28 @@ export function useRequestSubmit(uid: string | null) {
     [requestStore, t],
   );
 
-  return { submit, loading, heatUsed, usesStore: requestStore !== null };
+  /** 本人のリクエストを取り下げる（1 件ずつ。印が 1 件ずつしか指せないため）。熱量はその分戻る。 */
+  const withdraw = useCallback(
+    async (entries: { id: string; heat: number }[]): Promise<RequestSubmitResult & { removedIds: string[] }> => {
+      if (!requestStore) return { ok: false, message: t.contribute.notConfigured, removedIds: [] };
+      setLoading(true);
+      const removedIds: string[] = [];
+      try {
+        for (const entry of entries) {
+          await requestStore.withdraw(entry);
+          removedIds.push(entry.id);
+          setHeatUsed((used) => Math.max(0, (used ?? 0) - entry.heat));
+        }
+        return { ok: true, message: t.request.withdrawn, removedIds };
+      } catch (e) {
+        // 途中で失敗しても、取り下げ済みの分は返す（画面の集計から外すため）
+        return { ok: false, message: e instanceof Error ? e.message : String(e), removedIds };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [requestStore, t],
+  );
+
+  return { submit, withdraw, loading, heatUsed, usesStore: requestStore !== null };
 }

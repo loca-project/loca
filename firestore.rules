@@ -204,6 +204,7 @@ service cloud.firestore {
     // リクエストは 1 件ずつ requests/{id} に置き、同じバッチで heatBudgets/{uid} を
     // { used: 使った熱量の合計, target: <リクエスト ID> } に更新させる。
     // リクエスト側は「印が自分を指していること」、印側は「増えた分がリクエストの熱量と一致し、5 を超えないこと」を見る。
+    // 取り下げ（本人の削除）も同じで、印を減らし、減った分が消したリクエストの熱量と一致することを見る。熱量はその分戻る。
     // 地点ごとの集計（合計・件数）は画面と日次の同期がまとめる。
 
     function validRequest(d) {
@@ -228,9 +229,13 @@ service cloud.firestore {
         && validRequest(request.resource.data)
         && request.resource.data.ownerUid == request.auth.uid
         && getAfter(docPath('heatBudgets', request.auth.uid)).data.target == requestId;
-      // 取り下げ・変更は今は無い。消せるのは管理者だけ
+      // 変更は無い。取り下げ（削除）は、本人が熱量の印を同じバッチで減らすときか、管理者
       allow update: if false;
-      allow delete: if canWrite() && isAdmin();
+      allow delete: if canWrite() && (
+        isAdmin()
+        || (resource.data.ownerUid == request.auth.uid
+          && getAfter(docPath('heatBudgets', request.auth.uid)).data.target == requestId)
+      );
     }
 
     // この書き込みで新しく作られたリクエストが本人のもので、熱量が delta と一致するか
@@ -242,14 +247,30 @@ service cloud.firestore {
         && getAfter(path).data.heat == delta;
     }
 
-    function validBudget(uid, before) {
+    // この書き込みで消されたリクエストが本人のもので、熱量が delta と一致するか（取り下げ）
+    function withdrawnRequest(uid, target, delta) {
+      let path = docPath('requests', target);
+      return exists(path)
+        && !existsAfter(path)
+        && get(path).data.ownerUid == uid
+        && get(path).data.heat == delta;
+    }
+
+    function budgetShape(uid) {
       let d = request.resource.data;
       return canWrite()
         && request.auth.uid == uid
         && d.keys().hasOnly(['used', 'target'])
-        && d.used is int && d.used >= 1 && d.used <= 5
-        && reqString(d, 'target', 1, 128)
-        && pairedRequest(uid, d.target, d.used - before);
+        && d.used is int && d.used >= 0 && d.used <= 5
+        && reqString(d, 'target', 1, 128);
+    }
+
+    // 増やす（リクエストの作成）か、減らす（取り下げ）。どちらも差分が対象のリクエストの熱量と一致すること
+    function validBudget(uid, before) {
+      let d = request.resource.data;
+      return budgetShape(uid)
+        && ((d.used > before && pairedRequest(uid, d.target, d.used - before))
+          || (d.used < before && withdrawnRequest(uid, d.target, before - d.used)));
     }
 
     match /heatBudgets/{uid} {

@@ -11,12 +11,14 @@ let env;
 let vite;
 let createRequestStore;
 let mergeRequestEntries;
+let removeRequestEntries;
+let requestBreakdown;
 
 before(async () => {
   env = await setupEnv();
   vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
   ({ createRequestStore } = await vite.ssrLoadModule('/src/adapters/firebase/requestStore.ts'));
-  ({ mergeRequestEntries } = await vite.ssrLoadModule('/src/core/logic/requests.ts'));
+  ({ mergeRequestEntries, removeRequestEntries, requestBreakdown } = await vite.ssrLoadModule('/src/core/logic/requests.ts'));
 });
 after(async () => {
   await env.cleanup();
@@ -69,6 +71,63 @@ describe('差分の購読', () => {
     const rows = await arrived;
     assert.equal(rows[0].id, saved.id);
     assert.equal(rows[0].heat, 2);
+  });
+});
+
+describe('取り下げ（熱量が戻る）', () => {
+  it('取り下げると使った熱量が戻り、また作成できる', async () => {
+    const store = storeFor('alice');
+    const first = await store.create(content(3));
+    await store.create(content(2));
+    assert.equal(await store.heatUsed(), 5);
+    await store.withdraw({ id: first.id, heat: first.heat });
+    assert.equal(await store.heatUsed(), 2);
+    await store.create(content(3));
+    assert.equal(await store.heatUsed(), 5);
+  });
+
+  it('他人のリクエストは取り下げられない', async () => {
+    const entry = await storeFor('alice').create(content(2));
+    await assert.rejects(storeFor('bob').withdraw({ id: entry.id, heat: entry.heat }), { name: 'UpstreamError' });
+  });
+
+  it('取り下げは購読で removedIds として届く', async () => {
+    const entry = await storeFor('alice').create(content(1));
+    const viewer = createRequestStore(env.unauthenticatedContext().firestore(), () => null);
+    const removed = new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { stop(); reject(new Error('5 秒以内に通知が来ない')); }, 5000);
+      const stop = viewer.subscribeChanges(Date.now() - 60_000, (_added, ids) => {
+        if (!ids.includes(entry.id)) return;
+        clearTimeout(timer);
+        stop();
+        resolve(ids);
+      }, reject);
+    });
+    await new Promise((r) => setTimeout(r, 300));
+    await storeFor('alice').withdraw({ id: entry.id, heat: entry.heat });
+    assert.deepEqual(await removed, [entry.id]);
+  });
+});
+
+describe('集計から外す・内訳（removeRequestEntries / requestBreakdown）', () => {
+  const entry = (id, heat, over = {}) => ({ ...content(heat), id, ownerUid: 'u1', createdAt: 1000, ...over });
+
+  it('外すと合計と件数が減り、空になった地点は消える', () => {
+    const spots = mergeRequestEntries([], [entry('a', 2), entry('b', 3)]);
+    const after = removeRequestEntries(spots, ['a']);
+    assert.equal(after[0].totalHeat, 3);
+    assert.equal(after[0].requestCount, 1);
+    assert.equal(removeRequestEntries(after, ['b']).length, 0);
+  });
+
+  it('内訳は件数ではなく熱量の合計で、多い順に並ぶ', () => {
+    const spots = mergeRequestEntries([], [
+      entry('a', 1, { season: '春' }),
+      entry('b', 1, { season: '春' }),
+      entry('c', 5, { season: '冬' }),
+    ]);
+    const { season } = requestBreakdown(spots[0]);
+    assert.deepEqual(season, [{ label: '冬', count: 5 }, { label: '春', count: 2 }]);
   });
 });
 

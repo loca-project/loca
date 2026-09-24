@@ -18,6 +18,7 @@ describe('mergeRequests', () => {
     assert.equal(spots[0].totalHeat, 5);
     assert.equal(spots[0].requestCount, 2);
     assert.equal(spots[0].id, 'rq_a');
+    assert.equal(spots[0].entries[0].ownerUid, 'u1', '本人の取り下げのため ownerUid を持つ');
   });
 
   it('Issue 経由の地点に Firestore のリクエストを足す（地名は残る）', () => {

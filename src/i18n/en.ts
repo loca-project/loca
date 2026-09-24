@@ -33,6 +33,16 @@ export const en: DeepPartial<Dictionary> = {
     loginBody: 'Sign in with Google to post markers and shooting requests.',
   },
 
+  request: {
+    breakdown: 'What people asked for (by heat)',
+    noBreakdown: 'No breakdown (older request format)',
+    mine: 'Your requests: heat {heat} ({count})',
+    withdraw: 'Withdraw my requests',
+    confirmWithdraw: 'Withdraw your requests at this spot? Heat {heat} will be returned.',
+    withdrawn: 'Requests withdrawn (heat returned)',
+    howToAnswer: 'Film under these conditions and post it to answer the request.',
+  },
+
   store: {
     submit: 'Register',
     update: 'Update',

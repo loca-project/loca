@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { EquipmentDef, MarkerData, RequestEntry, RequestMarkerData } from '@/core/types';
-import { mergeRequestEntries } from '@/core/logic/requests';
+import { mergeRequestEntries, removeRequestEntries } from '@/core/logic/requests';
 import { setHealth } from '@/runtime/health';
 import { useServices } from './useServices';
 
@@ -25,6 +25,8 @@ export interface Catalog {
   removeMarker: (id: string) => void;
   /** 保存した撮影リクエストを地点の集計に足す（同じ ID は二重に数えない）。 */
   addRequestEntries: (entries: RequestEntry[]) => void;
+  /** 取り下げた撮影リクエストを集計から外す。 */
+  removeRequestEntryIds: (ids: string[]) => void;
 }
 
 export function useCatalog(): Catalog {
@@ -95,14 +97,22 @@ export function useCatalog(): Catalog {
   const addRequestEntries = useCallback((entries: RequestEntry[]) => {
     setRequestMarkers((prev) => mergeRequestEntries(prev, entries));
   }, []);
+  const removeRequestEntryIds = useCallback((ids: string[]) => {
+    setRequestMarkers((prev) => removeRequestEntries(prev, ids));
+  }, []);
 
-  // 撮影リクエストの差分（作成だけ。変更と取り下げは無い）
+  // 撮影リクエストの差分（作成と取り下げ。変更は無い）
   useEffect(() => {
     if (!requestStore || loading) return undefined;
-    return requestStore.subscribeChanges(requestsSyncedAt, addRequestEntries, (e) => {
-      console.error('[loca] 撮影リクエストの購読に失敗しました', e);
-    });
-  }, [requestStore, loading, requestsSyncedAt, addRequestEntries]);
+    return requestStore.subscribeChanges(
+      requestsSyncedAt,
+      (added, removedIds) => {
+        addRequestEntries(added);
+        removeRequestEntryIds(removedIds);
+      },
+      (e) => console.error('[loca] 撮影リクエストの購読に失敗しました', e),
+    );
+  }, [requestStore, loading, requestsSyncedAt, addRequestEntries, removeRequestEntryIds]);
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   const upsertMarker = useCallback((marker: MarkerData) => {
@@ -113,7 +123,7 @@ export function useCatalog(): Catalog {
   }, []);
 
   return useMemo(
-    () => ({ markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker, addRequestEntries }),
-    [markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker, addRequestEntries],
+    () => ({ markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker, addRequestEntries, removeRequestEntryIds }),
+    [markers, requestMarkers, equipment, generatedAt, loading, reload, upsertMarker, removeMarker, addRequestEntries, removeRequestEntryIds],
   );
 }

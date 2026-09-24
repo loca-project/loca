@@ -94,6 +94,46 @@ describe('熱量の印（heatBudgets）', () => {
   });
 });
 
+/** アプリと同じ手順の取り下げ: リクエストの削除と熱量の印の減算を同じバッチで。 */
+function withdraw(db, uid, requestId, used) {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'requests', requestId));
+  batch.set(doc(db, 'heatBudgets', uid), { used, target: requestId });
+  return batch.commit();
+}
+
+describe('取り下げ（熱量が戻る）', () => {
+  beforeEach(async () => {
+    await budgetedWrite(as('alice'), 'alice', 'r1', newRequest('alice', 3), 3);
+    await budgetedWrite(as('alice'), 'alice', 'r2', newRequest('alice', 2), 5);
+  });
+
+  it('本人は、熱量の印を減らして取り下げられる', async () => {
+    await assertSucceeds(withdraw(as('alice'), 'alice', 'r1', 2));
+  });
+
+  it('取り下げた分の熱量で、また作成できる（合計 5 まで）', async () => {
+    await withdraw(as('alice'), 'alice', 'r1', 2);
+    await assertSucceeds(budgetedWrite(as('alice'), 'alice', 'r3', newRequest('alice', 3), 5));
+  });
+
+  it('減らす量が熱量と合わなければ拒否（多く戻そうとする）', async () => {
+    await assertFails(withdraw(as('alice'), 'alice', 'r1', 0));
+  });
+
+  it('印を減らさない削除は拒否', async () => {
+    await assertFails(deleteDoc(doc(as('alice'), 'requests', 'r1')));
+  });
+
+  it('他人のリクエストは取り下げられない', async () => {
+    await assertFails(withdraw(as('bob'), 'bob', 'r1', 0));
+  });
+
+  it('リクエストを消さずに印だけ減らすのは拒否', async () => {
+    await assertFails(setDoc(doc(as('alice'), 'heatBudgets', 'alice'), { used: 2, target: 'r1' }));
+  });
+});
+
 describe('閲覧・変更・削除', () => {
   beforeEach(async () => {
     await budgetedWrite(as('alice'), 'alice', 'r1', newRequest('alice', 3), 3);
@@ -107,9 +147,8 @@ describe('閲覧・変更・削除', () => {
     await assertFails(updateDoc(doc(as('alice'), 'requests', 'r1'), { heat: 1, updatedAt: serverTimestamp() }));
   });
 
-  it('削除は管理者だけ', async () => {
+  it('管理者は印なしで削除できる', async () => {
     await seed(env, (db) => setDoc(doc(db, 'admins', 'root'), { note: '初期管理者' }));
-    await assertFails(deleteDoc(doc(as('alice'), 'requests', 'r1')));
     await assertSucceeds(deleteDoc(doc(as('root'), 'requests', 'r1')));
   });
 });
