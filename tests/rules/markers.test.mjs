@@ -128,3 +128,29 @@ describe('入力の検証', () => {
     });
   }
 });
+
+describe('Actions だけが書く項目（youtube・deletedReason。ADR 0017）', () => {
+  const stats = { viewCount: 10, durationSec: 60, publishedAt: '2026-01-02T03:04:05Z' };
+
+  it('作成に youtube を含めるのは拒否', async () => {
+    await assertFails(stampedWrite(alice(), 'alice', 'm1', newMarker('alice', { youtube: stats })));
+  });
+
+  it('youtube を持つマーカーでも、本人は他の項目を更新できる', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'm1'), storedMarker('alice', { youtube: stats })));
+    const change = { title: '直した', updatedAt: serverTimestamp() };
+    await assertSucceeds(stampedWrite(alice(), 'alice', 'm1', change, 'update'));
+  });
+
+  it('本人が youtube を書き換えるのは拒否', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'm1'), storedMarker('alice', { youtube: stats })));
+    const change = { youtube: { ...stats, viewCount: 999999 }, updatedAt: serverTimestamp() };
+    await assertFails(stampedWrite(alice(), 'alice', 'm1', change, 'update'));
+  });
+
+  it('本人が deletedReason を付けるのは拒否', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'm1'), storedMarker('alice')));
+    const change = { deleted: true, deletedReason: 'unavailable', updatedAt: serverTimestamp() };
+    await assertFails(stampedWrite(alice(), 'alice', 'm1', change, 'update'));
+  });
+});

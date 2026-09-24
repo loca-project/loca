@@ -107,7 +107,9 @@ service cloud.firestore {
       return d.keys().hasOnly([
           'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'memo', 'equipment',
           'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
-          'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
+          'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted',
+          // Actions だけが IAM の経路で書く（ADR 0017）。利用者の作成・更新では変えられない（touchesBatchOnly）
+          'youtube', 'deletedReason'])
         && d.keys().hasAll([
           'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'equipment',
           'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted'])
@@ -127,7 +129,14 @@ service cloud.firestore {
         && reqString(d, 'createdBy', 1, 100)
         && d.createdAt is timestamp
         && d.updatedAt == request.time
-        && d.deleted is bool;
+        && d.deleted is bool
+        && (!('youtube' in d) || d.youtube is map)
+        && (!('deletedReason' in d) || d.deletedReason in ['unavailable']);
+    }
+
+    // Actions だけが書く項目（再生数など・消えた動画の論理削除の理由）
+    function touchesBatchOnly(keys) {
+      return keys.hasAny(['youtube', 'deletedReason']);
     }
 
     // 作成後に誰も変えられない項目
@@ -163,13 +172,17 @@ service cloud.firestore {
         && indexedFor(markerId, request.resource.data.videoId)
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.createdAt == request.time
-        && request.resource.data.deleted == false;
+        && request.resource.data.deleted == false
+        && !touchesBatchOnly(request.resource.data.keys());
 
       // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
       // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
       allow update: if canWrite()
         && validMarker(request.resource.data)
         && keepsIdentity()
+        // 再生数などは誰も変えられない。論理削除の理由は、管理者が復元するときだけ外せる
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['youtube'])
+        && (isAdmin() || !touchesBatchOnly(request.resource.data.diff(resource.data).affectedKeys()))
         // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
         && (request.resource.data.videoId == resource.data.videoId
           || indexedFor(markerId, request.resource.data.videoId))
@@ -337,6 +350,12 @@ service cloud.firestore {
     match /admins/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if canWrite() && isAdmin();
+    }
+
+    // 定期処理の記録（ADR 0017）。Actions が IAM の経路で書き、管理者だけが読む
+    match /jobs/{jobId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     match /blacklist/{uid} {

@@ -19,6 +19,21 @@ export interface MarkerTags {
   style?: StyleKey;
 }
 
+/**
+ * YouTube Data API から毎晩取る値（ADR 0017）。Actions だけが書く。時刻は epoch ms。
+ * 取れない値（再生数を隠している動画など）は持たない。
+ */
+export interface YoutubeStats {
+  viewCount?: number;
+  likeCount?: number;
+  /** 動画の投稿日時 */
+  publishedAt?: number;
+  /** 長さ（秒） */
+  durationSec?: number;
+  /** 最後に確かめた時刻 */
+  checkedAt?: number;
+}
+
 /** 撮影機器。未選択は空文字で表す。 */
 export interface Equipment {
   manufacturer: string;
@@ -57,6 +72,8 @@ export interface MarkerData {
   tags: MarkerTags;
   /** 現地メモ（任意・80 字まで・改行なし）。空なら項目ごと持たない */
   memo?: string;
+  /** 再生数・投稿日・長さ。まだ取っていないマーカーには無い */
+  youtube?: YoutubeStats;
   equipment: Equipment;
 
   // oEmbed から取得した情報

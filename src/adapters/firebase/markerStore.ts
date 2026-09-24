@@ -48,8 +48,11 @@ function toStored(content: Partial<MarkerContent>): DocumentData {
 /** Firestore の行をドメイン型にする。時刻は epoch ms（ADR 0012 決定 2）。 */
 function toMarker(id: string, data: DocumentData): MarkerData {
   const ms = (v: unknown) => (v instanceof Timestamp ? v.toMillis() : 0);
+  const yt = data.youtube as Record<string, unknown> | undefined;
   return {
     ...(data as Omit<MarkerData, 'id' | 'createdAt' | 'updatedAt'>),
+    // Actions が書く再生数など。時刻は Timestamp で来るので epoch ms にする
+    youtube: yt ? { ...yt, publishedAt: ms(yt.publishedAt) || undefined, checkedAt: ms(yt.checkedAt) || undefined } : undefined,
     id,
     createdAt: ms(data.createdAt),
     updatedAt: ms(data.updatedAt),

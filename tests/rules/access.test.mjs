@@ -101,6 +101,24 @@ describe('1.3 利用者単位のレートリミット', () => {
   });
 });
 
+describe('定期処理の記録（jobs。ADR 0017）', () => {
+  beforeEach(async () => {
+    await seed(env, (db) => setDoc(doc(db, 'jobs', 'youtube-refresh'), { checked: 3 }));
+  });
+
+  it('管理者は読める', async () => {
+    await assertSucceeds(getDoc(doc(as('root'), 'jobs', 'youtube-refresh')));
+  });
+
+  it('管理者以外は読めない', async () => {
+    await assertFails(getDoc(doc(as('alice'), 'jobs', 'youtube-refresh')));
+  });
+
+  it('管理者でも書けない（Actions だけが IAM の経路で書く）', async () => {
+    await assertFails(setDoc(doc(as('root'), 'jobs', 'youtube-refresh'), { checked: 0 }));
+  });
+});
+
 describe('ルールに無いコレクションは拒否', () => {
   it('未定義のコレクションは読み書きとも拒否', async () => {
     await assertFails(getDoc(doc(as('root'), 'users', 'alice')));

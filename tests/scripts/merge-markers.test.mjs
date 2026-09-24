@@ -26,6 +26,13 @@ describe('mergeMarkers', () => {
     assert.equal(m.memo, 'メモ');
   });
 
+  it('Actions が書いた再生数など（youtube）は公開データに含まれ、論理削除の理由は出さない', () => {
+    const row = fs('a', { youtube: { viewCount: 10, durationSec: 60 }, deletedReason: 'unavailable' });
+    const [m] = mergeMarkers([row], []).markers;
+    assert.deepEqual(m.youtube, { viewCount: 10, durationSec: 60 });
+    assert.equal('deletedReason' in m, false);
+  });
+
   it('Firestore に無い古い行は残さない（公開データは Firestore から作り直す）', () => {
     const r = mergeMarkers([fs('a')], [fs('gone', { createdAt: 1 })]);
     assert.deepEqual(r.markers.map((m) => m.id), ['a']);
