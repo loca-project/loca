@@ -97,20 +97,20 @@
 
 | 元の要件 | Loca での実現 | 根拠 |
 |---|---|---|
-| 認証は Google 認証のみ | `AuthPort` を定義し、`firebase`（Google 認証）と `local`（疑似ログイン）を差し替え可能に | 配信先未定でも動作確認できるようにするため |
+| 認証は Google 認証のみ | 維持。`AuthPort` の実装は `src/adapters/firebase/auth.ts`（Google 認証）だけ。移植時にあった疑似ログインの `local` は廃止した | 構成を Firebase に確定したため（ADR 0010） |
 | `.env` の変数名（`VITE_COMMON_API_KEY` 等） | `.env.example` の体系に置き換え。共通キーの使い回しはやめ、サービスごとに分離 | 1 つのキーの漏洩で全サービスが巻き添えになるのを避けるため |
 | API はできるだけサーバー側で呼ぶ | 静的配信のみでも成立するよう、まずクライアント実装。サーバー側の実装は配信先決定後に追加できる形にした | 現時点でサーバーを前提にできないため |
 | バンドルはチャンク 500kB 以内 | 維持。`vite.config.ts` の `manualChunks` でベンダを分割し、未使用アダプタは動的 import でロードしない | — |
 | Google Maps はメインバンドルに含める | MapLibre を既定にし、地図ライブラリは独立チャンク（動的 import）に変更 | 地図エンジンを差し替え可能にするため |
-| 定時バッチは cron / Firebase Functions | `scripts/build-markers-json.mjs`（Node のみ）。cron / GitHub Actions / Cloud Scheduler のどれからでも同じコマンドで動く | 配信先に縛られないため |
-| `markers.json` ベース + Firestore 差分 | 維持。ベースは `public/data/markers.json`、差分は `DataPort` の購読。バックエンドが落ちればベースだけで縮退運転する | 可用性の要求に直結するため |
+| 定時バッチは cron / Firebase Functions | GitHub Actions（`sync-firestore.yml`）が Node のスクリプト（`scripts/refresh-youtube.mjs`・`sync-firestore.mjs`・`purge-deleted.mjs`）を毎日 0:00 JST に動かす | Cloud Functions は請求先が必須で使えないため |
+| `markers.json` ベース + Firestore 差分 | 維持。ベースは `public/data/markers.json`、差分は `MarkerStorePort.subscribeChanges` の購読（ADR 0013）。バックエンドが落ちればベースだけで縮退運転する | 可用性の要求に直結するため |
 | レートリミット（IP あたり 10 回/分） | 利用者単位をセキュリティルールで実装。マーカーを書くバッチで `rateLimits/{uid}` の印を更新させ、直前から 6 秒以上あいていないと拒否する（ADR 0012）。**IP 単位の遮断は未実装** | 静的配信では IP を判定できない。配信先の WAF で行う |
 
 ### 未実装として明示するもの
 
-- **IP 単位のレートリミットとアクセス遮断**: 管理画面に台帳だけ持つ。実際の遮断はホスティング側の責務。
+- **IP 単位のレートリミットとアクセス遮断**: 作らない。静的配信では IP を判定できない。遮断はホスティング側の責務。
 - **サーバー側 API プロキシ**: 現時点ではクライアントから直接外部 API を呼ぶ。
-- **App Check / reCAPTCHA**: `VITE_FIREBASE_APPCHECK_SITE_KEY` を設定したときのみ有効。
+- **App Check / reCAPTCHA**: 未実装（2026-09-25）。方針は T32 で決める。
 
 ---
 
@@ -139,7 +139,7 @@
 | 本章の記述 | 実装後 | 状態（2026-09-24） |
 |---|---|---|
 | 1.1 Google 認証 | Firebase Auth の Google ログイン（ポップアップ方式） | 実装済み。プロフィール（ニックネームと同意の記録）は `users/{uid}`。未登録では投稿できず、投稿者名はニックネーム（ADR 0019） |
-| 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールと管理者の登録（`npm run admin:add`）は実装済み。画面は未実装（T27） |
+| 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールと管理者の登録（`npm run admin:add`）、管理者モードの画面（T27・T59〜T61）とも実装済み |
 | 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json` を再生成（Cloud Functions は請求先が必須で使えない） | 実装済み（`sync-firestore.yml`。YouTube API での更新は T24） |
 | 1.3 レートリミット | 利用者単位はセキュリティルールで実装。IP 単位は引き続き実装できない | 実装済み（6 秒間隔。ADR 0012） |
 | 1.4 ベース JSON ＋ リアルタイム差分 | 元の要件どおり。差分は Firestore の `onSnapshot` | 実装済み。`markers.json` の `syncedAt` より後に `updatedAt` が変わった行だけを購読する（ADR 0013） |

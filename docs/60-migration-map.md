@@ -68,6 +68,7 @@
 ### 管理者メールアドレスの直書き
 
 `ADMIN_EMAIL` 定数を `VITE_ADMIN_EMAILS`（カンマ区切り）に移した。
+その後（2026-09-24）、管理者は Firestore の `admins/{uid}` で判定する形に変わり、`VITE_ADMIN_EMAILS` は使っていない（ADR 0019・T27）。
 
 ### CDN 依存
 
