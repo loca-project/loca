@@ -87,7 +87,9 @@ export interface ChipOption {
   color?: string;
 }
 
-const CHIP = 'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition';
+// 選択チップはほかの操作部品と同じ高さ（CONTROL）にし、等幅の格子に並べる（T49）。長い語は省略して title で全文を出す
+const CHIP = `flex ${CONTROL} min-w-0 w-full items-center justify-center gap-1 border px-2 text-xs transition`;
+const CHIP_GRID = 'grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1.5';
 const CHIP_ON = 'border-loca-500 bg-loca-50 font-bold text-loca-700';
 const CHIP_OFF = 'border-gray-300 bg-white text-gray-600 hover:border-gray-400';
 
@@ -95,9 +97,9 @@ function ChipBody({ option }: { option: ChipOption }) {
   return (
     <>
       {option.color && (
-        <span aria-hidden className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: option.color }} />
+        <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: option.color }} />
       )}
-      {option.label ?? option.value}
+      <span className="truncate">{option.label ?? option.value}</span>
     </>
   );
 }
@@ -120,12 +122,13 @@ export function RadioGroup({
   allowDeselect?: boolean;
 }) {
   return (
-    <div role="radiogroup" className="flex flex-wrap gap-1.5">
+    <div role="radiogroup" className={CHIP_GRID}>
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           role="radio"
+          title={opt.label ?? opt.value}
           aria-checked={value === opt.value}
           name={name}
           onClick={() => onChange(allowDeselect && value === opt.value ? '' : opt.value)}
@@ -151,12 +154,13 @@ export function CheckboxGroup({
   const toggle = (v: string) => onChange(values.includes(v) ? values.filter((x) => x !== v) : [...values, v]);
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className={CHIP_GRID}>
       {options.map((opt) => (
         <button
           key={opt.value}
           type="button"
           role="checkbox"
+          title={opt.label ?? opt.value}
           aria-checked={values.includes(opt.value)}
           onClick={() => toggle(opt.value)}
           className={`${CHIP} ${values.includes(opt.value) ? CHIP_ON : CHIP_OFF}`}
