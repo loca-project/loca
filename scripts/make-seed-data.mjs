@@ -1,7 +1,7 @@
 /**
  * 初期表示用のサンプルデータを public/data に書き出す。
  *
- * 実行: npm run data:seed
+ * 実行: npm run data:seed（件数を増やすなら npm run data:seed -- --count 2000）
  * 冪等。既存ファイルは毎回上書きするので、実データを入れたあとは実行しないこと。
  */
 
@@ -63,10 +63,26 @@ function fakeVideoId(index) {
 
 const now = Date.now();
 
-const markers = SPOTS.map((spot, i) => {
+/**
+ * --count N で件数を増やす（密集地のクラスタの確認用。T41）。
+ * 21 件目からは 20 地点の周り（±0.3 度）に決まった並びで散らす。何度実行しても同じ結果になる。
+ */
+const countArg = process.argv.indexOf('--count');
+const COUNT = countArg >= 0 ? Number(process.argv[countArg + 1]) : SPOTS.length;
+if (!Number.isInteger(COUNT) || COUNT < SPOTS.length) {
+  throw new Error(`--count は ${SPOTS.length} 以上の整数で指定してください（${process.argv[countArg + 1]}）`);
+}
+const jitter = (i, salt) => ((((i * 2654435761 + salt * 40503) >>> 0) % 6001) / 10000 - 0.3);
+const places = Array.from({ length: COUNT }, (_, i) => {
+  const spot = SPOTS[i % SPOTS.length];
+  if (i < SPOTS.length) return spot;
+  return { ...spot, name: `${spot.name}${Math.floor(i / SPOTS.length)}`, lat: spot.lat + jitter(i, 1), lng: spot.lng + jitter(i, 2) };
+});
+
+const markers = places.map((spot, i) => {
   const videoId = fakeVideoId(i + 1);
   return {
-    id: `seed_${String(i + 1).padStart(3, '0')}`,
+    id: `seed_${String(i + 1).padStart(Math.max(3, String(COUNT).length), '0')}`,
     youtubeUrl: `https://www.youtube.com/watch?v=${videoId}`,
     lat: spot.lat,
     lng: spot.lng,

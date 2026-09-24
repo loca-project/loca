@@ -12,6 +12,7 @@ import type { InfoWindowOptions, MapPinOptions, MapPort, Unsubscribe } from '@/p
 import { JAPAN_BOUNDS, MAX_ZOOM, MIN_ZOOM, normalizeBounds } from '@/core/logic/geo';
 import { NEUTRAL_HEX } from '@/core/constants';
 import { createPinElement } from './pinElement';
+import { PinLayer } from './pinLayer';
 import { setHealth } from '@/runtime/health';
 import {
   GSI_SOURCE,
@@ -29,7 +30,10 @@ export class MapLibreAdapter implements MapPort {
 
   private map: MlMap | null = null;
   private lib: MapLibreModule | null = null;
-  private pins = new Map<string, MlMarker>();
+  /** ピンとクラスタ（T41）。地図の読み込みが終わってから作る */
+  private pinLayer: PinLayer | null = null;
+  /** 読み込み前に渡されたピン。PinLayer を作ったら渡す */
+  private pendingPins: MapPinOptions[] = [];
   private ghost: MlMarker | null = null;
   private popup: MlPopup | null = null;
 
@@ -114,6 +118,8 @@ export class MapLibreAdapter implements MapPort {
     if (gen !== this.generation) return;
     this.setupRectangleLayer();
     this.setupInteractions();
+    this.pinLayer = new PinLayer(map, lib);
+    this.pinLayer.setPins(this.pendingPins);
   }
 
   private setupRectangleLayer(): void {
@@ -166,8 +172,8 @@ export class MapLibreAdapter implements MapPort {
 
   destroy(): void {
     this.generation += 1;
-    this.pins.forEach((m) => m.remove());
-    this.pins.clear();
+    this.pinLayer?.destroy();
+    this.pinLayer = null;
     this.ghost?.remove();
     this.ghost = null;
     this.popup?.remove();
@@ -195,36 +201,10 @@ export class MapLibreAdapter implements MapPort {
     return this.map?.getZoom() ?? MIN_ZOOM;
   }
 
-  /** ピンの全置き換え。消えたものだけ remove し、残るものは位置だけ更新する。 */
+  /** ピンの全置き換え。密集地はまとめて描く（T41。pinLayer.ts） */
   setPins(pins: MapPinOptions[]): void {
-    const map = this.map;
-    const lib = this.lib;
-    if (!map || !lib) return;
-
-    const nextIds = new Set(pins.map((p) => p.id));
-    for (const [id, marker] of this.pins) {
-      if (!nextIds.has(id)) {
-        marker.remove();
-        this.pins.delete(id);
-      }
-    }
-
-    for (const pin of pins) {
-      const existing = this.pins.get(pin.id);
-      if (existing) {
-        existing.setLngLat([pin.position.lng, pin.position.lat]);
-        continue;
-      }
-      const el = createPinElement({ color: pin.color, label: pin.label, ghost: pin.ghost });
-      el.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        pin.onClick?.();
-      });
-      const marker = new lib.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([pin.position.lng, pin.position.lat])
-        .addTo(map);
-      this.pins.set(pin.id, marker);
-    }
+    this.pendingPins = pins;
+    this.pinLayer?.setPins(pins);
   }
 
   /** 仮マーカーは要件 3.2 により感情タグによらず一律グレー。 */

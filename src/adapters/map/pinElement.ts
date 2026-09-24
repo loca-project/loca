@@ -52,3 +52,30 @@ export function createPinElement({ color, label, ghost }: PinVisual): HTMLElemen
   wrapper.appendChild(svg);
   return wrapper;
 }
+
+/** 密集地をまとめた円（T41）。中にまとめた件数を出す。件数が多いほど少し大きくする。 */
+export function createClusterElement(count: number): HTMLElement {
+  const size = count < 10 ? 30 : count < 100 ? 36 : 42;
+  const el = document.createElement('div');
+  el.className = 'loca-cluster';
+  el.dataset.count = String(count);
+  el.setAttribute('role', 'button');
+  el.setAttribute('aria-label', `${count} 件`);
+  Object.assign(el.style, {
+    width: `${size}px`,
+    height: `${size}px`,
+    borderRadius: '50%',
+    background: '#ffffff',
+    border: '3px solid #334155',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.35)',
+    // 撮影リクエストのピン（濃い地に白い数字）と見分けられるよう、白地に濃い文字にする
+    color: '#1e293b',
+    font: '700 12px/1 sans-serif',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+  });
+  el.textContent = count > 999 ? `${Math.floor(count / 1000)}k` : String(count);
+  return el;
+}
