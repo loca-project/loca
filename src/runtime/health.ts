@@ -7,6 +7,8 @@ export interface RuntimeHealth {
   dataUnavailable: boolean;
   /** 地図タイル（国土地理院）を 1 枚も読めなかったか */
   mapUnavailable: boolean;
+  /** このタブより新しい版が公開されているか（T56） */
+  updateAvailable: boolean;
   /** 利用者に見せたい注意書き */
   notice?: string;
 }
@@ -17,6 +19,7 @@ const state: RuntimeHealth = {
   generatedAt: 0,
   dataUnavailable: false,
   mapUnavailable: false,
+  updateAvailable: false,
 };
 
 const listeners = new Set<Listener>();

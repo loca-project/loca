@@ -186,6 +186,17 @@ try {
   for (const file of initial) initialBytes += (await stat(path.join(ROOT, 'dist', file))).size;
   const initialKb = Math.round(initialBytes / 1024);
   record(`初期読み込みの JS が ${INITIAL_JS_LIMIT_KB} kB 以内`, initialKb <= INITIAL_JS_LIMIT_KB, `${initialKb} kB`);
+
+  // 11d. version.json の版が index.html の入口と一致（ずれると、開いたタブに再読み込みを促し続ける。T56）
+  let versionEntry = '';
+  try {
+    versionEntry = JSON.parse(await readFile(path.join(ROOT, 'dist', 'version.json'), 'utf8')).entry ?? '';
+  } catch {
+    versionEntry = '';
+  }
+  const htmlEntry = /<script[^>]+type="module"[^>]+src="\.?\/?(assets\/[^"]+\.js)"/.exec(html)?.[1] ?? '';
+  record('version.json の版が index.html の入口と一致', versionEntry !== '' && versionEntry === htmlEntry,
+    `version.json=${versionEntry || 'なし'} / index.html=${htmlEntry || 'なし'}`);
 } catch {
   record('dist が静的ファイルのみ', true, 'dist 未生成のためスキップ');
 }

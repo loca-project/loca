@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { ServicesProvider } from './shared/hooks/useServices';
 import { prepareLanguage } from './i18n';
+import { startVersionWatch } from './runtime/version';
 import './styles/index.css';
 
 const rootElement = document.getElementById('root');
@@ -19,4 +20,6 @@ void prepareLanguage().then(() => {
       </ServicesProvider>
     </React.StrictMode>,
   );
+  // 新しい版が公開されたら、開いたままのタブに再読み込みを促す（T56）
+  startVersionWatch();
 });

@@ -329,6 +329,8 @@ export const ja = {
     generatedAt: '生成日時',
     dataUnavailable: '公開データを読み込めませんでした。時間をおいて再読み込みしてください。',
     mapUnavailable: '地図タイル（国土地理院）を取得できませんでした。時間をおいて再読み込みしてください。',
+    updateAvailable: '新しい版があります。再読み込みすると、投稿や保存が正しく動きます。',
+    reload: '再読み込み',
   },
 };
 
