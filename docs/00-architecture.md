@@ -25,7 +25,7 @@
 ```text
 閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot。updatedAt > syncedAt）
 投稿:  ブラウザ ──> Firebase Auth ──> Firestore（投稿・撮影リクエスト・通報。権限・重複・上限はルール）
-反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json を再生成 ──> Pages に反映
+反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json を再生成 ──> ビルド（feed.xml も作る）──> Pages に反映
 ```
 
 同期より後の変更は、すべて updatedAt を進める書き込みで表す（論理削除）。だから差分の購読で取りこぼさない（ADR 0013）。
@@ -143,7 +143,7 @@ Google API を使わないため、**再生数・動画投稿日・再生時間�
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 16 項目チェック
+npm run verify      # 設計上の約束を 20 項目チェック（2026-09-25）
 npm run check       # 上記 3 つをまとめて
 ```
 
@@ -156,3 +156,4 @@ npm run check       # 上記 3 つをまとめて
 - 公開データが読め、サンプルデータが混ざっていない
 - 都道府県リストと撮影リクエストの地点のしきい値が、scripts と src で一致
 - `dist/` が静的ファイルのみ。初期読み込みの JS に Firebase SDK が無く、260 kB 以内
+- `version.json` の版が `index.html` の入口と一致（ADR 0022）。`feed.xml`（新着マーカーの RSS。T47）が RSS 2.0 で、公開データの新着 50 件までを載せている

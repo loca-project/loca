@@ -1,6 +1,25 @@
 import path from 'node:path';
+import { readFileSync } from 'node:fs';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { buildFeed } from './scripts/lib/feed.mjs';
+
+/**
+ * 新着マーカーの RSS を dist/feed.xml に書く（T47）。中身は公開データ public/data/markers.json から作る。
+ * 公開データを読めなければビルドを止める（空の RSS を黙って出さない）。
+ */
+function feedFile(): Plugin {
+  return {
+    name: 'loca-feed-file',
+    apply: 'build',
+    generateBundle() {
+      const file = path.resolve(__dirname, 'public', 'data', 'markers.json');
+      const bundle = JSON.parse(readFileSync(file, 'utf8')) as { markers?: unknown[] } | unknown[];
+      const markers = (Array.isArray(bundle) ? bundle : (bundle.markers ?? [])) as Parameters<typeof buildFeed>[0]['markers'];
+      this.emitFile({ type: 'asset', fileName: 'feed.xml', source: buildFeed({ markers }).xml });
+    },
+  };
+}
 
 /**
  * 公開した版を dist/version.json に書く（T56・ADR 0022）。
@@ -37,7 +56,7 @@ export default defineConfig(({ mode }) => {
     base: env.VITE_BASE_PATH || './',
     server: { port: 5173, host: '127.0.0.1' },
     preview: { port: 4173, host: '127.0.0.1' },
-    plugins: [react(), versionFile()],
+    plugins: [react(), versionFile(), feedFile()],
     resolve: {
       alias: { '@': path.resolve(__dirname, 'src') },
     },

@@ -197,6 +197,22 @@ try {
   const htmlEntry = /<script[^>]+type="module"[^>]+src="\.?\/?(assets\/[^"]+\.js)"/.exec(html)?.[1] ?? '';
   record('version.json の版が index.html の入口と一致', versionEntry !== '' && versionEntry === htmlEntry,
     `version.json=${versionEntry || 'なし'} / index.html=${htmlEntry || 'なし'}`);
+
+  // 11e. feed.xml が RSS 2.0 の形で、公開データの新着を載せている（T47）
+  const { FEED_LIMIT } = await import('./lib/feed.mjs');
+  let feed = '';
+  try {
+    feed = await readFile(path.join(ROOT, 'dist', 'feed.xml'), 'utf8');
+  } catch {
+    feed = '';
+  }
+  const published = JSON.parse(await readFile(path.join(ROOT, 'public', 'data', 'markers.json'), 'utf8'));
+  const publishedCount = (Array.isArray(published) ? published : (published.markers ?? [])).length;
+  const feedItems = (feed.match(/<item>/g) ?? []).length;
+  const feedShape = /^<\?xml version="1\.0" encoding="UTF-8"\?>\s*<rss version="2\.0"/.test(feed)
+    && feed.includes('<channel>') && feed.trimEnd().endsWith('</rss>');
+  record('feed.xml が RSS 2.0 で新着を載せている', feedShape && feedItems === Math.min(FEED_LIMIT, publishedCount),
+    `項目 ${feedItems} 件 / 公開データ ${publishedCount} 件（上限 ${FEED_LIMIT}）`);
 } catch {
   record('dist が静的ファイルのみ', true, 'dist 未生成のためスキップ');
 }
