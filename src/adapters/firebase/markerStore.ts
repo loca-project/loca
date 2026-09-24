@@ -122,6 +122,32 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
     return index && index.markerId === markerId && !index.blocked ? videoId : undefined;
   };
 
+  /**
+   * 本人のマーカーのうち pick に当たる未削除のものを、印なしで論理削除し、動画の索引を外す（ルールの「本人の論理削除」）。
+   * 1 件につき、マーカーの更新と索引の削除でルールの get・exists が 5 回ほど走る。バッチあたり 20 回に収める。
+   */
+  const softDeleteOwn = async (pick: (id: string) => boolean): Promise<number> => {
+    const user = requireUser();
+    try {
+      const snap = await getDocs(query(collection(db, 'markers'), where('ownerUid', '==', user.uid)));
+      const alive = snap.docs.filter((d) => d.data().deleted !== true && pick(d.id));
+      for (let i = 0; i < alive.length; i += DELETE_CHUNK) {
+        const chunk = alive.slice(i, i + DELETE_CHUNK);
+        const releases = await Promise.all(chunk.map((d) => releasable(d.id, d.data().videoId as string | undefined)));
+        const batch = writeBatch(db);
+        chunk.forEach((d, j) => {
+          batch.update(d.ref, { deleted: true, updatedAt: serverTimestamp() });
+          const videoId = releases[j];
+          if (videoId) batch.delete(doc(db, 'videos', videoId));
+        });
+        await batch.commit();
+      }
+      return alive.length;
+    } catch (e) {
+      throw e instanceof UpstreamError ? e : toUpstream(e, 'マーカーを削除できませんでした。');
+    }
+  };
+
   const currentVideoId = async (markerId: string): Promise<string | undefined> => {
     const snap = await getDoc(doc(db, 'markers', markerId));
     return snap.exists() ? (snap.data().videoId as string | undefined) : undefined;
@@ -169,27 +195,11 @@ export function createMarkerStore(db: Firestore, currentUser: () => AuthUser | n
       await commit(user.uid, id, { deleted: true, updatedAt: serverTimestamp() }, 'update', { remove });
     },
 
-    async softDeleteAllMine(): Promise<number> {
-      const user = requireUser();
-      try {
-        const snap = await getDocs(query(collection(db, 'markers'), where('ownerUid', '==', user.uid)));
-        const alive = snap.docs.filter((d) => d.data().deleted !== true);
-        // 1 件につき、マーカーの更新と索引の削除でルールの get・exists が 5 回ほど走る。バッチあたり 20 回に収める
-        for (let i = 0; i < alive.length; i += DELETE_CHUNK) {
-          const chunk = alive.slice(i, i + DELETE_CHUNK);
-          const releases = await Promise.all(chunk.map((d) => releasable(d.id, d.data().videoId as string | undefined)));
-          const batch = writeBatch(db);
-          chunk.forEach((d, j) => {
-            batch.update(d.ref, { deleted: true, updatedAt: serverTimestamp() });
-            const videoId = releases[j];
-            if (videoId) batch.delete(doc(db, 'videos', videoId));
-          });
-          await batch.commit();
-        }
-        return alive.length;
-      } catch (e) {
-        throw e instanceof UpstreamError ? e : toUpstream(e, 'マーカーを削除できませんでした。');
-      }
+    softDeleteAllMine: () => softDeleteOwn(() => true),
+
+    softDeleteMine: (ids) => {
+      const wanted = new Set(ids);
+      return softDeleteOwn((id) => wanted.has(id));
     },
 
     subscribeChanges(sinceMs, onChange, onError): Unsubscribe {

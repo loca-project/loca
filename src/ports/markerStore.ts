@@ -21,6 +21,11 @@ export interface MarkerStorePort extends Adapter {
    */
   softDeleteAllMine(): Promise<number>;
   /**
+   * 本人のマーカーのうち ids を論理削除し、動画の索引を外す（自分の投稿の一括削除。T53 改訂）。
+   * レートリミットの印は要らない（ルールの「本人の論理削除」）。消した件数を返す（他人・削除済みは飛ばす）。
+   */
+  softDeleteMine(ids: string[]): Promise<number>;
+  /**
    * sinceMs（markers.json の syncedAt。Firestore と同期した時刻）より後に updatedAt が変わったマーカーを購読する。
    * 変わった行だけが届く。deleted: true の行は一覧から外すこと。登録直後にも現在の差分で 1 回呼ぶ。
    */

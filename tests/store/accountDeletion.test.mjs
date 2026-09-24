@@ -98,3 +98,15 @@ describe('プロフィールを消す', () => {
     await store.remove();
   });
 });
+
+describe('選んだマーカーだけを論理削除する（自分の投稿の一括削除。T53 改訂）', () => {
+  it('選んだ本人のマーカーだけが消え、選んでいない・他人のは残る', async () => {
+    await seed(env, async (db) => {
+      for (const id of ['a1', 'a2', 'a3']) await setDoc(doc(db, 'markers', id), storedMarker('alice'));
+      await setDoc(doc(db, 'markers', 'b1'), storedMarker('bob'));
+    });
+    assert.equal(await storeOf('marker', 'alice').softDeleteMine(['a1', 'a3', 'b1']), 2);
+    const markers = await all('markers');
+    assert.deepEqual(['a1', 'a2', 'a3', 'b1'].map((id) => markers[id].deleted), [true, false, true, false]);
+  });
+});
