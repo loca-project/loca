@@ -54,8 +54,10 @@ export interface MarkerData {
   prefecture?: string;
   city?: string;
 
-  /** 投稿した GitHub アカウント名 */
+  /** 投稿者の表示名（GitHub 経由なら GitHub アカウント名）。権限の判定には使わない */
   createdBy: string;
+  /** 投稿者の Firebase の uid。本人かどうかの判定に使う。GitHub 経由の投稿には無い（ADR 0012） */
+  ownerUid?: string;
   /** Loca に登録された時刻（epoch ms）。並び替えと期間フィルタの基準 */
   createdAt: number;
   updatedAt?: number;
@@ -65,6 +67,15 @@ export interface MarkerData {
 
 /** 新規登録時の入力（id とタイムスタンプは取り込み側で採番）。 */
 export type MarkerDraft = Omit<MarkerData, 'id' | 'createdAt' | 'updatedAt'>;
+
+/**
+ * 利用者が書き換えられる項目（Firestore への書き込み用）。
+ * 持ち主・投稿者名・時刻・削除フラグはアダプタが決めるので含めない。
+ */
+export type MarkerContent = Pick<
+  MarkerData,
+  'youtubeUrl' | 'lat' | 'lng' | 'tags' | 'equipment' | 'title' | 'channelTitle' | 'thumbnailUrl' | 'prefecture' | 'city'
+>;
 
 /** 地図上の矩形範囲（範囲指定検索で使う）。 */
 export interface Bounds {

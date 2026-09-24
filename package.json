@@ -12,7 +12,7 @@
     "verify": "node scripts/verify.mjs",
     "check": "npm run typecheck && npm run build && npm run verify",
     "smoke": "node scripts/smoke.mjs",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-loca \"node --test --test-concurrency=1 tests/rules/*.test.mjs\"",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-loca \"node --test --test-concurrency=1 tests/rules/*.test.mjs tests/store/*.test.mjs\"",
     "deploy:rules": "npm run test:rules && firebase deploy --only firestore:rules --project loca-d3792 && npm run rules:probe",
     "rules:probe": "node scripts/probe-rules.mjs",
     "pages:wait": "node scripts/wait-pages.mjs",

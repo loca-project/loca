@@ -4,11 +4,8 @@ import type { Adapter } from './common';
 /**
  * 公開データの読み取りポート。
  *
- * Loca はデータベースを持たない。公開されるデータはすべて GitHub リポジトリ上の
- * 静的 JSON であり、更新は GitHub Actions が push することで行われる。
- * そのため「書き込み」はこのポートに存在しない（書き込みは GitHub Issue 経由）。
- *
- * 将来データベースを導入する場合は、この 1 ポートに別実装を足せばよい。
+ * 閲覧の土台は GitHub リポジトリ上の静的 JSON（markers.json）で、GitHub Actions が作り直す（ADR 0004・0010）。
+ * 書き込みはこのポートに無い。Firestore への書き込みは MarkerStorePort が担う。
  */
 export interface CatalogPort extends Adapter {
   load(): Promise<CatalogSnapshot>;

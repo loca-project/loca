@@ -199,6 +199,25 @@ try {
   await stat(path.join(ROOT, 'dist', 'index.html'));
   const distFiles = await walk(path.join(ROOT, 'dist'));
   record('dist が静的ファイルのみ', true, `${distFiles.length} ファイル`);
+
+  // 11b. 初期に読み込む JS（index.html の script と modulepreload）に Firebase SDK が無いこと
+  //      Firebase は設定値があるときだけ遅延 import する。依存が vendor に紛れると閲覧だけの人も重くなる。
+  const html = await readFile(path.join(ROOT, 'dist', 'index.html'), 'utf8');
+  const initial = [...new Set([...html.matchAll(/(?:src|href)="\.?\/?(assets\/[^"]+\.js)"/g)].map((m) => m[1]))];
+  const firebaseMark = /firestore\.googleapis\.com|identitytoolkit\.googleapis\.com/;
+  const heavy = [];
+  for (const file of initial) {
+    if (firebaseMark.test(await readFile(path.join(ROOT, 'dist', file), 'utf8'))) heavy.push(file);
+  }
+  record('初期読み込みの JS に Firebase SDK が無い', heavy.length === 0,
+    heavy.length ? heavy.join(', ') : `${initial.length} ファイルを確認`);
+
+  // 11c. 初期読み込みの JS の合計が上限以内（SDK の依存が紛れ込んだときに気づくため。2026-09-24 時点で約 228 kB）
+  const INITIAL_JS_LIMIT_KB = 260;
+  let initialBytes = 0;
+  for (const file of initial) initialBytes += (await stat(path.join(ROOT, 'dist', file))).size;
+  const initialKb = Math.round(initialBytes / 1024);
+  record(`初期読み込みの JS が ${INITIAL_JS_LIMIT_KB} kB 以内`, initialKb <= INITIAL_JS_LIMIT_KB, `${initialKb} kB`);
 } catch {
   record('dist が静的ファイルのみ', true, 'dist 未生成のためスキップ');
 }

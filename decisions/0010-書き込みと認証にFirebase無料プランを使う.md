@@ -145,7 +145,7 @@ Loca は **Geo（範囲指定検索・地名の取得）とユーザー認証を
 
 | ファイル | 直すこと |
 |---|---|
-| `src/ports/` | 書き込み用のポートと `AuthPort` を足す。`catalog.ts` の「データベースを持たない」という説明も直す |
+| ~~`src/ports/`~~ | 2026-09-24 済み。`AuthPort`・`MarkerStorePort` を追加し、`catalog.ts` の説明を直した |
 | `project/README.md` の「プライバシー」 | 「ログイン機能はありません」「保持するのは GitHub アカウント名だけ」が事実でなくなる |
 | `README.md`（ワークスペース）の「制約」 | 解消した項目を消す |
 | `.github/workflows/ingest-issue.yml` ほか Issue 経由の一式 | 移行が終わったら廃止する（決定 8） |

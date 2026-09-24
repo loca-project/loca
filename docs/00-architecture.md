@@ -72,10 +72,14 @@ Loca/                               ワークスペース（git の外）
 | `MapPort` | 地図の描画・ピン・情報ウィンドウ・矩形描画 | `maplibre` |
 | `VideoMetaPort` | 動画メタデータの取得 | `oembed` |
 | `GeocodePort` | 座標 ⇄ 地名 | `gsi`（国土地理院） |
+| `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
+| `MarkerStorePort` | マーカーの作成・本人の更新・論理削除 | `firestore`（レートリミットの印と同じバッチで書く。ADR 0012） |
 
-書き込み用のポートは無い。書き込みは `features/contribute/issueUrl.ts` が
-GitHub Issue フォームの URL を組み立てるだけで、保存はしない。
-Firebase の実装時に、書き込み用のポートと `AuthPort` を足す（ADR 0010）。
+`AuthPort` と `MarkerStorePort` は Firebase の設定値がそろったときだけ作られ、無ければ `null`（閲覧だけで動く）。
+Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初期読み込みには含めない（`npm run verify` が検査する）。
+
+画面からの保存はまだ `MarkerStorePort` につないでいない（T6）。それまでの書き込みは
+`features/contribute/issueUrl.ts` が GitHub Issue フォームの URL を組み立てるだけで、保存はしない。
 
 ## データの形
 

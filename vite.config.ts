@@ -31,7 +31,8 @@ export default defineConfig(({ mode }) => {
             if (!id.includes('node_modules')) return undefined;
             if (id.includes('maplibre-gl')) return 'vendor-maplibre';
             // Firebase は設定値があるときだけ遅延 import する。初期の vendor に混ぜない
-            if (/[\\/]node_modules[\\/](@firebase|firebase)[\\/]/.test(id)) return 'vendor-firebase';
+            // （re2js・idb は Firestore と Auth だけが使う依存。混ざると初期読み込みが 150 kB 増える）
+            if (/[\\/]node_modules[\\/](@firebase|firebase|re2js|idb)[\\/]/.test(id)) return 'vendor-firebase';
             if (id.includes('react')) return 'vendor-react';
             return 'vendor';
           },
