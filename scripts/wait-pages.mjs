@@ -6,6 +6,10 @@
  * 判定: 1) HEAD のコミットに対応する実行が success で終わる
  *       2) github-pages 環境の最新デプロイが HEAD で success、公開 URL が 200 を返す
  *
+ * 同期ボットのコミット（data: …）は push で Actions が動かず、同期ワークフローが公開する。
+ * そのときは 1) を「最新の同期ワークフローが success」に、2) のコミットの一致を「最新デプロイが success」に置き換える。
+ * デプロイが実行中なら最大 3 分待つ。
+ *
  * gh（GitHub CLI）が要る。PATH に無ければ既定のインストール先を探す（VS Code は再起動まで PATH を読み直さない）。
  */
 
@@ -40,10 +44,16 @@ const run = (cmd, args) => execFileSync(cmd, args, { cwd: ROOT, encoding: 'utf8'
 const sha = run('git', ['rev-parse', 'HEAD']);
 const repo = run('git', ['remote', 'get-url', 'origin']).replace(/^.*github\.com[/:]/, '').replace(/\.git$/, '');
 
-// 1. HEAD の実行を探して完了まで待つ（push 直後は実行がまだ無いことがある）
+const author = run('git', ['log', '-1', '--format=%an']);
+const byBot = author === 'github-actions[bot]';
+
+// 1. HEAD の実行を探して完了まで待つ（push 直後は実行がまだ無いことがある）。ボットのコミットは同期ワークフローを見る
+const listArgs = byBot
+  ? ['run', 'list', '-R', repo, '--workflow', 'sync-firestore.yml', '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId']
+  : ['run', 'list', '-R', repo, '--commit', sha, '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId'];
 let runId = '';
 for (let i = 0; i < 20 && !runId; i += 1) {
-  runId = run(gh, ['run', 'list', '-R', repo, '--commit', sha, '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId']);
+  runId = run(gh, listArgs);
   if (!runId) await sleep(3000);
 }
 if (!runId) fail(`${sha.slice(0, 7)} の Actions の実行が 60 秒以内に見つかりません。push されているか確かめてください。`);
@@ -61,8 +71,14 @@ console.log('OK  Actions が成功した');
 //    同じコミットでもハッシュが変わるため。
 const api = (p) => run(gh, ['api', p, '--jq', '.']);
 const [deploy] = JSON.parse(api(`repos/${repo}/deployments?environment=github-pages&per_page=1`));
-const [status] = deploy ? JSON.parse(api(`repos/${repo}/deployments/${deploy.id}/statuses?per_page=1`)) : [];
-const deployed = deploy?.sha === sha && status?.state === 'success';
+let status;
+// 実行中（queued・in_progress）なら終わるまで待つ（最大 3 分）
+for (let i = 0; i < 18; i += 1) {
+  [status] = deploy ? JSON.parse(api(`repos/${repo}/deployments/${deploy.id}/statuses?per_page=1`)) : [];
+  if (!['queued', 'in_progress', 'pending'].includes(status?.state)) break;
+  await sleep(10000);
+}
+const deployed = (byBot || deploy?.sha === sha) && status?.state === 'success';
 console.log(`${deployed ? 'OK ' : 'NG '} github-pages の最新デプロイが ${sha.slice(0, 7)} で成功している`);
 if (!deployed) fail(`最新デプロイは ${deploy?.sha?.slice(0, 7) ?? '(なし)'}（${status?.state ?? '状態不明'}）です。`);
 

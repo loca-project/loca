@@ -130,12 +130,12 @@ const requestMarkers = [
 await mkdir(OUT_DIR, { recursive: true });
 await writeFile(
   path.join(OUT_DIR, 'markers.json'),
-  `${JSON.stringify({ generatedAt: now, markers }, null, 2)}\n`,
+  `${JSON.stringify({ generatedAt: now, syncedAt: now, markers }, null, 2)}\n`,
   'utf8',
 );
 await writeFile(
   path.join(OUT_DIR, 'requests.json'),
-  `${JSON.stringify({ generatedAt: now, markers: requestMarkers }, null, 2)}\n`,
+  `${JSON.stringify({ generatedAt: now, syncedAt: now, markers: requestMarkers }, null, 2)}\n`,
   'utf8',
 );
 
