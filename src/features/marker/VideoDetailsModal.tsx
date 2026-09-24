@@ -9,6 +9,7 @@ import { formatDate } from '@/core/logic/format';
 import { embedUrl, getYoutubeId } from '@/core/logic/youtube';
 import Modal from '@/shared/components/Modal';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { publishedLabel } from './published';
 
 interface VideoDetailsModalProps {
   open: boolean;
@@ -54,6 +55,7 @@ export default function VideoDetailsModal({ open, marker, onClose }: VideoDetail
           label={t.filters.prefecture}
           value={[marker.prefecture, marker.city].filter(Boolean).join(' ') || '-'}
         />
+        <Row label={t.details.publishedAt} value={publishedLabel(marker, t)} />
         <Row label={t.details.registeredAt} value={formatDate(marker.createdAt)} />
         <Row label={t.details.contributor} value={marker.createdBy || '-'} />
       </dl>

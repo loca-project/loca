@@ -25,7 +25,13 @@ export function useLocaApp() {
   const [mapMode, setMapMode] = useState<MapMode>(MapMode.SEARCH);
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
 
-  const [selectedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
+  // 選んだときの写しをそのまま出すと、差分の購読で届いた変更（投稿者名の追従など）が開き直すまで映らない。
+  // 一覧に同じ ID の行があれば、いつもその最新の行を出す（一覧から消えたら写しのまま）
+  const [pickedMarker, setSelectedMarker] = useState<MarkerData | null>(null);
+  const selectedMarker = useMemo(
+    () => (pickedMarker ? (catalog.markers.find((m) => m.id === pickedMarker.id) ?? pickedMarker) : null),
+    [pickedMarker, catalog.markers],
+  );
   const [selectedRequest, setSelectedRequest] = useState<RequestMarkerData | null>(null);
   const [tempPos, setTempPos] = useState<LatLng | null>(null);
 

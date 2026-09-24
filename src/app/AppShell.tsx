@@ -81,7 +81,7 @@ export default function AppShell() {
         }),
       });
     }
-  }, [app.selectedMarker, app.mapMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [app.selectedMarker, app.mapMode, t]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeMobileSidebar = useCallback(() => {
     if (window.innerWidth < 768) app.setSidebarOpen(false);

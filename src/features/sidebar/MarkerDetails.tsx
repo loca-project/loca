@@ -10,6 +10,7 @@ import { TAG_FIELDS, equipmentCategoryLabel, tagLabel } from '@/core/constants';
 import { equipmentText } from '@/core/logic/equipment';
 import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { publishedLabel } from '@/features/marker/published';
 
 interface MarkerDetailsProps {
   marker: MarkerData;
@@ -83,17 +84,18 @@ export default function MarkerDetails({
         ))}
         {marker.memo && <Row label={t.tags.memo} value={marker.memo} />}
         <Row label={t.form.equipment} value={equipment || '-'} />
-        {/* 再生数などは毎晩 Actions が取る（ADR 0017）。まだ無ければ案内だけ出す */}
+        {/* YouTube への投稿日は、Loca への登録日と取り違えないよう、いつも行を出す。
+            再生数などと同じく毎晩 Actions が取る（ADR 0017）。まだ無ければ案内を出す */}
+        <Row label={t.details.publishedAt} value={publishedLabel(marker, t)} />
+        <Row label={t.details.registeredAt} value={formatDate(marker.createdAt)} />
         {marker.youtube ? (
           <>
             <Row label={t.details.views} value={formatCount(marker.youtube.viewCount)} />
-            <Row label={t.details.publishedAt} value={formatDate(marker.youtube.publishedAt)} />
             <Row label={t.details.duration} value={formatDuration(marker.youtube.durationSec)} />
           </>
         ) : (
           <Row label={t.details.views} value={t.details.statsPending} />
         )}
-        <Row label={t.details.registeredAt} value={formatDate(marker.createdAt)} />
         <Row label={t.details.contributor} value={marker.createdBy || '-'} />
         <Row label={t.form.lat} value={marker.lat.toFixed(6)} />
         <Row label={t.form.lng} value={marker.lng.toFixed(6)} />
