@@ -151,6 +151,10 @@ export const ja = {
     reportDetail: '詳細（任意）',
     cancel: 'キャンセル',
     submit: '送信',
+    reportSent: '通報しました。管理者が確認します。',
+    reportAlready: 'このマーカーはすでに通報済みです。',
+    reportLogin: '通報するにはログインしてください（右上の「ログイン」）',
+    reportUnavailable: 'この構成では通報を受け付けていません。',
   },
 
   details: {

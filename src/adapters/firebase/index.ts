@@ -3,16 +3,18 @@
  */
 
 import { getFirestore } from 'firebase/firestore';
-import type { AuthPort, MarkerStorePort, RequestStorePort } from '@/ports';
+import type { AuthPort, MarkerStorePort, ReportStorePort, RequestStorePort } from '@/ports';
 import { firebaseApp } from './app';
 import { FirebaseAuthAdapter } from './auth';
 import { createMarkerStore } from './markerStore';
 import { createRequestStore } from './requestStore';
+import { createReportStore } from './reportStore';
 
 export interface FirebaseServices {
   auth: AuthPort;
   markerStore: MarkerStorePort;
   requestStore: RequestStorePort;
+  reportStore: ReportStorePort;
 }
 
 /** セッションの復元を待ってから返す。 */
@@ -21,5 +23,10 @@ export async function createFirebaseServices(): Promise<FirebaseServices> {
   await auth.probe();
   const db = getFirestore(firebaseApp());
   const user = () => auth.currentUser();
-  return { auth, markerStore: createMarkerStore(db, user), requestStore: createRequestStore(db, user) };
+  return {
+    auth,
+    markerStore: createMarkerStore(db, user),
+    requestStore: createRequestStore(db, user),
+    reportStore: createReportStore(db, user),
+  };
 }

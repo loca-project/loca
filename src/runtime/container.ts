@@ -12,6 +12,7 @@ import type {
   GeocodePort,
   MapPort,
   MarkerStorePort,
+  ReportStorePort,
   RequestStorePort,
   VideoMetaPort,
 } from '@/ports';
@@ -30,13 +31,14 @@ export interface Services {
   /** auth と同じく、Firebase が使えないときは null。 */
   markerStore: MarkerStorePort | null;
   requestStore: RequestStorePort | null;
+  reportStore: ReportStorePort | null;
 }
 
 let services: Promise<Services> | null = null;
 
-type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore'>;
+type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore' | 'reportStore'>;
 
-const NO_WRITE: WriteServices = { auth: null, markerStore: null, requestStore: null };
+const NO_WRITE: WriteServices = { auth: null, markerStore: null, requestStore: null, reportStore: null };
 
 /** Firebase が使えない・初期化に失敗したときはすべて null。閲覧は止めない。 */
 async function loadFirebase(): Promise<WriteServices> {

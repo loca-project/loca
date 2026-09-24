@@ -6,3 +6,4 @@ export * from './geocode';
 export * from './auth';
 export * from './markerStore';
 export * from './requestStore';
+export * from './reportStore';

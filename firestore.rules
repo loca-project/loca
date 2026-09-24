@@ -287,6 +287,34 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---- 通報（要件 3.8）----
+    // reports/{markerId}_{uid}。ID を「マーカー × 通報者」にするので、同じ人は同じマーカーを 1 回しか通報できない
+    // （2 回目は作成ではなく更新になり、更新は管理者だけ）。読めるのは管理者と通報した本人。
+
+    function validReport(reportId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['markerId', 'reporterUid', 'reasons', 'detail', 'status', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['markerId', 'reporterUid', 'reasons', 'status', 'createdAt', 'updatedAt'])
+        && reqString(d, 'markerId', 1, 128)
+        && reportId == d.markerId + '_' + request.auth.uid
+        && d.reporterUid == request.auth.uid
+        && d.reasons is list && d.reasons.size() >= 1 && d.reasons.size() <= 5
+        && d.reasons.toSet().hasOnly(['copyright', 'illegal', 'misleading_location', 'disinformation', 'harassment'])
+        && optString(d, 'detail', 1000)
+        && d.status == 'open'
+        && d.createdAt == request.time
+        && d.updatedAt == request.time
+        && exists(docPath('markers', d.markerId));
+    }
+
+    match /reports/{reportId} {
+      // まだ無い文書も読めるようにする（画面が「通報済みか」を確かめるため。無いことが分かるだけで漏れる情報は無い）
+      allow read: if signedIn() && (isAdmin() || resource == null || resource.data.reporterUid == request.auth.uid);
+      allow create: if canWrite() && validReport(reportId);
+      // 対応済みにする・消すのは管理者だけ
+      allow update, delete: if canWrite() && isAdmin();
+    }
+
     // ---- 管理者とブラックリスト（要件 5.x）----
     // 追加・削除は管理者だけ。本人は自分の行があるかどうかだけ読める（表示の切り替え用）
 

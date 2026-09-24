@@ -158,6 +158,10 @@ export const en: DeepPartial<Dictionary> = {
     reportDetail: 'Details (optional)',
     cancel: 'Cancel',
     submit: 'Submit',
+    reportSent: 'Reported. An administrator will review it.',
+    reportAlready: 'You have already reported this marker.',
+    reportLogin: 'Sign in to report ("Sign in" at the top right)',
+    reportUnavailable: 'Reporting is not available in this setup.',
   },
 
   details: {

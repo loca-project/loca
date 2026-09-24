@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect } from 'react';
 import type { LatLng, ReportReason } from '@/core/types';
 import { MapMode, TabMode } from '@/core/types';
-import { REPORT_REASONS } from '@/core/constants';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useToast } from '@/shared/components/Toast';
 import MapCanvas from '@/features/map/MapCanvas';
 import {
@@ -22,7 +22,6 @@ import VideoDetailsModal from '@/features/marker/VideoDetailsModal';
 import ContributeGuideModal from '@/features/contribute/ContributeGuideModal';
 import EmptyMapNotice from '@/features/contribute/EmptyMapNotice';
 import AdminDashboard from '@/features/admin/AdminDashboard';
-import { openIssueForm } from '@/features/contribute/issueUrl';
 import HeaderBar from './HeaderBar';
 import HealthNotice from './HealthNotice';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
@@ -174,31 +173,34 @@ export default function AppShell() {
     toast.info(t.actions.linkCopied);
   }, [app.selectedMarker, t, toast]);
 
+  /** 通報（要件 3.8）。Firestore に保存し、管理者が対応するまでマーカーは表示したまま。 */
+  const report = useExclusive();
   const handleReportSubmit = useCallback(
-    (reasons: ReportReason[], detail: string) => {
-      if (!app.selectedMarker) return;
-      const labels = reasons
-        .map((id) => REPORT_REASONS.find((r) => r.id === id)?.labelKey ?? id)
-        .map((key) => t.reportReasons[key as keyof typeof t.reportReasons] ?? key);
-
-      const opened = openIssueForm(
-        'report',
-        {
-          'marker-id': app.selectedMarker.id,
-          'video-url': app.selectedMarker.youtubeUrl,
-          reasons: labels.join('\n'),
-          detail,
-        },
-        app.selectedMarker.title ?? app.selectedMarker.id,
-      );
-      if (!opened) {
-        toast.error(t.contribute.notConfigured);
+    async (reasons: ReportReason[], detail: string) => {
+      const marker = app.selectedMarker;
+      const store = app.services.reportStore;
+      if (!marker) return;
+      if (!store) {
+        toast.error(t.actions.reportUnavailable);
         return;
       }
-      toast.success(t.contribute.openedTitle);
+      if (!auth.user) {
+        toast.info(t.actions.reportLogin);
+        return;
+      }
+      const result = await report.exclusive(async () => {
+        try {
+          return await store.submit({ markerId: marker.id, reasons, detail });
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : String(e));
+          return null;
+        }
+      });
+      if (!result) return;
+      toast.success(result === 'created' ? t.actions.reportSent : t.actions.reportAlready);
       app.openModal('report', false);
     },
-    [app, t, toast],
+    [app, auth.user, report, t, toast],
   );
 
   const jump = useCallback((pos: LatLng) => app.jumpTo(pos), [app]);
@@ -316,7 +318,7 @@ export default function AppShell() {
 
       <ReportModal
         open={app.modals.report}
-        submitting={false}
+        submitting={report.loading}
         onClose={() => app.openModal('report', false)}
         onSubmit={handleReportSubmit}
       />
