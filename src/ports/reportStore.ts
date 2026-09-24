@@ -1,4 +1,4 @@
-import type { ReportReason } from '@/core/types';
+import type { ReportReason, ReportSummary } from '@/core/types';
 import type { Adapter } from './common';
 
 export interface ReportInput {
@@ -10,10 +10,15 @@ export interface ReportInput {
 }
 
 /**
- * 通報の書き込みポート（要件 3.8）。1 人 1 マーカー 1 件で、読めるのは管理者と本人（ルールで守る）。
- * 通報されたマーカーは、管理者が対応するまで表示されたまま。
+ * 通報のポート（要件 3.8）。1 人 1 マーカー 1 件で、読めるのは管理者と本人（ルールで守る）。
+ * 件数は通報した人数として数える。通報されたマーカーは、管理者が対応するまで表示されたまま。
  */
 export interface ReportStorePort extends Adapter {
-  /** 'created' は通報した、'already' は同じマーカーをすでに通報済み。未ログインは UpstreamError。 */
-  submit(input: ReportInput): Promise<'created' | 'already'>;
+  /**
+   * 'created' は新しく通報した、'updated' は同じマーカーへの 2 回目で理由と詳細を置き換えた（確認待ちに戻る）。
+   * 未ログインは UpstreamError。
+   */
+  submit(input: ReportInput): Promise<'created' | 'updated'>;
+  /** マーカーごとの集計。管理者だけ（それ以外は UpstreamError）。 */
+  summaries(): Promise<ReportSummary[]>;
 }

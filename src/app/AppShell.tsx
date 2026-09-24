@@ -204,7 +204,7 @@ export default function AppShell() {
         }
       });
       if (!result) return;
-      toast.success(result === 'created' ? t.actions.reportSent : t.actions.reportAlready);
+      toast.success(result === 'created' ? t.actions.reportSent : t.actions.reportUpdated);
       app.openModal('report', false);
     },
     [app, auth.user, report, t, toast],

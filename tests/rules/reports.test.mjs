@@ -38,7 +38,7 @@ describe('通報の作成', () => {
     await assertSucceeds(setDoc(doc(as('bob'), 'reports', 'm1_bob'), report('bob')));
   });
 
-  it('同じ人が同じマーカーを 2 回は通報できない', async () => {
+  it('同じ人の 2 回目を作り直す（作成日時を変える）のは拒否。1 人 1 件で人数を数えるため', async () => {
     await setDoc(doc(as('bob'), 'reports', 'm1_bob'), report('bob'));
     await assertFails(setDoc(doc(as('bob'), 'reports', 'm1_bob'), report('bob', { reasons: ['illegal'] })));
   });
@@ -77,7 +77,40 @@ describe('通報の閲覧と対応', () => {
   });
 
   it('対応済みにできるのは管理者だけ', async () => {
-    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), { status: 'resolved' }));
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), { status: 'resolved', updatedAt: serverTimestamp() }));
     await assertSucceeds(updateDoc(doc(as('root'), 'reports', 'm1_bob'), { status: 'resolved' }));
+  });
+});
+
+describe('同じ人の 2 回目（理由と詳細の更新）', () => {
+  beforeEach(async () => {
+    await setDoc(doc(as('bob'), 'reports', 'm1_bob'), report('bob'));
+  });
+
+  const again = (overrides = {}) => ({ reasons: ['illegal', 'harassment'], detail: '追記', status: 'open', updatedAt: serverTimestamp(), ...overrides });
+
+  it('本人は理由と詳細を更新できる', async () => {
+    await assertSucceeds(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again()));
+  });
+
+  it('管理者が対応済みにした通報も、本人の再通報で確認待ちに戻せる', async () => {
+    await updateDoc(doc(as('root'), 'reports', 'm1_bob'), { status: 'resolved' });
+    await assertSucceeds(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again()));
+  });
+
+  it('本人でも通報者・マーカー・作成日時は変えられない', async () => {
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again({ reporterUid: 'carol' })));
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again({ markerId: 'm2' })));
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again({ createdAt: serverTimestamp() })));
+  });
+
+  it('更新でも理由が空・知らない理由・updatedAt がサーバー時刻でないものは拒否', async () => {
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again({ reasons: [] })));
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again({ reasons: ['spam'] })));
+    await assertFails(updateDoc(doc(as('bob'), 'reports', 'm1_bob'), again({ updatedAt: new Date() })));
+  });
+
+  it('他人の通報は更新できない', async () => {
+    await assertFails(updateDoc(doc(as('carol'), 'reports', 'm1_bob'), again()));
   });
 });

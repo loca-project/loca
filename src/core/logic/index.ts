@@ -7,5 +7,6 @@ export * from './equipment';
 export * from './statistics';
 export * from './format';
 export * from './requests';
+export * from './reports';
 export * from './tags';
 export * from './mapFilter';

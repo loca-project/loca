@@ -140,7 +140,7 @@ export const ja = {
     cancel: 'キャンセル',
     submit: '送信',
     reportSent: '通報しました。管理者が確認します。',
-    reportAlready: 'このマーカーはすでに通報済みです。',
+    reportUpdated: '通報の内容を更新しました。管理者が確認します。',
     reportLogin: '通報するにはログインしてください（右上の「ログイン」）',
     reportUnavailable: 'この構成では通報を受け付けていません。',
   },
