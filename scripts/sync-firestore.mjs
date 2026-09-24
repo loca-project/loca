@@ -45,8 +45,17 @@ async function fillPlaces(items) {
   }
 }
 
+/** 項目の並び順に左右されずに比べる（地名を足す順などで順序が変わっても「変更なし」にする）。 */
+function canonical(value) {
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.keys(value).sort().map((k) => [k, canonical(value[k])]));
+  }
+  return value;
+}
+
 async function save(file, before, after, syncedAt) {
-  const changed = JSON.stringify(after) !== JSON.stringify(before);
+  const changed = JSON.stringify(canonical(after)) !== JSON.stringify(canonical(before));
   console.log(`${file}: ${before.length} 件 → ${after.length} 件（${changed ? '変更あり' : '変更なし'}）`);
   if (!changed || CHECK_ONLY) return;
   const bundle = { generatedAt: Date.now(), syncedAt, markers: after };
