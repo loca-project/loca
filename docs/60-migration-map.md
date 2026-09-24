@@ -26,7 +26,7 @@
 | `components/Sidebar/RequestView.tsx` | 204 | `src/features/sidebar/RequestView.tsx`, `RequestForm.tsx` | 閲覧と登録を分離 |
 | `components/ProfileModal.tsx` | 271 | `src/features/profile/ProfileModal.tsx`, `RegisterModal.tsx`, `ProfileGate.tsx` | 登録と編集を分離。国籍・生年月日・性別は持たない（ADR 0019） |
 | `components/ReportModal.tsx` | 58 | `src/features/report/ReportModal.tsx` | 要件 3.8 の複数選択に修正 |
-| `components/MyMarkersModal.tsx` | 315 | `src/features/marker/MyMarkersModal.tsx` | |
+| `components/MyMarkersModal.tsx` | 315 | `src/features/profile/MyPostsModal.tsx`, `src/core/logic/myPosts.ts` | 撮影リクエストも一覧する。地図の一覧から本人の uid で絞る（T53） |
 | `components/VideoDetailsModal.tsx` | 132 | `src/features/marker/VideoDetailsModal.tsx` | |
 | `components/RequestDetailsModal.tsx` | 224 | `src/features/request/RequestDetailsModal.tsx` | |
 | `components/AdminMode/*.tsx` | 12 ファイル | `src/features/admin/*.tsx`（11 ファイル） | タブ構成を整理（下記） |

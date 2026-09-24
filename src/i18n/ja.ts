@@ -48,6 +48,18 @@ export const ja = {
     needed: '投稿するにはプロフィールの登録が必要です',
   },
 
+  // 自分の投稿の一覧（T53）
+  myPosts: {
+    menu: '自分の投稿',
+    title: '自分の投稿',
+    markers: 'マーカー（{count}）',
+    requests: '撮影リクエスト（{count}）',
+    heat: '熱量 {heat}（{count} 件）',
+    hint: '押すと、地図がその場所へ移って詳細が開きます',
+    emptyMarkers: 'まだマーカーを投稿していません。左の「投稿」タブから登録できます。',
+    emptyRequests: 'まだ撮影リクエストを出していません。',
+  },
+
   post: {
     pickHint: '地図をクリックすると、その場所が入ります（あとから動かせます）',
     needPlace: '地図をクリックして場所を選んでください',

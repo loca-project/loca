@@ -15,7 +15,7 @@ import { EMPTY_FORM, formFromMarker, type MarkerFormState } from '@/features/mar
 import { EMPTY_REQUEST_FORM, type RequestFormState } from '@/features/sidebar/RequestForm';
 import type { SearchTarget } from '@/features/sidebar/SearchPanel';
 
-export type ModalName = 'stats' | 'report' | 'videoDetails' | 'requestList' | 'guide';
+export type ModalName = 'stats' | 'report' | 'videoDetails' | 'requestList' | 'guide' | 'myPosts';
 
 export function useLocaApp() {
   const services = useServices();
@@ -53,6 +53,7 @@ export function useLocaApp() {
     videoDetails: false,
     requestList: false,
     guide: false,
+    myPosts: false,
   });
 
   const openModal = useCallback((name: ModalName, open = true) => {

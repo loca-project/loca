@@ -26,6 +26,7 @@ import { filterBarLeft } from '@/features/filter/placement';
 import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
 import AdminDashboard from '@/features/admin/AdminDashboard';
 import HeaderBar from './HeaderBar';
+import MyPostsModal from '@/features/profile/MyPostsModal';
 import HealthNotice from './HealthNotice';
 import SidebarContent, { sidebarTitle } from './SidebarContent';
 import { useLocaApp } from './useLocaApp';
@@ -211,6 +212,14 @@ export default function AppShell() {
   );
 
   const jump = useCallback((pos: LatLng) => app.jumpTo(pos), [app]);
+  /** 自分の投稿の一覧で選んだら、一覧を閉じて地図をその地点へ移し、詳細を開く（T53） */
+  const pickMine =
+    <T extends LatLng>(select: (item: T) => void) =>
+    (item: T) => {
+      app.openModal('myPosts', false);
+      app.jumpTo({ lat: item.lat, lng: item.lng });
+      select(item);
+    };
   const sidebarOffset = SIDEBAR_RAIL_WIDTH + (app.sidebarOpen ? SIDEBAR_PANEL_WIDTH : 0);
   const filterLeft = filterBarLeft({
     viewportWidth,
@@ -336,7 +345,20 @@ export default function AppShell() {
       <HeaderBar
         onOpenStats={() => app.openModal('stats')}
         onOpenGuide={() => app.openModal('guide')}
+        onOpenMyPosts={() => app.openModal('myPosts')}
       />
+
+      {auth.user && (
+        <MyPostsModal
+          open={app.modals.myPosts}
+          uid={auth.user.uid}
+          markers={app.catalog.markers}
+          requestMarkers={app.catalog.requestMarkers}
+          onPickMarker={pickMine((m) => app.handleMarkerClick(m))}
+          onPickRequest={pickMine((r) => app.handleRequestClick(r))}
+          onClose={() => app.openModal('myPosts', false)}
+        />
+      )}
 
       <ReportModal
         open={app.modals.report}

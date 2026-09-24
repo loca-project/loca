@@ -15,6 +15,7 @@ import { useToast } from '@/shared/components/Toast';
 interface HeaderBarProps {
   onOpenStats: () => void;
   onOpenGuide: () => void;
+  onOpenMyPosts: () => void;
 }
 
 const PANEL = 'absolute right-0 mt-2 w-60 overflow-hidden rounded-lg border border-gray-100 bg-white py-1 shadow-xl';
@@ -34,7 +35,7 @@ function Avatar({ photoUrl, name }: { photoUrl: string | null; name: string }) {
   );
 }
 
-export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) {
+export default function HeaderBar({ onOpenStats, onOpenGuide, onOpenMyPosts }: HeaderBarProps) {
   const { t, lang, changeLanguage } = useI18n();
   const auth = useAuth();
   const { profile, setEditorOpen } = useProfile();
@@ -139,6 +140,12 @@ export default function HeaderBar({ onOpenStats, onOpenGuide }: HeaderBarProps) 
                 <button type="button" role="menuitem" className={ITEM} onClick={choose(() => setEditorOpen(true))}>
                   <i className="fa-solid fa-user w-4 text-gray-400" />
                   {t.profile.menu}
+                </button>
+              )}
+              {profile && (
+                <button type="button" role="menuitem" className={ITEM} onClick={choose(onOpenMyPosts)}>
+                  <i className="fa-solid fa-list-ul w-4 text-gray-400" />
+                  {t.myPosts.menu}
                 </button>
               )}
               {divider}

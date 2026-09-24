@@ -61,6 +61,17 @@ export const en: DeepPartial<Dictionary> = {
     needed: 'You need to create a profile before posting.',
   },
 
+  myPosts: {
+    menu: 'My posts',
+    title: 'My posts',
+    markers: 'Markers ({count})',
+    requests: 'Shooting requests ({count})',
+    heat: 'Heat {heat} ({count})',
+    hint: 'Tap one to move the map there and open its details.',
+    emptyMarkers: 'You have not posted any markers yet. Use the Post tab on the left.',
+    emptyRequests: 'You have not made any shooting requests yet.',
+  },
+
   post: {
     pickHint: 'Click the map to set the place (you can move it later)',
     needPlace: 'Click the map to choose a place',

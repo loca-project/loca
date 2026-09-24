@@ -11,3 +11,4 @@ export * from './reports';
 export * from './tags';
 export * from './mapFilter';
 export * from './profile';
+export * from './myPosts';
