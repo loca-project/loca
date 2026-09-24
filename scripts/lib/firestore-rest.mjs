@@ -16,8 +16,14 @@ export function fromValue(v) {
   throw new Error(`扱えない値の型です: ${Object.keys(v).join(',')}`);
 }
 
+/**
+ * 項目名の順に並べて返す。REST は入れ子の項目（tags など）の順を毎回変えて返すため、
+ * そのまま書くと中身が同じでも markers.json が「変更あり」になり、毎日コミットが増える。
+ */
 export function fromFields(fields) {
-  return Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, fromValue(v)]));
+  return Object.fromEntries(
+    Object.keys(fields).sort().map((k) => [k, fromValue(fields[k])]),
+  );
 }
 
 /** コレクションを全件読む（ページ送りあり）。 */
