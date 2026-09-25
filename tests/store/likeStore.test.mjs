@@ -97,14 +97,14 @@ describe('いいねのアダプタ', () => {
   });
 });
 
-describe('投稿者が受け取ったいいねの合計（公開プロフィール。T82）', () => {
-  it('未ログインでも、投稿者の件数の文書を合計して読める（ほかの人の分は入らない）', async () => {
+describe('投稿者の動画が受け取ったいいね（公開プロフィール。T82）', () => {
+  it('未ログインでも、投稿者の件数の文書を動画ごとに読める（ほかの人の分は入らない）', async () => {
     await seed(env, async (db) => {
       await setDoc(doc(db, 'likeCounts', 'a1'), { count: 3, ownerUid: 'alice' });
       await setDoc(doc(db, 'likeCounts', 'a2'), { count: 2, ownerUid: 'alice' });
       await setDoc(doc(db, 'likeCounts', 'b1'), { count: 7, ownerUid: 'bob' });
     });
-    assert.equal(await guestStore().totalFor('alice'), 5);
-    assert.equal(await guestStore().totalFor('carol'), 0);
+    assert.deepEqual(await guestStore().receivedBy('alice'), { a1: 3, a2: 2 });
+    assert.deepEqual(await guestStore().receivedBy('carol'), {});
   });
 });

@@ -1,22 +1,4 @@
 {
-  "indexes": [
-    {
-      "collectionGroup": "likeCounts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerUid", "order": "ASCENDING" },
-        { "fieldPath": "count", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "answerCounts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "ownerUid", "order": "ASCENDING" },
-        { "fieldPath": "count", "order": "ASCENDING" },
-        { "fieldPath": "heat", "order": "ASCENDING" }
-      ]
-    }
-  ],
+  "indexes": [],
   "fieldOverrides": []
 }

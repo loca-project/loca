@@ -10,12 +10,10 @@ import {
   collection,
   doc,
   getDoc,
-  getAggregateFromServer,
   getDocs,
   query,
   runTransaction,
   serverTimestamp,
-  sum,
   where,
   type Firestore,
 } from 'firebase/firestore';
@@ -104,14 +102,17 @@ export function createLikeStore(db: Firestore, currentUser: () => AuthUser | nul
       }
     },
 
-    async totalFor(ownerUid: string): Promise<number> {
+    async receivedBy(ownerUid: string): Promise<Record<string, number>> {
       try {
-        const snap = await getAggregateFromServer(query(collection(db, 'likeCounts'), where('ownerUid', '==', ownerUid)), {
-          total: sum('count'),
+        const snap = await getDocs(query(collection(db, 'likeCounts'), where('ownerUid', '==', ownerUid)));
+        const received: Record<string, number> = {};
+        snap.docs.forEach((d) => {
+          const count = countOf(d.data());
+          if (count > 0) received[d.id] = count;
         });
-        return Number(snap.data().total ?? 0);
+        return received;
       } catch (e) {
-        throw toUpstream(e, 'いいねの合計を読み込めませんでした。');
+        throw toUpstream(e, '受け取ったいいねを読み込めませんでした。');
       }
     },
 

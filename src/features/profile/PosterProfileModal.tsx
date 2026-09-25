@@ -1,7 +1,7 @@
 /**
  * 投稿者の公開プロフィール（T82）。マーカー情報の投稿者名を押すと開く。ログインしていなくても見られる。
- * 投稿動画は地図の一覧から数える（論理削除したものは入らない）。いいねと炎（ADR 0028）は投稿者ごとの集計の問い合わせで読む
- * （それぞれ読み取り 1 件分）。集計には論理削除した動画の分も入る（件数の文書は残るため）。
+ * 投稿動画は地図の一覧から数える（論理削除したものは入らない）。いいねと炎（ADR 0028）は投稿者の件数の文書を読み、
+ * いま地図にある動画の分だけを足す（削除した動画の分は数えない。利用者の判断）。読み取りは、いいね・炎の付いた動画の数だけ。
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
@@ -30,7 +30,7 @@ export default function PosterProfileModal({ poster, markers, onPick, onClose }:
   const { t } = useI18n();
   const pt = t.poster;
   const posts = useMemo(() => myMarkers(markers, poster.uid), [markers, poster.uid]);
-  const totals = usePosterTotals(poster.uid);
+  const totals = usePosterTotals(poster.uid, posts);
 
   const stat = (icon: string, color: string, label: string, value: string) => (
     <div className="flex-1 rounded-lg bg-gray-50 p-3 text-center">
@@ -76,26 +76,36 @@ export default function PosterProfileModal({ poster, markers, onPick, onClose }:
   );
 }
 
-/** いいねと炎の合計。開いたときに 1 回読む。読めなければ 0 として出す（画面は止めない）。 */
-function usePosterTotals(uid: string): { likes: number; flames: Flames } | null {
+/** いいねと炎の合計（いま地図にある動画の分だけ）。開いたときに 1 回読む。読めなければ 0 として出す（画面は止めない）。 */
+function usePosterTotals(uid: string, posts: MarkerData[]): { likes: number; flames: Flames } | null {
   const { likeStore, requestStore } = useServices();
-  const [totals, setTotals] = useState<{ likes: number; flames: Flames } | null>(null);
+  const [byMarker, setByMarker] = useState<{ likes: Record<string, number>; flames: Record<string, Flames> } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    setTotals(null);
+    setByMarker(null);
     const warn = (what: string) => (e: unknown) => {
       console.warn(`[loca] ${what}を読めませんでした`, e);
       return null;
     };
     void Promise.all([
-      likeStore ? likeStore.totalFor(uid).catch(warn('いいねの合計')) : null,
-      requestStore ? requestStore.flamesFor(uid).catch(warn('炎の合計')) : null,
+      likeStore ? likeStore.receivedBy(uid).catch(warn('受け取ったいいね')) : null,
+      requestStore ? requestStore.flamesBy(uid).catch(warn('炎')) : null,
     ]).then(([likes, flames]) => {
-      if (!cancelled) setTotals({ likes: likes ?? 0, flames: flames ?? { heat: 0, count: 0 } });
+      if (!cancelled) setByMarker({ likes: likes ?? {}, flames: flames ?? {} });
     });
     return () => {
       cancelled = true;
     };
   }, [likeStore, requestStore, uid]);
-  return totals;
+  return useMemo(() => {
+    if (!byMarker) return null;
+    const flames = { heat: 0, count: 0 };
+    let likes = 0;
+    for (const m of posts) {
+      likes += byMarker.likes[m.id] ?? 0;
+      flames.heat += byMarker.flames[m.id]?.heat ?? 0;
+      flames.count += byMarker.flames[m.id]?.count ?? 0;
+    }
+    return { likes, flames };
+  }, [byMarker, posts]);
 }

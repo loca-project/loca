@@ -12,13 +12,11 @@ import {
   collection,
   doc,
   getDoc,
-  getAggregateFromServer,
   getDocs,
   onSnapshot,
   query,
   runTransaction,
   serverTimestamp,
-  sum,
   where,
   writeBatch,
   type DocumentData,
@@ -148,15 +146,14 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
       }
     },
 
-    async flamesFor(ownerUid: string): Promise<Flames> {
+    async flamesBy(ownerUid: string): Promise<Record<string, Flames>> {
       try {
-        const snap = await getAggregateFromServer(query(collection(db, 'answerCounts'), where('ownerUid', '==', ownerUid)), {
-          heat: sum('heat'),
-          count: sum('count'),
-        });
-        return { heat: Number(snap.data().heat ?? 0), count: Number(snap.data().count ?? 0) };
+        const snap = await getDocs(query(collection(db, 'answerCounts'), where('ownerUid', '==', ownerUid)));
+        return Object.fromEntries(
+          snap.docs.map((d) => [d.id, { heat: Number(d.data().heat ?? 0), count: Number(d.data().count ?? 0) }]),
+        );
       } catch (e) {
-        throw toUpstream(e, '炎の合計を読み込めませんでした。');
+        throw toUpstream(e, '炎を読み込めませんでした。');
       }
     },
 

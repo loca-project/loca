@@ -10,6 +10,7 @@ import type { SeasonKey, StyleKey, TimeOfDayKey } from '@/core/constants';
 import { useServices } from '@/shared/hooks/useServices';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { onLocalChange } from '@/shared/localChanges';
 import type { RequestFormState } from '@/features/sidebar/RequestForm';
 
 export interface RequestSubmitResult {
@@ -32,15 +33,22 @@ export function useRequestSubmit(uid: string | null) {
       return undefined;
     }
     let cancelled = false;
-    requestStore
-      .heatUsed()
-      .then((used) => !cancelled && setHeatUsed(used))
-      .catch((e: unknown) => {
-        console.error('[loca] 使った熱量を読めませんでした', e);
-        if (!cancelled) setHeatUsed(null);
-      });
+    const load = () =>
+      requestStore
+        .heatUsed()
+        .then((used) => !cancelled && setHeatUsed(used))
+        .catch((e: unknown) => {
+          console.error('[loca] 使った熱量を読めませんでした', e);
+          if (!cancelled) setHeatUsed(null);
+        });
+    void load();
+    // ほかの画面（自分の投稿・届いた動画・管理者）で取り下げ・受け取りをしたら読み直す（2026-09-25、受け取ったのに残りが戻らなかった）
+    const stop = onLocalChange((change) => {
+      if (change.kind === 'requestEntries' || change.kind === 'owner') void load();
+    });
     return () => {
       cancelled = true;
+      stop();
     };
   }, [requestStore, uid]);
 

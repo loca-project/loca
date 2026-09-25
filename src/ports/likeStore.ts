@@ -22,10 +22,10 @@ export interface LikeStorePort extends Adapter {
   /** 自分のマーカーが受け取った件数（マーカー ID → 件数。0 件のマーカーは含まない）。未ログインなら空。 */
   receivedByMine(): Promise<Record<string, number>>;
   /**
-   * 投稿者が受け取ったいいねの合計（公開プロフィール。T82）。誰でも読める。集計の問い合わせ 1 回。
-   * 論理削除したマーカーの分も含む（件数の文書は残るため。ADR 0024）。
+   * 投稿者の動画が受け取ったいいね（マーカー ID → 件数。0 件は含まない）。公開プロフィール（T82）。誰でも読める。
+   * 削除した動画の件数の文書も返るので、合計は呼び出し側がいま地図にある動画の分だけ足す（利用者の判断）。
    */
-  totalFor(ownerUid: string): Promise<number>;
+  receivedBy(ownerUid: string): Promise<Record<string, number>>;
   /** 自分が付けたいいねをすべて外す（アカウント削除。ADR 0021）。外した件数を返す。 */
   unlikeAllMine(): Promise<number>;
 }

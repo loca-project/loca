@@ -26,8 +26,11 @@ export interface RequestStorePort extends Adapter {
   receive(entry: { id: string; heat: number }, marker: { id: string; ownerUid: string }): Promise<void>;
   /** 動画が受け取った炎（熱量の合計と、応えたリクエストの件数。ADR 0028）。誰でも読める。無ければ 0。 */
   flamesOf(markerId: string): Promise<Flames>;
-  /** 投稿者の動画が受け取った炎の合計（公開プロフィール。T82）。集計の問い合わせ 1 回。論理削除した動画の分も含む。 */
-  flamesFor(ownerUid: string): Promise<Flames>;
+  /**
+   * 投稿者の動画が受け取った炎（マーカー ID → 炎。公開プロフィール。T82）。誰でも読める。
+   * 削除した動画の分も返るので、合計は呼び出し側がいま地図にある動画の分だけ足す（利用者の判断）。
+   */
+  flamesBy(ownerUid: string): Promise<Record<string, Flames>>;
   /** 本人のリクエストをすべて取り下げる（アカウント削除。ADR 0021）。取り下げた件数を返す。 */
   withdrawAllMine(): Promise<number>;
   /**

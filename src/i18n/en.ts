@@ -123,7 +123,7 @@ export const en: DeepPartial<Dictionary> = {
     likes: 'Likes received',
     flames: 'Flames received',
     answered: 'Answered {count} shooting request(s) with a video',
-    note: 'Flames are the heat of shooting requests answered with a video and accepted by the requester. Likes and flames include deleted videos.',
+    note: 'Flames are the heat of shooting requests answered with a video and accepted by the requester. Likes and flames count only videos currently on the map.',
     list: 'Videos',
     empty: 'No videos on the map.',
     markerFlames: '{heat} flame(s) (answered {count} shooting request(s))',
