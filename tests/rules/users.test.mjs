@@ -240,6 +240,8 @@ describe('公開プロフィールの YouTube チャンネル（T55・ADR 0029�
     await assertSucceeds(setDoc(pub(as('alice'), 'alice'), { channel: UC }));
     await assertSucceeds(setDoc(pub(as('alice'), 'alice'), { channel: '@ロカ公式' }));
     await assertSucceeds(getDoc(pub(guest(), 'alice')));
+    await assertFails(getDocs(collection(guest(), 'publicProfiles')));
+    await assertFails(setDoc(pub(as('alice'), 'alice'), { channel: '@ロカ公式' }));
     await assertSucceeds(deleteDoc(pub(as('alice'), 'alice')));
   });
 
@@ -251,6 +253,8 @@ describe('公開プロフィールの YouTube チャンネル（T55・ADR 0029�
     await assertFails(setDoc(ref, { channel: 123 }));
     await assertFails(setDoc(ref, {}));
     await assertFails(setDoc(ref, { channel: UC, note: 'x' }));
+    await assertFails(setDoc(ref, { channel: '@ab\\cd' }));
+    await assertFails(setDoc(ref, { channel: '@abc\u202Edef' }));
   });
 
   it('他人・未ログイン・プロフィール未登録・ブラックリストの本人は書けない。管理者は消せる', async () => {
@@ -263,7 +267,30 @@ describe('公開プロフィールの YouTube チャンネル（T55・ADR 0029�
       await setDoc(doc(db, 'blacklist', 'bob'), { blocked: true, reason: '試験' });
     });
     await assertFails(setDoc(pub(as('bob'), 'bob'), { channel: UC }));
+    await assertFails(deleteDoc(pub(as('carol'), 'alice')));
     await assertSucceeds(deleteDoc(pub(as('root'), 'alice')));
+  });
+
+  it('プロフィールの削除は、公開プロフィールも同じ書き込みで消すときだけ通る', async () => {
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'publicProfiles', 'alice'), { channel: UC });
+      await setDoc(doc(db, 'admins', 'root'), { note: '初期管理者' });
+    });
+    await assertFails(deleteDoc(doc(as('alice'), 'users', 'alice')));
+    const db = as('alice');
+    const both = writeBatch(db);
+    both.delete(doc(db, 'users', 'alice'));
+    both.delete(pub(db, 'alice'));
+    both.delete(doc(db, 'nicknames', 'alice さん'));
+    await assertSucceeds(both.commit());
+  });
+
+  it('プロフィールを消す書き込みで、公開プロフィールを作ることはできない', async () => {
+    const db = as('bob');
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'users', 'bob'));
+    batch.set(pub(db, 'bob'), { channel: UC });
+    await assertFails(batch.commit());
   });
 
   it('プロフィール（users）には channel を書けない', async () => {

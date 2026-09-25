@@ -15,7 +15,7 @@
 
     // 公開プロフィールの YouTube チャンネル（T55・ADR 0029）: チャンネル ID（UC＋22 字）か @ハンドル（3〜30 字。日本語なども通す）
     function validChannel(c) {
-      return c is string && (c.matches('^UC[A-Za-z0-9_-]{22}$') || c.matches('^@[^\\s/?#@%]{3,30}$'));
+      return c is string && (c.matches('^UC[A-Za-z0-9_-]{22}$') || c.matches('^@[^\\s/?#@%\\\\\\p{Cc}\\p{Cf}]{3,30}$'));
     }
 
     // ---- ニックネームの重複の禁止（ADR 0019 決定 9）----
@@ -83,19 +83,25 @@
         && request.resource.data.updatedAt == request.time
         && request.time > resource.data.updatedAt + duration.value(60, 's');
       // アカウント削除（要件 2.7・ADR 0021）。本人は自分のプロフィールを消せる。投稿は先に論理削除する（画面が順に行う）
-      allow delete: if canWrite() && (isAdmin() || request.auth.uid == uid);
+      // 公開プロフィール（チャンネル）も同じ書き込みで消えていること（消えたアカウントのチャンネルを公開したまま残さない。ADR 0029）
+      allow delete: if canWrite() && (isAdmin() || request.auth.uid == uid)
+        && !existsAfter(docPath('publicProfiles', uid));
     }
 
     // ---- 公開プロフィール（T55・ADR 0029）----
     // publicProfiles/{uid} = { channel }。users/{uid} は本人と管理者しか読めないので、ほかのユーザーに見せる YouTube チャンネルだけを
     // 誰でも読める別の文書に置く（投稿者の公開プロフィールからチャンネルへ移れるように）。本人だけが書け、消すとチャンネルの登録を外す
+    // 読めるのは 1 件ずつ（公開プロフィールを開いたとき）。一覧は出さない（uid とチャンネルの組をまとめて集めさせない）
+    // 購読はしない（開いたときに 1 件読む）。本人が消せる例外（ADR 0013・0021 の論理削除の決まりの外。ADR 0029）
     match /publicProfiles/{uid} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow create, update: if canWrite()
         && request.auth.uid == uid
-        && registered()
+        && existsAfter(docPath('users', uid))
         && request.resource.data.keys().hasOnly(['channel'])
-        && validChannel(request.resource.data.get('channel', null));
+        && validChannel(request.resource.data.get('channel', null))
+        && (resource == null || request.resource.data.channel != resource.data.channel);
       allow delete: if canWrite() && (isAdmin() || request.auth.uid == uid);
     }
 

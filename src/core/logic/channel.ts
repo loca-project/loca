@@ -4,7 +4,7 @@
  */
 
 const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
-const HANDLE = /^@[^\s/?#@%]{3,30}$/u;
+const HANDLE = /^@[^\s/?#@%\\\p{Cc}\p{Cf}]{3,30}$/u;
 
 /** 保存する形として正しいか（ルールの validChannel と同じ）。 */
 export function isValidChannel(value: string): boolean {
