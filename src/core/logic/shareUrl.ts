@@ -1,23 +1,35 @@
 /**
- * 地図フィルタと選択中のマーカーを URL のクエリに載せる（T42）。
- * 共有した URL を開いた人に、同じ絞り込みと同じマーカーを見せるため。
+ * 地図フィルタと選択中のマーカー・撮影リクエストを URL のクエリに載せる（T42・T84）。
+ * 共有した URL を開いた人に、同じ絞り込みと同じマーカー（撮影リクエストの地点）を見せるため。
  *
  * 形: ?subject=a,b&mood=c&season=…&timeOfDay=…&style=…&eq=drone&videos=0&requests=0&m=<マーカー ID>
+ *     撮影リクエストは &r=<緯度>,<経度>（小数 6 桁）。地点の ID は同期のたびに変わりうるので、位置で指す
  * 既定値（すべて表示・絞り込みなし）の項目は載せない。知らないキーは読み飛ばす（古い URL や手で書いた URL で落とさない）。
  */
 
 import { EQUIPMENT_CATEGORY_KEYS } from '@/core/constants/equipment';
 import { TAG_CATEGORIES } from '@/core/constants/tags';
-import type { MapFilter, TagSelection } from '@/core/types';
+import type { LatLng, MapFilter, TagSelection } from '@/core/types';
 
 export interface SharedView {
   filter: MapFilter;
   /** 開いておくマーカーの ID。無ければ null */
   markerId: string | null;
+  /** 開いておく撮影リクエストの地点の位置（T84）。無ければ null。マーカーと両方あればマーカーを優先する */
+  requestAt?: LatLng | null;
 }
 
 /** マーカー ID に使われうる文字だけを通す（Firestore の自動 ID とサンプルの ID） */
 const MARKER_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** r=<緯度>,<経度> を読む。範囲外・数でないものは読み飛ばす */
+function parseLatLng(raw: string | null): LatLng | null {
+  const m = raw?.match(/^(-?\d{1,3}(?:\.\d{1,8})?),(-?\d{1,3}(?:\.\d{1,8})?)$/);
+  if (!m) return null;
+  const lat = Number(m[1]);
+  const lng = Number(m[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lng) <= 180 ? { lat, lng } : null;
+}
 
 function pickKnown(raw: string | null, known: readonly string[]): string[] {
   if (!raw) return [];
@@ -42,6 +54,7 @@ export function decodeSharedView(search: string): SharedView {
       equipmentCategories: pickKnown(params.get('eq'), EQUIPMENT_CATEGORY_KEYS),
     },
     markerId: markerId && MARKER_ID.test(markerId) ? markerId : null,
+    requestAt: parseLatLng(params.get('r')),
   };
 }
 
@@ -60,6 +73,7 @@ export function encodeSharedView(view: SharedView, keep = ''): string {
   if (!view.filter.videos) params.set('videos', '0');
   if (!view.filter.requests) params.set('requests', '0');
   if (view.markerId) params.set('m', view.markerId);
+  else if (view.requestAt) params.set('r', `${view.requestAt.lat.toFixed(6)},${view.requestAt.lng.toFixed(6)}`);
   const query = params.toString().replace(/%2C/g, ',');
   return query ? `?${query}` : '';
 }
@@ -71,4 +85,5 @@ export const SHARED_KEYS: readonly string[] = [
   'videos',
   'requests',
   'm',
+  'r',
 ];

@@ -51,7 +51,7 @@ export default function AppShell() {
   // 共有された URL の絞り込みとマーカーで始め、変えたら URL に映す（T42）
   const [shared] = useState(readSharedView);
   const mapFilter = useMapFilter(app.catalog.markers, app.catalog.requestMarkers, shared.filter);
-  useShareUrl(app, mapFilter.filter, shared.markerId);
+  useShareUrl(app, mapFilter.filter, shared);
   const viewportWidth = useViewportWidth();
   const pins = usePins(
     mapFilter.markers,
@@ -194,10 +194,10 @@ export default function AppShell() {
   );
 
   const handleShare = useCallback(async () => {
-    if (!app.selectedMarker) return;
-    // 今の URL には地図フィルタと選択中のマーカーが載っている（T42）。開いた人に同じ地図を見せる
+    if (!app.selectedMarker && !app.selectedRequest) return;
+    // 今の URL には地図フィルタと選択中のマーカー（撮影リクエストの地点）が載っている（T42・T84）。開いた人に同じ地図を見せる
     await copyLink(window.location.href);
-  }, [app.selectedMarker, copyLink]);
+  }, [app.selectedMarker, app.selectedRequest, copyLink]);
 
   /** 結果パネルの行の「共有」。今の地図フィルタのまま、その行のマーカーを開く URL を渡す（T42 と同じ形） */
   const handleShareRow = useCallback(

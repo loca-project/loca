@@ -23,6 +23,8 @@ interface RequestViewProps {
   onAddRequest: () => void;
   onPostVideo: () => void;
   onSearchRelated: () => void;
+  /** 共有リンクをコピーする（この地点を開く URL。T84） */
+  onShare: () => void;
   onWithdraw: (entries: { id: string; heat: number }[]) => void;
   onCancel: () => void;
 }
@@ -34,6 +36,7 @@ export default function RequestView({
   onAddRequest,
   onPostVideo,
   onSearchRelated,
+  onShare,
   onWithdraw,
   onCancel,
 }: RequestViewProps) {
@@ -94,6 +97,10 @@ export default function RequestView({
       <Button variant="secondary" onClick={onSearchRelated}>
         <i className="fa-solid fa-magnifying-glass mr-1.5" />
         {t.form.relatedVideos}
+      </Button>
+      <Button variant="secondary" onClick={onShare}>
+        <i className="fa-solid fa-share-nodes mr-1.5" />
+        {t.actions.share}
       </Button>
 
       {mine.length > 0 && (

@@ -31,6 +31,11 @@ describe('encodeSharedView', () => {
     );
   });
 
+  it('撮影リクエストは位置を小数 6 桁で載せる。マーカーがあればマーカーだけ（T84）', () => {
+    assert.equal(encodeSharedView({ filter: DEFAULT, markerId: null, requestAt: { lat: 35.7095873, lng: 140.35 } }), '?r=35.709587,140.350000');
+    assert.equal(encodeSharedView({ filter: DEFAULT, markerId: 'x', requestAt: { lat: 35, lng: 140 } }), '?m=x');
+  });
+
   it('ほかのクエリは残し、扱うキーだけを書き換える', () => {
     assert.equal(encodeSharedView({ filter: DEFAULT, markerId: 'x' }, '?utm=a&mood=calm&m=old'), '?utm=a&m=x');
   });
@@ -41,12 +46,19 @@ describe('decodeSharedView', () => {
     const view = {
       filter: { videos: false, requests: true, tags: { subject: ['nature'], mood: ['calm'] }, equipmentCategories: ['drone', 'action'] },
       markerId: 'm1',
+      requestAt: null,
     };
     assert.deepEqual(decodeSharedView(encodeSharedView(view)), view);
   });
 
   it('何も無ければ既定の絞り込み', () => {
-    assert.deepEqual(decodeSharedView(''), { filter: DEFAULT, markerId: null });
+    assert.deepEqual(decodeSharedView(''), { filter: DEFAULT, markerId: null, requestAt: null });
+  });
+
+  it('撮影リクエストの位置を読む。範囲外・数でないものは読み飛ばす（T84）', () => {
+    assert.deepEqual(decodeSharedView('?r=35.709587,140.350000').requestAt, { lat: 35.709587, lng: 140.35 });
+    assert.equal(decodeSharedView('?r=95,140').requestAt, null);
+    assert.equal(decodeSharedView('?r=abc,140').requestAt, null);
   });
 
   it('知らないキー・重複・不正なマーカー ID は読み飛ばす', () => {

@@ -149,6 +149,7 @@ export default function SidebarContent({
         onAddRequest={handlers.onAddRequest}
         onPostVideo={handlers.onPostVideoFromRequest}
         onSearchRelated={handlers.onSearchRelated}
+        onShare={handlers.onShare}
         onCancel={app.resetToSearch}
       />
     );
