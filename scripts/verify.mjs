@@ -163,6 +163,18 @@ record('撮影リクエストの地点のしきい値が scripts と src で一�
   `scripts=${scriptEps} / src=${srcEps}`);
 
 // 9. ワークフローの決まり（名前・runner の固定・Actions の版・cron の対応。.claude/rules/20-github-actions.md）
+// scripts/ は子プロセスを shell: true で起動しない。引数配列と一緒に渡すと Node が DEP0190 を警告し、
+// Windows では引数がクォートされず空白入りの値（コミットメッセージ）が分かれる（T65）。npm は node + npm_execpath で起動する
+const scriptFiles = (await walk(path.join(ROOT, 'scripts'))).filter((f) => /\.m?js$/.test(f) && !f.endsWith('verify.mjs'));
+const shellSpawns = [];
+for (const f of scriptFiles) {
+  (await readFile(f, 'utf8')).split('\n').forEach((line, i) => {
+    if (/shell\s*:\s*true/.test(line) && !/^\s*(\/\/|\*)/.test(line)) shellSpawns.push(`${path.relative(ROOT, f)}:${i + 1}`);
+  });
+}
+record('scripts の子プロセスに shell: true が無い', shellSpawns.length === 0,
+  shellSpawns.length ? shellSpawns.join(', ') : `${scriptFiles.length} ファイル`);
+
 const { lintWorkflows } = await import('./lib/workflow-lint.mjs');
 const workflowDir = path.join(ROOT, '.github', 'workflows');
 const workflows = await Promise.all(
