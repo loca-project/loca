@@ -9,6 +9,7 @@ import type { MarkerData } from '@/core/types';
 import type { Flames } from '@/ports';
 import { formatDate, interpolate } from '@/core/logic/format';
 import { myMarkers } from '@/core/logic/myPosts';
+import { channelUrl } from '@/core/logic/channel';
 import Modal from '@/shared/components/Modal';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
@@ -31,6 +32,7 @@ export default function PosterProfileModal({ poster, markers, onPick, onClose }:
   const pt = t.poster;
   const posts = useMemo(() => myMarkers(markers, poster.uid), [markers, poster.uid]);
   const totals = usePosterTotals(poster.uid, posts);
+  const channel = usePosterChannel(poster.uid);
 
   const stat = (icon: string, color: string, label: string, value: string) => (
     <div className="flex-1 rounded-lg bg-gray-50 p-3 text-center">
@@ -52,6 +54,18 @@ export default function PosterProfileModal({ poster, markers, onPick, onClose }:
         <p className="mt-2 text-center text-[11px] text-orange-700">{interpolate(pt.answered, { count: totals.flames.count })}</p>
       )}
       <p className="mt-2 text-[10px] text-gray-400">{pt.note}</p>
+      {/* 投稿者が公開プロフィールに載せた YouTube チャンネル（T55・ADR 0029） */}
+      {channel && (
+        <a
+          href={channelUrl(channel)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-xs font-bold text-white hover:bg-red-700"
+        >
+          <i className="fa-brands fa-youtube" />
+          {pt.channel}（{channel}）
+        </a>
+      )}
       <h3 className="mb-1 mt-4 text-xs font-bold text-gray-700">{pt.list}</h3>
       {posts.length === 0 ? (
         <p className="text-xs text-gray-500">{pt.empty}</p>
@@ -74,6 +88,25 @@ export default function PosterProfileModal({ poster, markers, onPick, onClose }:
       )}
     </Modal>
   );
+}
+
+/** 投稿者の公開プロフィールの YouTube チャンネル。開いたときに 1 回読む（読めなければ出さない）。 */
+function usePosterChannel(uid: string): string | null {
+  const { profileStore } = useServices();
+  const [channel, setChannel] = useState<string | null>(null);
+  useEffect(() => {
+    if (!profileStore) return undefined;
+    let cancelled = false;
+    setChannel(null);
+    profileStore
+      .channelOf(uid)
+      .then((c) => !cancelled && setChannel(c))
+      .catch((e: unknown) => console.warn('[loca] チャンネルを読めませんでした', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [profileStore, uid]);
+  return channel;
 }
 
 /** いいねと炎の合計（いま地図にある動画の分だけ）。開いたときに 1 回読む。読めなければ 0 として出す（画面は止めない）。 */

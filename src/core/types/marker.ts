@@ -32,10 +32,6 @@ export interface YoutubeStats {
   durationSec?: number;
   /** 最後に確かめた時刻 */
   checkedAt?: number;
-  /** 動画のチャンネル ID（UC…） */
-  channelId?: string;
-  /** 投稿者が自己申告したチャンネルの動画か（毎晩の更新が照合する。T55・ADR 0029） */
-  ownChannel?: boolean;
 }
 
 /** 撮影機器（分類 → メーカー → シリーズ → モデル）。未選択は空文字で表す。 */

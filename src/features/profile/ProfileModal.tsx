@@ -16,6 +16,8 @@ import { useI18n } from '@/shared/hooks/useI18n';
 
 interface ProfileModalProps {
   profile: UserProfile;
+  /** 公開プロフィールに載せている YouTube チャンネル（未登録なら null。T55） */
+  channel: string | null;
   user: AuthUser;
   busy: boolean;
   /**
@@ -36,15 +38,15 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default function ProfileModal({ profile, user, busy, onSave, onClose, onDelete }: ProfileModalProps) {
+export default function ProfileModal({ profile, channel, user, busy, onSave, onClose, onDelete }: ProfileModalProps) {
   const { t } = useI18n();
   const [nickname, setNickname] = useState(profile.nickname);
   const normalized = normalizeNickname(nickname);
   const nicknameChanged = normalized !== profile.nickname;
-  const [channelText, setChannelText] = useState(profile.channel ? channelUrl(profile.channel) : '');
+  const [channelText, setChannelText] = useState(channel ? channelUrl(channel) : '');
   const parsedChannel = parseChannelInput(channelText);
   const channelBad = channelText.trim() !== '' && parsedChannel === null;
-  const channelChanged = !channelBad && (parsedChannel ?? '') !== (profile.channel ?? '');
+  const channelChanged = !channelBad && (parsedChannel ?? '') !== (channel ?? '');
   // どちらかが変わっていて、どちらにも誤りが無いときだけ押せる
   const canSave = !busy && isValidNickname(normalized) && !channelBad && (nicknameChanged || channelChanged);
 

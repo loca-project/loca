@@ -15,6 +15,4 @@ export interface UserProfile {
   /** 登録日（epoch ms） */
   createdAt: number;
   updatedAt: number;
-  /** 自己申告の YouTube チャンネル（UC… か @ハンドル。T55・ADR 0029）。未登録なら無い */
-  channel?: string;
 }

@@ -1,5 +1,5 @@
 /**
- * 自己申告の YouTube チャンネル（T55・ADR 0029）。入力された URL を、保存する形（UC… か @ハンドル）にする。
+ * 公開プロフィールの YouTube チャンネル（T55・ADR 0029）。入力された URL を、保存する形（UC… か @ハンドル）にする。
  * 形の検査はルールの validChannel と同じ。受け付けるのは youtube.com/channel/UC… と youtube.com/@ハンドル だけ。
  */
 

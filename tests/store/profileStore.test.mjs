@@ -149,14 +149,17 @@ describe('プロフィールの登録と編集', () => {
   });
 });
 
-describe('自己申告のチャンネル（T55・ADR 0029）', () => {
-  it('登録・変更・削除ができ、プロフィールの購読に届く。形が違えば通信する前に止める', async () => {
+describe('公開プロフィールのチャンネル（T55・ADR 0029）', () => {
+  it('登録・変更・削除ができ、誰でも読める。形が違えば通信する前に止める。アカウントのプロフィール削除で一緒に消える', async () => {
     const store = storeFor('alice');
-    const read = async () => (await getDoc(doc(env.authenticatedContext('alice').firestore(), 'users', 'alice'))).data();
+    const guest = createProfileStore(env.unauthenticatedContext().firestore(), () => null);
     await store.setChannel('@loca_alice');
-    assert.equal((await read()).channel, '@loca_alice');
+    assert.equal(await guest.channelOf('alice'), '@loca_alice');
     await store.setChannel(null);
-    assert.equal('channel' in (await read()), false);
+    assert.equal(await guest.channelOf('alice'), null);
     await assert.rejects(store.setChannel('https://www.youtube.com/@loca_alice'), { name: 'UpstreamError' });
+    await store.setChannel('@loca_alice');
+    await store.remove();
+    assert.equal(await guest.channelOf('alice'), null);
   });
 });

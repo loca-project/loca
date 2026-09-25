@@ -4,7 +4,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { MISSING_WINDOW_MS, missingTargets, ownerChannelMap, parseDuration, planRefresh } from '../../scripts/lib/youtube-refresh.mjs';
+import { MISSING_WINDOW_MS, missingTargets, parseDuration, planRefresh } from '../../scripts/lib/youtube-refresh.mjs';
 
 const marker = (id, videoId = `v_${id}`) => ({ id, videoId });
 const item = (videoId, over = {}) => ({
@@ -83,34 +83,5 @@ describe('missingTargets（毎時の更新。T57）', () => {
 
   it('読む範囲は 1 日より長い（毎晩の全件更新が 1 回失敗しても拾える）', () => {
     assert.ok(MISSING_WINDOW_MS > 24 * 60 * 60 * 1000);
-  });
-});
-
-describe('本人のチャンネルの照合（T55・ADR 0029）', () => {
-  const UC_A = `UC${'a'.repeat(22)}`;
-  const UC_B = `UC${'b'.repeat(22)}`;
-  const withChannel = (videoId, channelId) => item(videoId, { snippet: { publishedAt: '2026-01-02T03:04:05Z', channelId } });
-
-  it('動画のチャンネル ID を持ち、投稿者の自己申告と同じなら ownChannel を付ける（違えば付けない）', () => {
-    const markers = [{ ...marker('a'), ownerUid: 'alice' }, { ...marker('b'), ownerUid: 'alice' }, { ...marker('c'), ownerUid: 'bob' }];
-    const items = [withChannel('v_a', UC_A), withChannel('v_b', UC_B), withChannel('v_c', UC_A)];
-    const plan = planRefresh(markers, items, new Map([['alice', UC_A]]));
-    const byId = Object.fromEntries(plan.updates.map((u) => [u.id, u.youtube]));
-    assert.equal(byId.a.channelId, UC_A);
-    assert.equal(byId.a.ownChannel, true);
-    assert.equal(byId.b.ownChannel, undefined);
-    assert.equal(byId.c.ownChannel, undefined);
-  });
-
-  it('users の channel を uid → チャンネル ID にする（ハンドルは直せたものだけ・大文字小文字は区別しない）', () => {
-    const users = [
-      { id: 'alice', channel: UC_A },
-      { id: 'bob', channel: '@Loca_Bob' },
-      { id: 'carol', channel: '@unknown_handle' },
-      { id: 'dave', channel: 'https://example.com' },
-      { id: 'erin', channel: '@ロカ公式' },
-    ];
-    const map = ownerChannelMap(users, new Map([['@loca_bob', UC_B], ['@ロカ公式', UC_A]]));
-    assert.deepEqual([...map.entries()], [['alice', UC_A], ['bob', UC_B], ['erin', UC_A]]);
   });
 });

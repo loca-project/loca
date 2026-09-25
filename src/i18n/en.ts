@@ -57,10 +57,8 @@ export const en: DeepPartial<Dictionary> = {
     update: 'Update',
     updated: 'Profile updated',
     channel: 'Your YouTube channel (optional)',
-    channelNote: 'Channel URL (youtube.com/@handle or /channel/UC…). Matching videos get "Poster\'s own channel (self-declared)" after the nightly update. Update with it empty to remove.',
+    channelNote: 'Channel URL (youtube.com/@handle or /channel/UC…). It is shown on your public profile so others can visit your channel. Update with it empty to remove.',
     channelInvalid: 'Enter it as youtube.com/@handle or youtube.com/channel/UC…',
-    channelSaved: 'Profile updated (the channel badge appears after the next nightly update)',
-    ownChannel: 'Poster\'s own channel (self-declared)',
     aligned: 'Updated the poster name on {count} marker(s) to your nickname',
     loadFailed: 'Could not load your profile. Please reload the page later.',
     needed: 'You need to create a profile before posting.',
@@ -132,6 +130,7 @@ export const en: DeepPartial<Dictionary> = {
     list: 'Videos',
     empty: 'No videos on the map.',
     markerFlames: '{heat} flame(s) (answered {count} shooting request(s))',
+    channel: 'YouTube channel',
   },
 
   answers: {

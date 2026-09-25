@@ -92,6 +92,8 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
         const nickname = (await getDoc(doc(db, 'users', uid))).data()?.nickname;
         const batch = writeBatch(db);
         batch.delete(doc(db, 'users', uid));
+        // 公開プロフィール（チャンネル。T55）も消す
+        batch.delete(doc(db, 'publicProfiles', uid));
         if (typeof nickname === 'string') {
           const index = doc(db, 'nicknames', nicknameKey(nickname));
           if ((await getDoc(index)).data()?.uid === uid) batch.delete(index);

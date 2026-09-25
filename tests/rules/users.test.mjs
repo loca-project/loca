@@ -232,46 +232,41 @@ describe('未登録の利用者は書き込めない（要件 1.1）', () => {
   });
 });
 
-describe('YouTube チャンネルの自己申告（T55・ADR 0029）', () => {
+describe('公開プロフィールの YouTube チャンネル（T55・ADR 0029）', () => {
   const UC = `UC${'a'.repeat(22)}`;
+  const pub = (db, uid) => doc(db, 'publicProfiles', uid);
 
-  it('本人はチャンネル ID か @ハンドルを登録・変更でき、消すこともできる', async () => {
-    const { deleteField } = await import('firebase/firestore');
-    const ref = doc(as('alice'), 'users', 'alice');
-    await assertSucceeds(updateDoc(ref, { channel: UC }));
-    await assertSucceeds(updateDoc(ref, { channel: '@loca_test.ch' }));
-    await assertSucceeds(updateDoc(ref, { channel: deleteField() }));
+  it('本人はチャンネル ID か @ハンドルを登録・変更でき、消すこともできる。誰でも読める', async () => {
+    await assertSucceeds(setDoc(pub(as('alice'), 'alice'), { channel: UC }));
+    await assertSucceeds(setDoc(pub(as('alice'), 'alice'), { channel: '@ロカ公式' }));
+    await assertSucceeds(getDoc(pub(guest(), 'alice')));
+    await assertSucceeds(deleteDoc(pub(as('alice'), 'alice')));
   });
 
-  it('決めた形でないもの（URL のまま・短すぎる ID・空白入り・数値）は拒否', async () => {
-    const ref = doc(as('alice'), 'users', 'alice');
-    await assertFails(updateDoc(ref, { channel: `https://www.youtube.com/channel/${UC}` }));
-    await assertFails(updateDoc(ref, { channel: 'UCabc' }));
-    await assertFails(updateDoc(ref, { channel: '@a b c' }));
-    await assertFails(updateDoc(ref, { channel: 123 }));
+  it('決めた形でないもの（URL のまま・短い ID・空白入り・数値・空）と、余計な項目は拒否', async () => {
+    const ref = pub(as('alice'), 'alice');
+    await assertFails(setDoc(ref, { channel: `https://www.youtube.com/channel/${UC}` }));
+    await assertFails(setDoc(ref, { channel: 'UCabc' }));
+    await assertFails(setDoc(ref, { channel: '@ロカ 公式' }));
+    await assertFails(setDoc(ref, { channel: 123 }));
+    await assertFails(setDoc(ref, {}));
+    await assertFails(setDoc(ref, { channel: UC, note: 'x' }));
   });
 
-  it('値の変わらない更新・登録時の channel・ニックネームと一緒の変更・ブラックリストの本人は拒否', async () => {
-    const ref = doc(as('alice'), 'users', 'alice');
-    await assertSucceeds(updateDoc(ref, { channel: UC }));
-    await assertFails(updateDoc(ref, { channel: UC }));
-    await assertFails(updateDoc(ref, {}));
-    await assertFails(updateDoc(ref, { channel: '@other_ch', nickname: 'alice2' }));
-    await resetFirestore(env, ['alice', 'bob', 'carol', 'mallory', 'root']);
-    await assertFails(reg('dave', { channel: UC }));
-    await seed(env, (db) => setDoc(doc(db, 'blacklist', 'alice'), { blocked: true, reason: '試験' }));
-    await assertFails(updateDoc(doc(as('alice'), 'users', 'alice'), { channel: '@other_ch' }));
+  it('他人・未ログイン・プロフィール未登録・ブラックリストの本人は書けない。管理者は消せる', async () => {
+    await assertFails(setDoc(pub(as('bob'), 'alice'), { channel: UC }));
+    await assertFails(setDoc(pub(guest(), 'alice'), { channel: UC }));
+    await assertFails(setDoc(pub(as('dave'), 'dave'), { channel: UC }));
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'admins', 'root'), { note: '初期管理者' });
+      await setDoc(doc(db, 'publicProfiles', 'alice'), { channel: UC });
+      await setDoc(doc(db, 'blacklist', 'bob'), { blocked: true, reason: '試験' });
+    });
+    await assertFails(setDoc(pub(as('bob'), 'bob'), { channel: UC }));
+    await assertSucceeds(deleteDoc(pub(as('root'), 'alice')));
   });
 
-  it('日本語などを含むハンドルも通す。空白・/ は拒否', async () => {
-    const ref = doc(as('alice'), 'users', 'alice');
-    await assertSucceeds(updateDoc(ref, { channel: '@ロカ公式' }));
-    await assertFails(updateDoc(ref, { channel: '@ロカ 公式' }));
-    await assertFails(updateDoc(ref, { channel: '@loca/ch' }));
-  });
-
-  it('ほかの項目と一緒には変えられない・他人のプロフィールには書けない', async () => {
-    await assertFails(updateDoc(doc(as('alice'), 'users', 'alice'), { channel: UC, updatedAt: serverTimestamp() }));
-    await assertFails(updateDoc(doc(as('bob'), 'users', 'alice'), { channel: UC }));
+  it('プロフィール（users）には channel を書けない', async () => {
+    await assertFails(updateDoc(doc(as('alice'), 'users', 'alice'), { channel: UC }));
   });
 });

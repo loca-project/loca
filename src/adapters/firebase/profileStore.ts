@@ -7,7 +7,7 @@
 import {
   Timestamp,
   collection,
-  deleteField,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -15,7 +15,6 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
   where,
   writeBatch,
   type DocumentData,
@@ -64,7 +63,6 @@ function toProfile(uid: string, data: DocumentData): UserProfile {
     agreedAt: ms(data.agreedAt),
     createdAt: ms(data.createdAt),
     updatedAt: ms(data.updatedAt),
-    ...(typeof data.channel === 'string' ? { channel: data.channel } : {}),
   };
 }
 
@@ -155,6 +153,8 @@ export function createProfileStore(db: Firestore, currentUser: () => AuthUser | 
         const nickname = (await getDoc(doc(db, 'users', user.uid))).data()?.nickname;
         const batch = writeBatch(db);
         batch.delete(doc(db, 'users', user.uid));
+        // 公開プロフィール（チャンネル。T55）も一緒に消す。無い文書の削除は通る
+        batch.delete(doc(db, 'publicProfiles', user.uid));
         if (typeof nickname === 'string' && (await holderOf(nickname)) === user.uid) batch.delete(indexRef(nickname));
         await batch.commit();
       } catch (e) {
@@ -166,9 +166,19 @@ export function createProfileStore(db: Firestore, currentUser: () => AuthUser | 
       const user = requireUser();
       if (channel !== null && !isValidChannel(channel)) throw new UpstreamError('チャンネルの URL の形が違います。');
       try {
-        await updateDoc(doc(db, 'users', user.uid), { channel: channel ?? deleteField() });
+        const ref = doc(db, 'publicProfiles', user.uid);
+        await (channel === null ? deleteDoc(ref) : setDoc(ref, { channel }));
       } catch (e) {
         throw toUpstream(e, 'チャンネルを保存できませんでした。');
+      }
+    },
+
+    async channelOf(uid: string): Promise<string | null> {
+      try {
+        const channel = (await getDoc(doc(db, 'publicProfiles', uid))).data()?.channel;
+        return typeof channel === 'string' ? channel : null;
+      } catch (e) {
+        throw toUpstream(e, 'チャンネルを読み込めませんでした。');
       }
     },
 
