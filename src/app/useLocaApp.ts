@@ -38,6 +38,8 @@ export function useLocaApp() {
     [pickedRequest, catalog.requestMarkers],
   );
   const [tempPos, setTempPos] = useState<LatLng | null>(null);
+  /** 開いている投稿者の公開プロフィール（T82）。null なら閉じている */
+  const [poster, setPoster] = useState<{ uid: string; name: string } | null>(null);
 
   const [form, setForm] = useState<MarkerFormState>(EMPTY_FORM);
   const [requestForm, setRequestForm] = useState<RequestFormState>(EMPTY_REQUEST_FORM);
@@ -248,6 +250,8 @@ export function useLocaApp() {
     handleMarkerClick,
     handleRequestClick,
     requestEntriesOf,
+    poster,
+    setPoster,
   };
 }
 

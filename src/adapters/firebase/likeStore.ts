@@ -10,10 +10,12 @@ import {
   collection,
   doc,
   getDoc,
+  getAggregateFromServer,
   getDocs,
   query,
   runTransaction,
   serverTimestamp,
+  sum,
   where,
   type Firestore,
 } from 'firebase/firestore';
@@ -99,6 +101,17 @@ export function createLikeStore(db: Firestore, currentUser: () => AuthUser | nul
         return received;
       } catch (e) {
         throw toUpstream(e, '受け取ったいいねを読み込めませんでした。');
+      }
+    },
+
+    async totalFor(ownerUid: string): Promise<number> {
+      try {
+        const snap = await getAggregateFromServer(query(collection(db, 'likeCounts'), where('ownerUid', '==', ownerUid)), {
+          total: sum('count'),
+        });
+        return Number(snap.data().total ?? 0);
+      } catch (e) {
+        throw toUpstream(e, 'いいねの合計を読み込めませんでした。');
       }
     },
 

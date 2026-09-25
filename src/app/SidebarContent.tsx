@@ -165,6 +165,7 @@ export default function SidebarContent({
         onShare={handlers.onShare}
         onReport={handlers.onReport}
         onWatch={handlers.onWatch}
+        onOpenPoster={(m) => m.ownerUid && app.setPoster({ uid: m.ownerUid, name: m.createdBy })}
         onEdit={isOwner ? handlers.onEditMarker : undefined}
         onDelete={isOwner ? handlers.onDeleteMarker : undefined}
         busy={busy}

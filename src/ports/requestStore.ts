@@ -1,6 +1,12 @@
 import type { RequestContent, RequestEntry } from '@/core/types';
 import type { Adapter, Unsubscribe } from './common';
 
+/** 受け取った炎（answerCounts。ADR 0028）。heat は熱量の合計、count は応えたリクエストの件数。 */
+export interface Flames {
+  heat: number;
+  count: number;
+}
+
 /**
  * 撮影リクエストの書き込みポート（熱量は 1 利用者あたり合計 5 まで）。
  * 閲覧の土台は requests.json（CatalogPort）。ここは書き込みと、その後の差分の購読を扱う。
@@ -18,6 +24,10 @@ export interface RequestStorePort extends Adapter {
    * 応えていない動画・自分の動画・論理削除された動画はルールが拒否する（UpstreamError）。
    */
   receive(entry: { id: string; heat: number }, marker: { id: string; ownerUid: string }): Promise<void>;
+  /** 動画が受け取った炎（熱量の合計と、応えたリクエストの件数。ADR 0028）。誰でも読める。無ければ 0。 */
+  flamesOf(markerId: string): Promise<Flames>;
+  /** 投稿者の動画が受け取った炎の合計（公開プロフィール。T82）。集計の問い合わせ 1 回。論理削除した動画の分も含む。 */
+  flamesFor(ownerUid: string): Promise<Flames>;
   /** 本人のリクエストをすべて取り下げる（アカウント削除。ADR 0021）。取り下げた件数を返す。 */
   withdrawAllMine(): Promise<number>;
   /**

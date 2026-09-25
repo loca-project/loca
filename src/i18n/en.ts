@@ -116,6 +116,19 @@ export const en: DeepPartial<Dictionary> = {
     howToAnswer: 'Film under these conditions and post it to answer the request.',
   },
 
+  poster: {
+    open: 'View this poster\'s profile',
+    title: 'Profile of {name}',
+    posts: 'Videos',
+    likes: 'Likes received',
+    flames: 'Flames received',
+    answered: 'Answered {count} shooting request(s) with a video',
+    note: 'Flames are the heat of shooting requests answered with a video and accepted by the requester. Likes and flames include deleted videos.',
+    list: 'Videos',
+    empty: 'No videos on the map.',
+    markerFlames: '{heat} flame(s) (answered {count} shooting request(s))',
+  },
+
   answers: {
     formBanner: 'This post answers {count} shooting request(s). The requesters will be told a video has arrived.',
     notice: 'A video arrived for your shooting request ({count})',

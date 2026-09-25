@@ -207,3 +207,20 @@ describe('受け取り（T43・ADR 0028）', () => {
     await assert.rejects(alice.receive({ id: r1.id, heat: 1 }, { id: 'm2', ownerUid: 'bob' }), /受け取りが拒否されました/);
   });
 });
+
+describe('炎を読む（公開プロフィール・マーカー情報。T82）', () => {
+  it('未ログインでも、動画の炎と投稿者の炎の合計を読める', async () => {
+    const { doc, setDoc } = await import('firebase/firestore');
+    const { seed } = await import('../rules/helpers.mjs');
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'answerCounts', 'm1'), { heat: 3, count: 1, ownerUid: 'bob', last: 'r1' });
+      await setDoc(doc(db, 'answerCounts', 'm2'), { heat: 5, count: 2, ownerUid: 'bob', last: 'r3' });
+      await setDoc(doc(db, 'answerCounts', 'm3'), { heat: 1, count: 1, ownerUid: 'carol', last: 'r4' });
+    });
+    const guest = createRequestStore(env.unauthenticatedContext().firestore(), () => null);
+    assert.deepEqual(await guest.flamesOf('m2'), { heat: 5, count: 2 });
+    assert.deepEqual(await guest.flamesOf('none'), { heat: 0, count: 0 });
+    assert.deepEqual(await guest.flamesFor('bob'), { heat: 8, count: 3 });
+    assert.deepEqual(await guest.flamesFor('alice'), { heat: 0, count: 0 });
+  });
+});

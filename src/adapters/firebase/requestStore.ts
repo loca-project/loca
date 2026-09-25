@@ -12,11 +12,13 @@ import {
   collection,
   doc,
   getDoc,
+  getAggregateFromServer,
   getDocs,
   onSnapshot,
   query,
   runTransaction,
   serverTimestamp,
+  sum,
   where,
   writeBatch,
   type DocumentData,
@@ -24,7 +26,7 @@ import {
 } from 'firebase/firestore';
 import type { RequestContent, RequestEntry } from '@/core/types';
 import { MAX_HEAT_PER_USER } from '@/core/types';
-import type { AuthUser, RequestStorePort, Unsubscribe } from '@/ports';
+import type { AuthUser, Flames, RequestStorePort, Unsubscribe } from '@/ports';
 import { UpstreamError } from '@/ports';
 import { toUpstream } from './errors';
 
@@ -134,6 +136,27 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
         });
       } catch (e) {
         throw toUpstream(e, '受け取りが拒否されました。本人のリクエストに応えた、ほかの人の動画だけを受け取れます。');
+      }
+    },
+
+    async flamesOf(markerId: string): Promise<Flames> {
+      try {
+        const data = (await getDoc(doc(db, 'answerCounts', markerId))).data();
+        return { heat: Number(data?.heat ?? 0), count: Number(data?.count ?? 0) };
+      } catch (e) {
+        throw toUpstream(e, '炎を読み込めませんでした。');
+      }
+    },
+
+    async flamesFor(ownerUid: string): Promise<Flames> {
+      try {
+        const snap = await getAggregateFromServer(query(collection(db, 'answerCounts'), where('ownerUid', '==', ownerUid)), {
+          heat: sum('heat'),
+          count: sum('count'),
+        });
+        return { heat: Number(snap.data().heat ?? 0), count: Number(snap.data().count ?? 0) };
+      } catch (e) {
+        throw toUpstream(e, '炎の合計を読み込めませんでした。');
       }
     },
 

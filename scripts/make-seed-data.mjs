@@ -111,7 +111,9 @@ const markers = places.map((spot, i) => {
     thumbnailUrl: `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
     prefecture: spot.pref,
     city: spot.city,
-    createdBy: 'loca-seed',
+    // 投稿者は 3 人に分ける（公開プロフィールの一覧を確かめるため。T82）。本物のマーカーと同じく uid を持つ
+    ownerUid: `seed-user-${(i % 3) + 1}`,
+    createdBy: `loca-seed-${(i % 3) + 1}`,
     createdAt: now - i * 86_400_000,
     updatedAt: now - i * 86_400_000,
   };

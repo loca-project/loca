@@ -12,6 +12,7 @@ import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { publishedLabel } from '@/features/marker/published';
 import LikeButton from '@/features/marker/LikeButton';
+import FlameCount from '@/features/marker/FlameCount';
 
 interface MarkerDetailsProps {
   marker: MarkerData;
@@ -19,6 +20,8 @@ interface MarkerDetailsProps {
   onShare: () => void;
   onReport: () => void;
   onWatch: () => void;
+  /** 投稿者名を押したとき（公開プロフィールを開く。T82） */
+  onOpenPoster?: (marker: MarkerData) => void;
   /** 本人のマーカーのときだけ渡す */
   onEdit?: () => void;
   onDelete?: () => void;
@@ -40,6 +43,7 @@ export default function MarkerDetails({
   onShare,
   onReport,
   onWatch,
+  onOpenPoster,
   onEdit,
   onDelete,
   busy = false,
@@ -98,7 +102,18 @@ export default function MarkerDetails({
         ) : (
           <Row label={t.details.views} value={t.details.statsPending} />
         )}
-        <Row label={t.details.contributor} value={marker.createdBy || '-'} />
+        <Row
+          label={t.details.contributor}
+          value={
+            onOpenPoster && marker.ownerUid ? (
+              <button type="button" onClick={() => onOpenPoster(marker)} className="font-bold text-indigo-600 underline" title={t.poster.open}>
+                {marker.createdBy}
+              </button>
+            ) : (
+              marker.createdBy || '-'
+            )
+          }
+        />
         <Row label={t.form.lat} value={marker.lat.toFixed(6)} />
         <Row label={t.form.lng} value={marker.lng.toFixed(6)} />
       </dl>

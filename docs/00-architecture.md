@@ -75,11 +75,11 @@ Loca/                               ワークスペース（git の外）
 | `GeocodePort` | 座標 ⇄ 地名 | `gsi`（国土地理院） |
 | `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
-| `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
+| `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・炎の読み取り（動画ごと・投稿者の合計。T82）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
 | `ReportStorePort` | 通報（1 人 1 マーカー 1 件） | `firestore-reports` |
 | `ProfileStorePort` | プロフィール（ニックネーム・同意）の読み書き・アカウント削除 | `firestore-profiles`（ADR 0019・0021） |
 | `AdminStorePort` | 管理者モードの読み書き（利用者・投稿の論理削除・撮影リクエストの取り下げ・定期処理の記録・機器マスタ） | `firestore-admin`（T27・ADR 0025） |
-| `LikeStorePort` | いいねの付け外し・件数・自分の投稿が受け取った件数（1 人 1 マーカー 1 件） | `firestore-likes`（件数の文書とトランザクションで書く。ADR 0024） |
+| `LikeStorePort` | いいねの付け外し・件数・自分の投稿が受け取った件数・投稿者の合計（公開プロフィール。T82）（1 人 1 マーカー 1 件） | `firestore-likes`（件数の文書とトランザクションで書く。ADR 0024） |
 
 `AuthPort` と書き込みのポートは Firebase の設定値がそろったときだけ作られ、無ければ `null`（閲覧だけで動く）。
 Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初期読み込みには含めない（`npm run verify` が検査する）。

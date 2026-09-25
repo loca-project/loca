@@ -21,6 +21,11 @@ export interface LikeStorePort extends Adapter {
   set(marker: { id: string; ownerUid: string }, liked: boolean): Promise<LikeState>;
   /** 自分のマーカーが受け取った件数（マーカー ID → 件数。0 件のマーカーは含まない）。未ログインなら空。 */
   receivedByMine(): Promise<Record<string, number>>;
+  /**
+   * 投稿者が受け取ったいいねの合計（公開プロフィール。T82）。誰でも読める。集計の問い合わせ 1 回。
+   * 論理削除したマーカーの分も含む（件数の文書は残るため。ADR 0024）。
+   */
+  totalFor(ownerUid: string): Promise<number>;
   /** 自分が付けたいいねをすべて外す（アカウント削除。ADR 0021）。外した件数を返す。 */
   unlikeAllMine(): Promise<number>;
 }

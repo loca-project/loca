@@ -9,6 +9,7 @@ import type { LocaApp } from './useLocaApp';
 
 const MyPostsModal = lazy(() => import('@/features/profile/MyPostsModal'));
 const AdminDashboard = lazy(() => import('@/features/admin/AdminDashboard'));
+const PosterProfileModal = lazy(() => import('@/features/profile/PosterProfileModal'));
 const VideoDetailsModal = lazy(() => import('@/features/marker/VideoDetailsModal'));
 const ContributeGuideModal = lazy(() => import('@/features/contribute/ContributeGuideModal'));
 
@@ -50,6 +51,20 @@ export default function LazyModals({ app, uid }: LazyModalsProps) {
       )}
 
       {app.modals.guide && <ContributeGuideModal open onClose={() => app.openModal('guide', false)} />}
+
+      {/* 投稿者の公開プロフィール（T82）。ログインしていなくても開ける */}
+      {app.poster && (
+        <PosterProfileModal
+          poster={app.poster}
+          markers={app.catalog.markers}
+          onPick={(m) => {
+            app.setPoster(null);
+            app.jumpTo({ lat: m.lat, lng: m.lng });
+            app.handleMarkerClick(m);
+          }}
+          onClose={() => app.setPoster(null)}
+        />
+      )}
 
       {app.modals.admin && (
         <AdminDashboard
