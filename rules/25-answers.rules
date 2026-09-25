@@ -22,15 +22,15 @@
     }
 
     // 応えたマーカーが残っていて、ほかの人の投稿で、このリクエストに応えていて、近くにある。
-    // マーカーはリクエストから 1 日以上たって登録されていること。物理削除のあと同じ ID で作り直して二重に受け取る・
-    // まだ無い ID を先に並べておくのを防ぎ、2 つのアカウントで炎を増やす速さを 1 日 5 までに抑える（利用者の判断）。
+    // マーカーはリクエストから 3 時間以上たって登録されていること。物理削除のあと同じ ID で作り直して二重に受け取る・
+    // まだ無い ID を先に並べておくのを防ぎ、2 つのアカウントで炎を増やす速さを抑える（3 時間は利用者の判断。機器の同期の間隔とそろえた）。
     // resource はリクエストなので get は増えない
     function answerable(markerId, requestId) {
       let m = get(docPath('markers', markerId)).data;
       return m.deleted == false
         && m.ownerUid != request.auth.uid
         && m.get('answers', []).hasAny([requestId])
-        && resource.data.createdAt + duration.value(1, 'd') <= m.createdAt
+        && resource.data.createdAt + duration.value(3, 'h') <= m.createdAt
         && nearEnough(m, resource.data);
     }
 

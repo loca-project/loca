@@ -186,8 +186,8 @@ describe('受け取り（T43・ADR 0028）', () => {
     // 別の地点として（地点をまとめる幅 0.0003 度より遠く）、応えた動画の近く（0.01 度以内）に置く
     const r2 = await alice.create(content(2, 35.005));
     const { Timestamp } = await import('firebase/firestore');
-    // 受け取れるのはリクエストから 1 日以上たって登録された動画（ADR 0028）
-    const soon = Timestamp.fromMillis(Date.now() + 2 * 86_400_000);
+    // 受け取れるのはリクエストから 3 時間以上たって登録された動画（ADR 0028）
+    const soon = Timestamp.fromMillis(Date.now() + 4 * 3_600_000);
     await seed(env, (db) => setDoc(doc(db, 'markers', 'm1'),
       storedMarker('bob', { answers: [r1.id, r2.id], lat: 35.0, lng: 135.0, createdAt: soon, updatedAt: soon })));
     await alice.receive({ id: r1.id, heat: 3 }, { id: 'm1', ownerUid: 'bob' });

@@ -161,9 +161,9 @@ describe('受け取る', () => {
     await assertFails(receive(as('alice'), 'alice', { requestId: 'r1', heat: 3, used: 2, before: { heat: 3, count: 1 } }));
   });
 
-  it('リクエストから 1 日たたずに登録された動画では受け取れない', async () => {
+  it('リクエストから 3 時間たたずに登録された動画では受け取れない', async () => {
     await seed(env, (db) => setDoc(doc(db, 'requests', 'r1'), request('alice', 3, {
-      createdAt: Timestamp.fromMillis(Date.parse('2025-12-31T12:00:00Z')), updatedAt: past })));
+      createdAt: Timestamp.fromMillis(Date.parse('2025-12-31T22:00:00Z')), updatedAt: past })));
     await assertFails(receive(as('alice'), 'alice', { requestId: 'r1', heat: 3, used: 2 }));
   });
 

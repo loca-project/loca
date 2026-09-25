@@ -15,7 +15,8 @@ before(async () => {
 });
 after(async () => { await vite.close(); });
 
-const DAY = 86_400_000;
+// 受け取りの待ち（3 時間）を超える時間
+const DAY = 4 * 3_600_000;
 const e = (id, ownerUid, createdAt) => ({ id, ownerUid, heat: 1, createdAt });
 const spot = (id, entries) => ({ id, lat: 35, lng: 139, totalHeat: entries.length, requestCount: entries.length, updatedAt: 0, entries });
 // 地点（35, 139）の近くに置く。遠い動画・リクエストより前の動画は届いたことにしない（ルールの answerable と同じ）
@@ -27,9 +28,9 @@ describe('answerTargets', () => {
     assert.deepEqual(lib.answerTargets(s, 'me', 40 + DAY), ['r3', 'r1']);
   });
 
-  it('出してから 1 日たっていないリクエストは除く（いま登録しても受け取れない）', () => {
+  it('出してから 3 時間たっていないリクエストは除く（いま登録しても受け取れない）', () => {
     const s = spot('s1', [e('r1', 'alice', 10), e('r3', 'bob', 30)]);
-    assert.deepEqual(lib.answerTargets(s, 'me', 20 + DAY), ['r1']);
+    assert.deepEqual(lib.answerTargets(s, 'me', 20 + lib.ANSWER_WAIT_MS), ['r1']);
   });
 
   it('上限（10 件）までに切る', () => {
@@ -52,7 +53,7 @@ describe('deliveredAnswers', () => {
     assert.deepEqual(rows.map((r) => [r.entry.id, r.markers.map((m) => m.id)]), [['r1', ['m4', 'm1']]]);
   });
 
-  it('遠い動画と、リクエストから 1 日たたずに登録された動画は出さない', () => {
+  it('遠い動画と、リクエストから 3 時間たたずに登録された動画は出さない', () => {
     const markers = [marker('m1', 'bob', ['r1'], 100 + DAY, false, 36), marker('m2', 'bob', ['r3'], 100)];
     assert.deepEqual(lib.deliveredAnswers(markers, spots, 'me'), []);
   });
