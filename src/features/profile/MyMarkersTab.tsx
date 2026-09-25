@@ -66,7 +66,8 @@ export default function MyMarkersTab({ mine, received, onJump }: MyMarkersTabPro
         onDelete={() => remove(selection.selected)}
         onExport={exportSelected}
       />
-      <ul>
+      {/* 一覧だけを巻き取る（タブと「すべて選択・削除・書き出し」は見えたまま。件数が多くても窓は画面の 9 割まで。管理者モードと同じ） */}
+      <ul className="max-h-[50vh] overflow-y-auto">
         {mine.map((m) => (
           <PostRow
             key={m.id}
