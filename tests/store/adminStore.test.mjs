@@ -158,3 +158,23 @@ describe('撮影リクエストの取り下げ: 熱量の記録が合わない�
       { name: 'UpstreamError', message: /熱量の記録（なし）/ });
   });
 });
+
+describe('機器マスタ（T28・ADR 0025）', () => {
+  const makers = [{ name: 'GoPro', series: [{ name: 'HERO', models: ['HERO13 Black'] }] }];
+
+  it('管理者は分類を保存し、読み直し、既定に戻せる', async () => {
+    const store = storeFor('root');
+    assert.deepEqual(await store.editedEquipment(), {});
+    await store.saveEquipment('action', makers);
+    const edited = await store.editedEquipment();
+    assert.deepEqual(Object.keys(edited), ['action']);
+    assert.deepEqual(edited.action.makers, makers);
+    assert.ok(edited.action.updatedAt > 0);
+    await store.resetEquipment('action');
+    assert.deepEqual(await store.editedEquipment(), {});
+  });
+
+  it('一般の利用者の保存は、理由の分かるエラーになる', async () => {
+    await assert.rejects(storeFor('alice').saveEquipment('action', makers), /管理者/);
+  });
+});

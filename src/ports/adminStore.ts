@@ -1,4 +1,12 @@
+import type { EquipmentDef } from '@/core/types';
 import type { Adapter } from './common';
+
+/** 管理者が画面で直した機器マスタの 1 分類（Firestore の equipmentMaster/{分類のキー}。ADR 0025）。 */
+export interface EditedEquipment {
+  makers: EquipmentDef['makers'];
+  /** 保存した日時（epoch ms） */
+  updatedAt: number;
+}
 
 /** 定期処理の記録 1 件（Firestore の jobs/{id}。Actions が書く。ADR 0017・0021）。 */
 export interface JobRecord {
@@ -57,4 +65,10 @@ export interface AdminStorePort extends Adapter {
    * 印は 1 件ずつしか動かせない（ルール）ので、まとめて取り下げるときは呼び出し側が順に呼ぶ。
    */
   withdrawRequest(entry: { id: string; heat: number; ownerUid: string }): Promise<void>;
+  /** 画面で直した機器マスタの分類（キー → 中身）。直していない分類は入らない。 */
+  editedEquipment(): Promise<Record<string, EditedEquipment>>;
+  /** 1 分類のメーカー以下を保存する。公開（equipment.json）は次の同期で行う。管理者だけ。 */
+  saveEquipment(category: string, makers: EquipmentDef['makers']): Promise<void>;
+  /** 1 分類の保存を消し、コードの既定に戻す（次の同期で反映）。管理者だけ。 */
+  resetEquipment(category: string): Promise<void>;
 }

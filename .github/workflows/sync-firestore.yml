@@ -84,7 +84,7 @@ jobs:
           node-version: 22
 
       # 依存パッケージを使わないスクリプトなので npm ci は要らない
-      - name: Firestore から markers.json と requests.json を作り直す
+      - name: Firestore から markers.json・requests.json・equipment.json を作り直す
         env:
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
@@ -95,7 +95,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/data/markers.json public/data/requests.json
+          git add public/data/markers.json public/data/requests.json public/data/equipment.json
           if git diff --cached --quiet; then
             echo "変更なし"
             echo "changed=false" >> "$GITHUB_OUTPUT"

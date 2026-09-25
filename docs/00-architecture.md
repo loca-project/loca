@@ -25,7 +25,7 @@
 ```text
 閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot。updatedAt > syncedAt）
 投稿:  ブラウザ ──> Firebase Auth ──> Firestore（投稿・撮影リクエスト・通報・いいね。権限・重複・上限はルール）
-反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json を再生成 ──> ビルド（feed.xml も作る）──> Pages に反映
+反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json / equipment.json を再生成 ──> ビルド（feed.xml も作る）──> Pages に反映
 ```
 
 同期より後の変更は、すべて updatedAt を進める書き込みで表す（論理削除）。だから差分の購読で取りこぼさない（ADR 0013）。
@@ -73,6 +73,8 @@ Loca/                               ワークスペース（git の外）
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
 | `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く） |
 | `ReportStorePort` | 通報（1 人 1 マーカー 1 件） | `firestore-reports` |
+| `ProfileStorePort` | プロフィール（ニックネーム・同意）の読み書き・アカウント削除 | `firestore-profiles`（ADR 0019・0021） |
+| `AdminStorePort` | 管理者モードの読み書き（利用者・投稿の論理削除・撮影リクエストの取り下げ・定期処理の記録・機器マスタ） | `firestore-admin`（T27・ADR 0025） |
 | `LikeStorePort` | いいねの付け外し・件数・自分の投稿が受け取った件数（1 人 1 マーカー 1 件） | `firestore-likes`（件数の文書とトランザクションで書く。ADR 0024） |
 
 `AuthPort` と書き込みのポートは Firebase の設定値がそろったときだけ作られ、無ければ `null`（閲覧だけで動く）。
@@ -141,7 +143,7 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 21 項目チェック（2026-09-25）
+npm run verify      # 設計上の約束を 22 項目チェック（2026-09-25）
 npm run check       # 上記 3 つをまとめて
 ```
 
@@ -156,3 +158,5 @@ npm run check       # 上記 3 つをまとめて
 - ワークフローが決まりどおり（日本語の名前・runner の版の固定・Node.js 24 対応の Actions・if で比べる cron が on.schedule にある。`scripts/lib/workflow-lint.mjs`）
 - `dist/` が静的ファイルのみ。初期読み込みの JS に Firebase SDK が無く、260 kB 以内
 - `version.json` の版が `index.html` の入口と一致（ADR 0022）。`feed.xml`（新着マーカーの RSS。T47）が RSS 2.0 で、公開データの新着 50 件までを載せている
+- `firestore.rules` が `rules/` の部品と一致（ADR 0020）。ルールのコレクションがすべて `reset-data` の消す・残すに入っている
+- 機器の分類が src・ルール（2 か所）・マスタ・同期で一致（ADR 0018・0025）

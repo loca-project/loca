@@ -144,13 +144,19 @@ record('firestore.rules が rules/ の部品と一致', rulesText.replace(/\r\n/
 const rulesCategories = [...(rulesText.match(/e\.category in \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']*)'/g)]
   .map((m) => m[1])
   .filter(Boolean);
+// 画面で直す機器マスタ（equipmentMaster）の分類の一覧と、同期の一覧も同じであること（ADR 0025）
+const editableCategories = [...(rulesText.match(/return category in \[([^\]]*)\]/)?.[1] ?? '').matchAll(/'([^']*)'/g)]
+  .map((m) => m[1]);
 const { EQUIPMENT_MASTER } = await import('./data/equipment-master.mjs');
+const { CATEGORIES: syncCategories } = await import('./lib/equipment-master.mjs');
 const masterCategories = EQUIPMENT_MASTER.map((c) => c.category);
 const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 record(
-  '機器の分類が src・ルール・マスタで一致',
-  srcCategories.length > 0 && same(srcCategories, rulesCategories) && same(srcCategories, masterCategories),
-  `src=${srcCategories.length} / rules=${rulesCategories.length} / master=${masterCategories.length}`,
+  '機器の分類が src・ルール・マスタ・同期で一致',
+  srcCategories.length > 0
+    && [rulesCategories, editableCategories, masterCategories, syncCategories].every((list) => same(srcCategories, list)),
+  `src=${srcCategories.length} / rules=${rulesCategories.length}・${editableCategories.length} / master=${masterCategories.length}`
+    + ` / sync=${syncCategories.length}`,
 );
 
 // 8b. 撮影リクエストの「同じ地点」のしきい値が、画面（src）と日次の同期（scripts）で一致していること

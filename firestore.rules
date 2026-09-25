@@ -501,6 +501,28 @@ service cloud.firestore {
       allow delete: if canWrite() && isAdmin() && !exists(docPath('markers', markerId));
     }
 
+    // ---- 機器マスタ（ADR 0025・T28）----
+    // equipmentMaster/{分類のキー}。管理者が画面で直した分類だけを置き、同期が equipment.json を作り直す。
+    // 分類のキーは validEquipment と同じ（空文字を除く）。分類そのものの追加はコードの変更に残す。
+    // 入れ子の中身（名前の長さ・重複）はルールでは検査しきれないので、画面と同期が検査する。ここは形と件数の上限だけ。
+
+    function validEquipmentMaster(category) {
+      let d = request.resource.data;
+      return category in ['drone', 'mirrorless', 'cinema', 'action', 'gimbal', 'camera360', 'smartphone', 'camcorder', 'other']
+        && d.keys().hasOnly(['makers', 'updatedAt'])
+        && d.keys().hasAll(['makers', 'updatedAt'])
+        && d.makers is list && d.makers.size() <= 60
+        && d.updatedAt == request.time;
+    }
+
+    match /equipmentMaster/{category} {
+      // 同期（Actions）が API キーだけで読むので、誰でも読める。誰が直したか（管理者の uid）は置かない（admins は伏せているため）
+      allow read: if true;
+      allow create, update: if canWrite() && isAdmin() && validEquipmentMaster(category);
+      // 消すとその分類はコードの既定（scripts/data/equipment-master.mjs）に戻る
+      allow delete: if canWrite() && isAdmin();
+    }
+
     // ---- プロフィール（要件 1.1・2.5・2.6・ADR 0019）----
     // users/{uid}。uid は Firebase Auth の uid なので Google アカウントに紐づく。
     // 持つのはニックネームと同意の記録だけ（メールや本名は保存しない）。読めるのは本人と管理者。

@@ -140,7 +140,7 @@
 |---|---|---|
 | 1.1 Google 認証 | Firebase Auth の Google ログイン（ポップアップ方式） | 実装済み。プロフィール（ニックネームと同意の記録）は `users/{uid}`。未登録では投稿できず、投稿者名はニックネーム（ADR 0019） |
 | 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールと管理者の登録（`npm run admin:add`）、管理者モードの画面（T27・T59〜T61）とも実装済み |
-| 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json` を再生成（Cloud Functions は請求先が必須で使えない） | 実装済み（`sync-firestore.yml`。YouTube API での更新は T24） |
+| 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json`・`requests.json`・`equipment.json` を再生成（Cloud Functions は請求先が必須で使えない） | 実装済み（`sync-firestore.yml`。YouTube API での更新は T24） |
 | 1.3 レートリミット | 利用者単位はセキュリティルールで実装。IP 単位は引き続き実装できない | 実装済み（6 秒間隔。ADR 0012） |
 | 1.4 ベース JSON ＋ リアルタイム差分 | 元の要件どおり。差分は Firestore の `onSnapshot` | 実装済み。`markers.json` の `syncedAt` より後に `updatedAt` が変わった行だけを購読する（ADR 0013） |
 

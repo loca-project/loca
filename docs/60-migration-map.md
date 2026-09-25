@@ -29,8 +29,8 @@
 | `components/MyMarkersModal.tsx` | 315 | `src/features/profile/MyPostsModal.tsx`, `src/core/logic/myPosts.ts` | 撮影リクエストも一覧する。地図の一覧から本人の uid で絞る（T53） |
 | `components/VideoDetailsModal.tsx` | 132 | `src/features/marker/VideoDetailsModal.tsx` | |
 | `components/RequestDetailsModal.tsx` | 224 | `src/features/request/RequestDetailsModal.tsx` | |
-| `components/AdminMode/*.tsx` | 12 ファイル | `src/features/admin/*.tsx`（9 ファイル） | タブ構成を整理（下記） |
-| `equipment_data.json` | 28 | `public/data/equipment.json` | そのまま |
+| `components/AdminMode/*.tsx` | 12 ファイル | `src/features/admin/*.tsx`（10 ファイル） | タブ構成を整理（下記） |
+| `equipment_data.json` | 28 | `public/data/equipment.json` | 4 段に作り直した。同期がコードの既定と管理者の編集から作る（ADR 0018・0025） |
 | `docs/REQUIREMENTS.md` | 467 | `project/docs/10〜50-requirements-*.md` | 章ごとに分割＋差分注記 |
 | `firebase.json` | 16 | `deploy/firebase/firebase.json` | 配信先ごとの設定を `deploy/` に隔離 |
 | `.github/workflows/firebase-hosting-*.yml` | 2 ファイル | `deploy/github-pages/deploy.yml` | 配信先未定のため Pages 版を用意 |
@@ -47,7 +47,7 @@
 | `Logs.tsx` | `LogsTab.tsx` |
 | `UserManagement.tsx` | `UsersTab.tsx` |
 | `MarkerManagement.tsx` | `MarkersTab.tsx` |
-| `EquipmentManagement.tsx` | 未移植（T28） |
+| `EquipmentManagement.tsx` | `EquipmentTab.tsx`（分類の中を字下げの文章で直す。同期で `equipment.json` に反映。ADR 0025） |
 | `NetworkRestrictions.tsx` | 作らない |
 | `UrlManagement.tsx` | 作らない |
 | `Parameters.tsx` | 未移植 |

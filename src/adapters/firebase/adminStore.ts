@@ -16,7 +16,8 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import { nicknameKey } from '@/core/logic/profile';
-import type { AdminStorePort, AdminUserLists, AdminUserRow, AuthUser, JobRecord } from '@/ports';
+import type { EquipmentDef } from '@/core/types';
+import type { AdminStorePort, AdminUserLists, AdminUserRow, AuthUser, EditedEquipment, JobRecord } from '@/ports';
 import { UpstreamError } from '@/ports';
 import { toUpstream } from './errors';
 
@@ -142,6 +143,24 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
         batch.update(doc(db, 'requests', entry.id), { withdrawn: true, updatedAt: serverTimestamp() });
         batch.set(doc(db, 'heatBudgets', entry.ownerUid), { used: used - entry.heat, target: entry.id });
         await batch.commit();
+      }),
+
+    editedEquipment: () =>
+      guard(async (): Promise<Record<string, EditedEquipment>> => {
+        const snap = await getDocs(collection(db, 'equipmentMaster'));
+        return Object.fromEntries(
+          snap.docs.map((d) => [d.id, { makers: (d.data().makers ?? []) as EquipmentDef['makers'], updatedAt: ms(d.data().updatedAt) }]),
+        );
+      }),
+
+    saveEquipment: (category, makers) =>
+      guard(async () => {
+        await setDoc(doc(db, 'equipmentMaster', category), { makers, updatedAt: serverTimestamp() });
+      }),
+
+    resetEquipment: (category) =>
+      guard(async () => {
+        await deleteDoc(doc(db, 'equipmentMaster', category));
       }),
   };
 }

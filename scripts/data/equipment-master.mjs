@@ -1,9 +1,9 @@
 /**
  * 撮影機器マスタの元データ（分類 → メーカー → シリーズ → モデル。ADR 0018）。
  * public/data/equipment.json はここから scripts/make-equipment.mjs が作る（手で編集しない）。
- * 管理者画面で編集できるようになったら（T28）、元データは Firestore に移す。
+ * 管理者が画面で直した分類（Firestore の equipmentMaster）は、同期がこの既定の代わりに使う（ADR 0025）。
  *
- * 分類のキーは src/core/constants/equipment.ts と firestore.rules の validEquipment と同じにすること。
+ * 分類のキーは src/core/constants/equipment.ts・ルールの validEquipment と validEquipmentMaster・scripts/lib/equipment-master.mjs と同じにすること（verify が検査する）。
  * 機種は発売を確かめられたものだけを載せる。
  */
 

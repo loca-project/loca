@@ -1,6 +1,7 @@
 /**
- * 撮影機器マスタ public/data/equipment.json を作る（ADR 0018）。元データは scripts/data/equipment-master.mjs。
- * 分類のキーが一覧にあること、同じ分類の中でメーカー・シリーズ・モデルが重複しないことを確かめてから書く。
+ * 撮影機器マスタ public/data/equipment.json をコードの既定から作る（ADR 0018）。元データは scripts/data/equipment-master.mjs。
+ * 分類の並びが一覧どおりで、同じ段の名前が重複せず 80 字以内であることを確かめてから書く（scripts/lib/equipment-master.mjs）。
+ * 管理者が画面で直した分類（Firestore の equipmentMaster）は、同期（sync-firestore.mjs）が上書きする（ADR 0025）。
  *
  *   npm run data:equipment
  */
@@ -8,26 +9,9 @@
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { EQUIPMENT_MASTER } from './data/equipment-master.mjs';
+import { checkDefault } from './lib/equipment-master.mjs';
 
-const CATEGORIES = ['drone', 'mirrorless', 'cinema', 'action', 'gimbal', 'camera360', 'smartphone', 'camcorder', 'other'];
-
-const problems = [];
-const dup = (label, names) => {
-  const seen = new Set();
-  for (const n of names) {
-    if (seen.has(n)) problems.push(`${label} に「${n}」が重複`);
-    seen.add(n);
-  }
-};
-dup('分類', EQUIPMENT_MASTER.map((c) => c.category));
-for (const c of EQUIPMENT_MASTER) {
-  if (!CATEGORIES.includes(c.category)) problems.push(`知らない分類「${c.category}」`);
-  dup(c.category, c.makers.map((m) => m.name));
-  for (const m of c.makers) {
-    dup(`${c.category}/${m.name}`, m.series.map((s) => s.name));
-    for (const s of m.series) dup(`${c.category}/${m.name}/${s.name}`, s.models);
-  }
-}
+const problems = checkDefault();
 if (problems.length) {
   problems.forEach((p) => console.error(`NG: ${p}`));
   process.exit(1);

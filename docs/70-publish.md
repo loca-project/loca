@@ -133,7 +133,7 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 |---|---|---|
 | `publish.yml` | 他から呼ばれたときだけ | ビルド → 検証 → Pages へ公開 |
 | `deploy.yml` | `main` に push したとき | `publish.yml` を呼ぶ |
-| `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | YouTube の情報を更新 → Firestore から `markers.json` と `requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ → 30 日たった行を物理削除 |
+| `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | YouTube の情報を更新 → Firestore から `markers.json`・`requests.json`・`equipment.json`（機器マスタ。ADR 0025）を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ → 30 日たった行を物理削除 |
 | `sync-firestore.yml`（毎時） | 毎時 15 分（0:00 の回を除く） | 未取得のマーカーだけ YouTube の情報を取る → 何か書いたときだけ同期と公開（T57。ADR 0017 の追記） |
 
 ### 名前・実行名・ジョブ概要の決まり（T31）
@@ -145,7 +145,7 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 | ワークフローの名前（`name`） | 日本語で「種類（補足）」 | `公開（push）`・`同期（Firestore → 公開データ）`・`公開の共通処理`・`疎通確認（Google）` |
 | 実行名（`run-name`） | 「種類・契機」。手動なら実行した人を括弧で足す。push はコミットの題名のまま（付けない） | `同期・毎晩`・`同期・手動（loca-project）` |
 | ジョブの ID | 英小文字の動詞。変えない（`scripts/release.mjs` が job 名で結果を読む） | `refresh`・`sync`・`purge`・`publish` |
-| ジョブ概要 | 件数を出すスクリプトは `scripts/lib/summary.mjs` の `writeSummary` で表を書く（Actions の外では何もしない） | 同期: Firestore の件数・公開データの件数の変化 |
+| ジョブ概要 | 件数を出すスクリプトは `scripts/lib/summary.mjs` の `writeSummary` で表を書く（Actions の外では何もしない） | 同期: Firestore の件数・公開データの件数の変化・機器マスタの編集件数と NG |
 
 **なぜ同期側から直接 publish を呼ぶのか**: GitHub には
 「`GITHUB_TOKEN` による push は他のワークフローを起動しない」という再帰防止の仕様がある。
@@ -179,7 +179,7 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
           ↓
        その場で地図に出る。他の人の画面にも差分の購読で届く（再読み込み不要）
           ↓
-毎晩 0:00: sync-firestore.yml が Firestore から markers.json / requests.json を作り直す → 公開
+毎晩 0:00: sync-firestore.yml が Firestore から markers.json / requests.json / equipment.json を作り直す → 公開
 ```
 
 取り下げ・削除は論理削除なので、同期より前に作られた行でも購読で全員の画面に届く（ADR 0013）。

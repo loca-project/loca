@@ -56,6 +56,7 @@ export default function LazyModals({ app, uid }: LazyModalsProps) {
           open
           markers={app.catalog.markers}
           requestMarkers={app.catalog.requestMarkers}
+          equipment={app.catalog.equipment}
           onClose={() => app.openModal('admin', false)}
           onJump={pickAdmin((m) => app.handleMarkerClick(m))}
           onJumpRequest={pickAdmin((r) => app.handleRequestClick(r))}
