@@ -16,14 +16,15 @@ const GH = existsSync('C:\\Program Files\\GitHub CLI\\gh.exe') ? 'C:\\Program Fi
 const gh = (args) => execFileSync(GH, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const json = (args) => JSON.parse(gh(args) || 'null');
 
-/** 見る実行: 引数があればそれ、無ければ HEAD の push の実行と、最新の同期の実行 */
+/** 見る実行: 引数があればそれ、無ければ HEAD の push の実行と、最新の同期（公開データ・機器マスタ。ADR 0025）の実行 */
 function targetRuns() {
   const ids = process.argv.slice(2).filter((a) => /^\d+$/.test(a));
   if (ids.length) return ids;
   const head = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
   const pushed = json(['run', 'list', '-R', REPO, '--commit', head, '-L', '5', '--json', 'databaseId']) ?? [];
-  const sync = json(['run', 'list', '-R', REPO, '--workflow', 'sync-firestore.yml', '-L', '1', '--json', 'databaseId']) ?? [];
-  return [...new Set([...pushed, ...sync].map((r) => String(r.databaseId)))];
+  const syncs = ['sync-firestore.yml', 'sync-equipment.yml']
+    .flatMap((wf) => json(['run', 'list', '-R', REPO, '--workflow', wf, '-L', '1', '--json', 'databaseId']) ?? []);
+  return [...new Set([...pushed, ...syncs].map((r) => String(r.databaseId)))];
 }
 
 /** 知らせる注記: 警告と失敗はすべて、notice は非推奨・移行の予告だけ */

@@ -46,10 +46,13 @@ const repo = run('git', ['remote', 'get-url', 'origin']).replace(/^.*github\.com
 
 const author = run('git', ['log', '-1', '--format=%an']);
 const byBot = author === 'github-actions[bot]';
+// ボットのコミットを作ったワークフロー。機器マスタだけを変えたコミットは sync-equipment.yml（ADR 0025）、ほかは sync-firestore.yml
+const changed = run('git', ['diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD']).split('\n');
+const botWorkflow = changed.every((f) => f === 'public/data/equipment.json') ? 'sync-equipment.yml' : 'sync-firestore.yml';
 
-// 1. HEAD の実行を探して完了まで待つ（push 直後は実行がまだ無いことがある）。ボットのコミットは同期ワークフローを見る
+// 1. HEAD の実行を探して完了まで待つ（push 直後は実行がまだ無いことがある）。ボットのコミットはそれを作った同期ワークフローを見る
 const listArgs = byBot
-  ? ['run', 'list', '-R', repo, '--workflow', 'sync-firestore.yml', '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId']
+  ? ['run', 'list', '-R', repo, '--workflow', botWorkflow, '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId']
   : ['run', 'list', '-R', repo, '--commit', sha, '--limit', '1', '--json', 'databaseId', '--jq', '.[0].databaseId'];
 let runId = '';
 for (let i = 0; i < 20 && !runId; i += 1) {

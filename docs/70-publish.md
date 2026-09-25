@@ -127,13 +127,14 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 
 ## ワークフローの構成
 
-3 本に分かれている。分けているのは GitHub の仕様上の制約による。
+5 本に分かれている。分けているのは GitHub の仕様上の制約による。
 
 | ファイル | いつ動くか | 何をするか |
 |---|---|---|
 | `publish.yml` | 他から呼ばれたときだけ | ビルド → 検証 → Pages へ公開 |
 | `deploy.yml` | `main` に push したとき | `publish.yml` を呼ぶ |
 | `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | YouTube の情報を更新 → Firestore から `markers.json`・`requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ → 30 日たった行を物理削除 |
+| `probe-google.yml` | 手動だけ | Actions から YouTube Data API と Firestore に届くかを確かめる（T23。公開物には触れない） |
 | `sync-equipment.yml` | 3 時間ごと（日本時間 0:45 から）と手動 | Firestore の `equipmentMaster` とコードの既定から `equipment.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ（ADR 0025） |
 | `sync-firestore.yml`（毎時） | 毎時 15 分（0:00 の回を除く） | 未取得のマーカーだけ YouTube の情報を取る → 何か書いたときだけ同期と公開（T57。ADR 0017 の追記） |
 
@@ -155,12 +156,15 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 **Firestore からの同期**（要件 1.3・1.4）: `markers` と `requests` はルールで誰でも読めるので、API キー（Variables の公開値）だけで読む。
 秘密情報は使わない。論理削除・取り下げ済みの行は除く。`markers.json` の `syncedAt` が
 「読み始めた時刻」で、アプリはそれより後の変更だけを onSnapshot で購読する。
+機器マスタ（`equipmentMaster`）も同じく API キーだけで読み、3 時間ごとに `equipment.json` を作り直す（購読はしない。ADR 0025）。
 
 | 操作 | コマンド |
 |---|---|
 | 手元で件数だけ確かめる | `npm run data:sync:check` |
 | 本番で今すぐ同期する | `gh workflow run sync-firestore.yml` → `gh run watch` |
 | 毎時の経路を手動で試す | `gh workflow run sync-firestore.yml -f hourly=true` |
+| 機器マスタを手元で確かめる | `npm run data:sync-equipment -- --check` |
+| 機器マスタを今すぐ反映する | `gh workflow run sync-equipment.yml` → `gh run watch` |
 
 ## 公開 URL
 
