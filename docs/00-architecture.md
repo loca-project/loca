@@ -77,7 +77,7 @@ Loca/                               ワークスペース（git の外）
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
 | `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・炎の読み取り（動画ごと・投稿者の合計。T82）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
 | `ReportStorePort` | 通報（1 人 1 マーカー 1 件） | `firestore-reports` |
-| `ProfileStorePort` | プロフィール（ニックネーム・同意・自己申告のチャンネル。T55）の読み書き・アカウント削除 | `firestore-profiles`（ADR 0019・0021） |
+| `ProfileStorePort` | プロフィール（ニックネーム・同意）と公開プロフィールの YouTube チャンネル（`publicProfiles`。T55）の読み書き・アカウント削除 | `firestore-profiles`（ADR 0019・0021） |
 | `AdminStorePort` | 管理者モードの読み書き（利用者・投稿の論理削除・撮影リクエストの取り下げ・定期処理の記録・機器マスタ） | `firestore-admin`（T27・ADR 0025） |
 | `LikeStorePort` | いいねの付け外し・件数・自分の投稿が受け取った件数・投稿者の合計（公開プロフィール。T82）（1 人 1 マーカー 1 件） | `firestore-likes`（件数の文書とトランザクションで書く。ADR 0024） |
 
@@ -120,7 +120,6 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 
 基準は要件どおり再生数（`src/core/logic/ranking.ts`）。
 再生数・動画の投稿日・長さは、毎晩 Actions が YouTube Data API で取って markers.json に入れる（ADR 0017）。
-動画のチャンネル ID（`youtube.channelId`）と、投稿者の自己申告のチャンネルと一致した印（`youtube.ownChannel`）も同じく入れる（ADR 0029）。
 ブラウザは YouTube Data API を呼ばない（登録時の題名などは oEmbed。API キーは Actions の Secrets だけ）。
 
 | 項目 | 現在 |

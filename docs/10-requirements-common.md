@@ -138,7 +138,7 @@
 
 | 本章の記述 | 実装後 | 状態（2026-09-24） |
 |---|---|---|
-| 1.1 Google 認証 | Firebase Auth の Google ログイン（ポップアップ方式） | 実装済み。プロフィール（ニックネームと同意の記録、任意の自己申告の YouTube チャンネル）は `users/{uid}`。未登録では投稿できず、投稿者名はニックネーム（ADR 0019） |
+| 1.1 Google 認証 | Firebase Auth の Google ログイン（ポップアップ方式） | 実装済み。プロフィール（ニックネームと同意の記録）は `users/{uid}`、ほかのユーザーに見せる任意の YouTube チャンネルは `publicProfiles/{uid}`（ADR 0029）。未登録では投稿できず、投稿者名はニックネーム（ADR 0019） |
 | 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールと管理者の登録（`npm run admin:add`）、管理者モードの画面（T27・T59〜T61）とも実装済み |
 | 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json`・`requests.json` を毎晩、`equipment.json` を 3 時間ごとに再生成（Cloud Functions は請求先が必須で使えない） | 実装済み（`sync-firestore.yml`・機器は `sync-equipment.yml`。YouTube API での更新は T24） |
 | 1.3 レートリミット | 利用者単位はセキュリティルールで実装。IP 単位は引き続き実装できない | 実装済み（6 秒間隔。ADR 0012） |
