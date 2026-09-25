@@ -77,6 +77,8 @@ export const adminJa = {
     delete: '削除',
     toBlacklist: 'ブラックリストへ',
     unblacklist: '登録解除',
+    searchIn: '{title}を名前・uid で探す',
+    noMatch: '当てはまるユーザーはいません',
     confirmDelete: '「{name}」のプロフィールを削除しますか？マーカーは消えません（投稿動画のタブで消せます）。次にログインすると登録画面から始まります。',
     confirmBlacklist: '「{name}」をブラックリストに入れますか？ログインできなくなり、投稿もできなくなります。',
     confirmUnblacklist: '「{name}」をブラックリストから外しますか？',

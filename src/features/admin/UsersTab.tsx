@@ -2,17 +2,20 @@
  * ユーザー管理のタブ（要件 5.2.4・T59）。管理者・一般のユーザー・ブラックリストの 3 区画を横に並べる。
  * 利用者はニックネームと uid で見分ける（メールと Google の名前は保存しない。ADR 0019）。
  * 操作は「削除」（プロフィールと名前の索引。マーカーは消さない）と「ブラックリスト」の 2 つ。管理者には操作を出さない。
+ * 区画ごとにニックネームか uid で絞れる。外枠・操作ボタンの幅・ボタンのある行の高さは区画の間でそろえる（T74）。
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
 import type { AdminUserLists, AdminUserRow } from '@/ports';
+import { usersMatching } from '@/core/logic/adminUsers';
 import { formatDate } from '@/core/logic/format';
-import { Button } from '@/shared/components/Controls';
+import { Button, TextInput } from '@/shared/components/Controls';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
 
+/** 1 人分の行。登録日が無くても行を 3 段にして、区画の間で行の高さをそろえる。 */
 function UserLine({ row, children }: { row: AdminUserRow; children?: React.ReactNode }) {
   const { t } = useI18n();
   return (
@@ -21,23 +24,33 @@ function UserLine({ row, children }: { row: AdminUserRow; children?: React.React
       <p className="truncate font-mono text-[10px] text-gray-400" title={row.uid}>
         {row.uid}
       </p>
-      {row.createdAt > 0 && (
-        <p className="text-[10px] text-gray-500">
-          {t.profile.createdAt}: {formatDate(row.createdAt)}
-        </p>
-      )}
-      {children && <div className="mt-1.5 flex gap-1.5">{children}</div>}
+      <p className="text-[10px] text-gray-500">
+        {t.profile.createdAt}: {row.createdAt > 0 ? formatDate(row.createdAt) : '—'}
+      </p>
+      {/* ボタンはどの区画でも同じ幅（2 列の格子の 1 マス）にそろえる */}
+      {children && <div className="mt-1.5 grid grid-cols-2 gap-1.5">{children}</div>}
     </li>
   );
 }
 
-function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+/** 区画。見出しの下に検索欄を置き、ニックネームか uid で絞る。件数は「絞った数 / 全体」。 */
+function Section({ title, rows, render }: { title: string; rows: AdminUserRow[]; render: (row: AdminUserRow) => React.ReactNode }) {
+  const { t } = useI18n();
+  const u = t.admin.users;
+  const [query, setQuery] = useState('');
+  const shown = usersMatching(rows, query);
+  const label = u.searchIn.replace('{title}', title);
   return (
-    <section className="min-w-0 rounded-lg border border-gray-100 p-3">
-      <h3 className="mb-1 text-xs font-bold text-gray-700">
-        {title}（{count}）
+    <section className="flex min-w-0 flex-col rounded-lg border border-gray-100 p-3">
+      <h3 className="mb-1.5 text-xs font-bold text-gray-700">
+        {title}（{query.trim() ? `${shown.length} / ${rows.length}` : rows.length}）
       </h3>
-      <ul className="max-h-[50vh] overflow-y-auto">{children}</ul>
+      <TextInput type="search" value={query} placeholder={label} aria-label={label} onChange={(e) => setQuery(e.target.value)} />
+      {/* スクロールバーの有無で中の幅が変わり、区画の間でボタンの幅がずれないよう、場所を常に空けておく */}
+      <ul className="mt-1 h-[50vh] overflow-y-auto [scrollbar-gutter:stable]">
+        {shown.map(render)}
+        {shown.length === 0 && <li className="py-3 text-center text-[11px] text-gray-400">{u.noMatch}</li>}
+      </ul>
     </section>
   );
 }
@@ -91,13 +104,11 @@ export default function UsersTab() {
         <p className="text-[11px] text-gray-500">{u.note}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <Section title={u.admins} count={lists.admins.length}>
-          {lists.admins.map((row) => (
-            <UserLine key={row.uid} row={row} />
-          ))}
-        </Section>
-        <Section title={u.users} count={lists.users.length}>
-          {lists.users.map((row) => (
+        <Section title={u.admins} rows={lists.admins} render={(row) => <UserLine key={row.uid} row={row} />} />
+        <Section
+          title={u.users}
+          rows={lists.users}
+          render={(row) => (
             <UserLine key={row.uid} row={row}>
               <Button
                 variant="dangerSoft"
@@ -114,10 +125,12 @@ export default function UsersTab() {
                 {u.toBlacklist}
               </Button>
             </UserLine>
-          ))}
-        </Section>
-        <Section title={u.blacklist} count={lists.blacklist.length}>
-          {lists.blacklist.map((row) => (
+          )}
+        />
+        <Section
+          title={u.blacklist}
+          rows={lists.blacklist}
+          render={(row) => (
             <UserLine key={row.uid} row={row}>
               <Button
                 variant="secondary"
@@ -127,8 +140,8 @@ export default function UsersTab() {
                 {u.unblacklist}
               </Button>
             </UserLine>
-          ))}
-        </Section>
+          )}
+        />
       </div>
     </div>
   );

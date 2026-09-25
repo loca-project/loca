@@ -13,7 +13,9 @@ export const adminEn: DeepPartial<typeof adminJa> = {
   tabEquipment: 'Equipment',
   tabLogs: 'Logs',
   equipment: {
-    note: 'Edit the makers, series and models of each category. The post form picks them up within 3 hours (the equipment sync runs every 3 hours; run "同期（機器マスタ）" by hand in GitHub Actions to hurry). Adding a category needs a code change.',
+    note:
+      'Edit the makers, series and models of each category. The post form picks them up within 3 hours ' +
+      '(the equipment sync runs every 3 hours; run "同期（機器マスタ）" by hand in GitHub Actions to hurry). Adding a category needs a code change.',
     category: 'Category',
     editedMark: '(edited)',
     editedAt: 'Edited on screen (saved {at})',
@@ -74,6 +76,8 @@ export const adminEn: DeepPartial<typeof adminJa> = {
     delete: 'Delete',
     toBlacklist: 'Blacklist',
     unblacklist: 'Remove',
+    searchIn: 'Search {title} by name or uid',
+    noMatch: 'No matching users',
     confirmDelete: 'Delete the profile of "{name}"? Their markers stay (remove them in the Videos tab). They start over from registration next time.',
     confirmBlacklist: 'Blacklist "{name}"? They will not be able to sign in or post.',
     confirmUnblacklist: 'Remove "{name}" from the blacklist?',

@@ -13,3 +13,4 @@ export * from './mapFilter';
 export * from './profile';
 export * from './myPosts';
 export * from './adminMarkers';
+export * from './adminUsers';
