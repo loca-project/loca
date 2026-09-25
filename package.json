@@ -39,6 +39,7 @@
     "rules:build": "node scripts/build-rules.mjs",
     "actions:warnings": "node scripts/actions-warnings.mjs",
     "probe": "node scripts/probe-run.mjs",
+    "fs:read": "node scripts/fs-read.mjs",
     "size:breakdown": "node scripts/size-breakdown.mjs"
   },
   "dependencies": {

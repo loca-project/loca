@@ -18,6 +18,7 @@
 - 子プロセスを `shell: true` で起動しない（`npm run verify` が検出）。npm は `process.execPath` と `npm_execpath` で、
   gh・git は `execFileSync` で直接起動する（T65。`release.mjs` の `npm()` が見本）。
 - YouTube Data API の返り値を確かめるときは `npm run probe -- <動画ID> [--ref <枝>]`（キーは Actions の Secrets にだけある）。
+- 本番の Firestore をオーナー権限で読むときは `npm run fs:read -- get <コレクション>/<ID>` か `list <コレクション> [--where 項目==値] [--sum 項目]`（書かない。uid・メールは伏せる。索引が要れば終了コード 3）。
 - **`.ps1` は UTF-8 BOM 付きで保存する**（Shift-JIS 環境のため。詳細は `.claude/hooks/README.md`）。
 
 ## 一時スクリプトとの違い
