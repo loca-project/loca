@@ -1,5 +1,39 @@
 {
-  "generatedAt": 1790263131744,
-  "syncedAt": 1790263130031,
-  "markers": []
+  "generatedAt": 1790295519550,
+  "syncedAt": 1790295518429,
+  "markers": [
+    {
+      "id": "ZxARvnMHVRd2wRnr84NI",
+      "youtubeUrl": "https://www.youtube.com/watch?v=Firkhg9yU9g",
+      "videoId": "Firkhg9yU9g",
+      "lat": 36.258613,
+      "lng": 137.81301,
+      "tags": {
+        "mood": "dreamy",
+        "subject": "nature"
+      },
+      "youtube": {
+        "checkedAt": 1790295503321,
+        "durationSec": 8,
+        "likeCount": 0,
+        "publishedAt": 1763737574000,
+        "viewCount": 32
+      },
+      "equipment": {
+        "category": "",
+        "manufacturer": "",
+        "model": "",
+        "series": ""
+      },
+      "title": "Sample",
+      "channelTitle": "立神",
+      "thumbnailUrl": "https://i.ytimg.com/vi/Firkhg9yU9g/hqdefault.jpg",
+      "prefecture": "長野県",
+      "city": "安曇野市",
+      "ownerUid": "t66DuxCJGBd2PTVmrwpee9xl2zT2",
+      "createdBy": "管理者",
+      "createdAt": 1790295382014,
+      "updatedAt": 1790295382014
+    }
+  ]
 }
