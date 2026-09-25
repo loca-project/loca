@@ -148,3 +148,15 @@ describe('プロフィールの登録と編集', () => {
     await assert.rejects(next(storeFor('bob'), 'alice', () => true), /読み込めません/);
   });
 });
+
+describe('自己申告のチャンネル（T55・ADR 0029）', () => {
+  it('登録・変更・削除ができ、プロフィールの購読に届く。形が違えば通信する前に止める', async () => {
+    const store = storeFor('alice');
+    const read = async () => (await getDoc(doc(env.authenticatedContext('alice').firestore(), 'users', 'alice'))).data();
+    await store.setChannel('@loca_alice');
+    assert.equal((await read()).channel, '@loca_alice');
+    await store.setChannel(null);
+    assert.equal('channel' in (await read()), false);
+    await assert.rejects(store.setChannel('https://www.youtube.com/@loca_alice'), { name: 'UpstreamError' });
+  });
+});

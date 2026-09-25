@@ -1,6 +1,7 @@
 /**
  * マーカーの再生数・投稿日・長さを YouTube Data API で更新し、消えた動画を論理削除する（T24・ADR 0017）。
  * 毎晩の sync-firestore.yml が、公開データを作り直す前に呼ぶ。
+ * 動画のチャンネル ID と、投稿者が自己申告したチャンネル（users の channel）を照合して youtube.ownChannel を付ける（T55・ADR 0029）。
  *
  *   node scripts/refresh-youtube.mjs            更新して書く
  *   node scripts/refresh-youtube.mjs --dry-run  計画だけ出して書かない
@@ -21,7 +22,7 @@
 
 import { fromFields } from './lib/firestore-rest.mjs';
 import { appendFileSync } from 'node:fs';
-import { MISSING_WINDOW_MS, VIDEOS_PER_CALL, missingTargets, planRefresh } from './lib/youtube-refresh.mjs';
+import { HANDLE, MISSING_WINDOW_MS, VIDEOS_PER_CALL, missingTargets, ownerChannelMap, planRefresh } from './lib/youtube-refresh.mjs';
 import { writeSummary } from './lib/summary.mjs';
 
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -52,7 +53,7 @@ async function liveMarkers() {
   do {
     const url = new URL(`${API}/documents/markers`);
     url.searchParams.set('pageSize', '300');
-    for (const f of ['videoId', 'deleted']) url.searchParams.append('mask.fieldPaths', f);
+    for (const f of ['videoId', 'deleted', 'ownerUid']) url.searchParams.append('mask.fieldPaths', f);
     if (pageToken) url.searchParams.set('pageToken', pageToken);
     const body = await mustOk(await fetch(url, { headers }), 'マーカーの読み出し');
     for (const doc of body.documents ?? []) rows.push({ id: doc.name.split('/').pop(), ...fromFields(doc.fields ?? {}) });
@@ -68,7 +69,7 @@ async function recentMissingMarkers() {
     structuredQuery: {
       from: [{ collectionId: 'markers' }],
       where: { fieldFilter: { field: { fieldPath: 'createdAt' }, op: 'GREATER_THAN_OR_EQUAL', value: { timestampValue: since } } },
-      select: { fields: ['videoId', 'deleted', 'youtube'].map((fieldPath) => ({ fieldPath })) },
+      select: { fields: ['videoId', 'deleted', 'youtube', 'ownerUid'].map((fieldPath) => ({ fieldPath })) },
     },
   };
   const body = await mustOk(
@@ -100,13 +101,44 @@ async function fetchVideos(videoIds) {
   return { items, calls };
 }
 
+/**
+ * 対象のマーカーの投稿者の users だけを読み、自己申告のチャンネルを持つ行（{ id, channel }）を返す。
+ * IAM の経路で読む（users はルールでは本人と管理者だけ）。全件は読まない（毎時の回で読み取りを増やさないため）。
+ */
+async function usersWithChannel(uids) {
+  const rows = [];
+  for (let i = 0; i < uids.length; i += 100) {
+    const body = { documents: uids.slice(i, i + 100).map((uid) => docName('users', uid)), mask: { fieldPaths: ['channel'] } };
+    const res = await mustOk(await fetch(`${API}/documents:batchGet`, { method: 'POST', headers, body: JSON.stringify(body) }), 'プロフィールの読み出し');
+    for (const r of res) {
+      if (r.found) rows.push({ id: r.found.name.split('/').pop(), ...fromFields(r.found.fields ?? {}) });
+    }
+  }
+  return rows.filter((u) => typeof u.channel === 'string');
+}
+
+/** @ハンドル を channels.list の forHandle でチャンネル ID に直す（1 件 1 ユニット）。見つからないハンドルは入れない。 */
+async function resolveHandles(handles) {
+  const ids = new Map();
+  for (const handle of handles) {
+    const url = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${encodeURIComponent(handle)}&key=${YOUTUBE_API_KEY}`;
+    const body = await mustOk(await fetch(url), 'YouTube Data API（channels）');
+    const id = body.items?.[0]?.id;
+    if (id) ids.set(handle.toLowerCase(), id);
+  }
+  return ids;
+}
+
 const docName = (collection, id) => `${DB}/documents/${collection}/${id}`;
 const now = { setToServerValue: 'REQUEST_TIME' };
 
 function statsWrite({ id, youtube }) {
   const fields = {};
   for (const [k, v] of Object.entries(youtube)) {
-    fields[k] = k === 'publishedAt' ? { timestampValue: v } : { integerValue: String(v) };
+    if (k === 'publishedAt') fields[k] = { timestampValue: v };
+    else if (typeof v === 'string') fields[k] = { stringValue: v };
+    else if (typeof v === 'boolean') fields[k] = { booleanValue: v };
+    else fields[k] = { integerValue: String(v) };
   }
   return {
     update: { name: docName('markers', id), fields: { youtube: { mapValue: { fields } } } },
@@ -136,8 +168,15 @@ async function commit(writes) {
 }
 
 const markers = MISSING_ONLY ? await recentMissingMarkers() : await liveMarkers();
-const { items, calls } = await fetchVideos([...new Set(markers.map((m) => m.videoId))]);
-const plan = planRefresh(markers, items);
+const { items, calls: videoCalls } = await fetchVideos([...new Set(markers.map((m) => m.videoId))]);
+// 投稿者の自己申告のチャンネル（T55）。対象のマーカーの投稿者の分だけハンドルを ID に直す
+const owners = [...new Set(markers.map((m) => m.ownerUid).filter((u) => typeof u === 'string' && u))];
+const users = owners.length ? await usersWithChannel(owners) : [];
+const handles = [...new Set(users.map((u) => u.channel).filter((c) => HANDLE.test(c)).map((c) => c.toLowerCase()))];
+const handleIds = await resolveHandles(handles);
+const calls = videoCalls + handles.length;
+const plan = planRefresh(markers, items, ownerChannelMap(users, handleIds));
+const ownCount = plan.updates.filter((u) => u.youtube.ownChannel).length;
 
 console.log(`対象 ${markers.length} 件・YouTube API ${calls} 回（${calls} ユニット）`);
 console.log(`更新 ${plan.updates.length} 件・論理削除 ${plan.gone.length} 件${plan.blockedGone ? `（${plan.blockedGone} 件は割合が多すぎるので止めた）` : ''}`);
@@ -148,6 +187,7 @@ writeSummary(DRY_RUN ? `${title}（確認だけ）` : title, [
   ['対象のマーカー', `${markers.length} 件`],
   ['YouTube API の呼び出し', `${calls} 回（${calls} ユニット）`],
   ['再生数などの更新', `${plan.updates.length} 件`],
+  ['本人のチャンネルの動画（自己申告と一致）', `${ownCount} 件（チャンネルを登録した投稿者 ${users.length} 人）`],
   ['消えた動画の論理削除', `${plan.gone.length} 件${plan.blockedGone ? `（${plan.blockedGone} 件は割合が多すぎるので止めた）` : ''}`],
 ]);
 

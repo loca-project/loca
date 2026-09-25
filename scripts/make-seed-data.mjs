@@ -103,6 +103,8 @@ const markers = places.map((spot, i) => {
             publishedAt: now - (i * 45 + 3) * 86_400_000,
             durationSec: [95, 250, 600, 1500][i % 4],
             checkedAt: now,
+            // 投稿者本人のチャンネル（自己申告と一致）の見本（T55）
+            ...(i % 5 === 0 ? { ownChannel: true } : {}),
           },
         }),
     equipment: GEAR[i % GEAR.length],

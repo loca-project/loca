@@ -23,6 +23,11 @@ export interface ProfileStorePort extends Adapter {
    * 本人のマーカーのうち投稿者名がいまのニックネームと違うものをそろえる（途中で失敗した変更）。そろえた件数を返す。
    */
   repair(nickname: string): Promise<number>;
+  /**
+   * 自己申告の YouTube チャンネルを登録・変更する（UC… か @ハンドル。null で消す。T55・ADR 0029）。
+   * バッジへの反映は毎晩の YouTube の情報の更新が行う。形が違えば UpstreamError。
+   */
+  setChannel(channel: string | null): Promise<void>;
   /** プロフィールと名前の索引を消す（アカウント削除の最後の Firestore の手順。ADR 0021）。 */
   remove(): Promise<void>;
 }

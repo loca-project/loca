@@ -156,6 +156,7 @@ function ProfileGateBody() {
         user={auth.user}
         busy={loading}
         onSave={save((n) => profileStore.rename(n), t.profile.updated, () => setEditorOpen(false))}
+        onSaveChannel={save((c) => profileStore.setChannel(c || null), t.profile.channelSaved)}
         onClose={() => setEditorOpen(false)}
         onDelete={() => setDeletion('confirm')}
       />

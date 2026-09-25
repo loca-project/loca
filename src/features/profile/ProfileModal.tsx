@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import type { UserProfile } from '@/core/types';
 import { NICKNAME_MAX, isValidNickname, normalizeNickname } from '@/core/logic/profile';
 import { formatDate, formatDateTime } from '@/core/logic/format';
+import { channelUrl, parseChannelInput } from '@/core/logic/channel';
 import type { AuthUser } from '@/ports';
 import Modal from '@/shared/components/Modal';
 import { Button, Field, TextInput } from '@/shared/components/Controls';
@@ -18,6 +19,8 @@ interface ProfileModalProps {
   user: AuthUser;
   busy: boolean;
   onSave: (nickname: string) => void;
+  /** 自己申告のチャンネルを保存する（空文字で消す。T55） */
+  onSaveChannel: (channel: string) => void;
   onClose: () => void;
   /** アカウント削除の確認を開く（ADR 0021） */
   onDelete: () => void;
@@ -32,11 +35,15 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default function ProfileModal({ profile, user, busy, onSave, onClose, onDelete }: ProfileModalProps) {
+export default function ProfileModal({ profile, user, busy, onSave, onSaveChannel, onClose, onDelete }: ProfileModalProps) {
   const { t } = useI18n();
   const [nickname, setNickname] = useState(profile.nickname);
   const normalized = normalizeNickname(nickname);
   const canSave = !busy && isValidNickname(normalized) && normalized !== profile.nickname;
+  const [channelText, setChannelText] = useState(profile.channel ? channelUrl(profile.channel) : '');
+  const parsedChannel = parseChannelInput(channelText);
+  const channelBad = channelText.trim() !== '' && parsedChannel === null;
+  const channelChanged = (parsedChannel ?? '') !== (profile.channel ?? '');
 
   return (
     <Modal
@@ -79,6 +86,22 @@ export default function ProfileModal({ profile, user, busy, onSave, onClose, onD
           onChange={(e) => setNickname(e.target.value)}
         />
       </Field>
+
+      <div className="mt-4">
+        <Field label={t.profile.channel} hint={channelBad ? t.profile.channelInvalid : t.profile.channelNote}>
+          <div className="flex gap-2">
+            <TextInput
+              value={channelText}
+              placeholder="https://www.youtube.com/@..."
+              aria-label={t.profile.channel}
+              onChange={(e) => setChannelText(e.target.value)}
+            />
+            <Button variant="secondary" onClick={() => onSaveChannel(parsedChannel ?? '')} disabled={busy || channelBad || !channelChanged}>
+              {t.profile.channelSave}
+            </Button>
+          </div>
+        </Field>
+      </div>
 
       <div className="mt-4">
         <Row label={t.profile.createdAt}>{formatDate(profile.createdAt)}</Row>

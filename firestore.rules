@@ -609,8 +609,8 @@ service cloud.firestore {
     }
 
     // ---- プロフィール（要件 1.1・2.5・2.6・ADR 0019）----
-    // users/{uid}。uid は Firebase Auth の uid なので Google アカウントに紐づく。
-    // 持つのはニックネームと同意の記録だけ（メールや本名は保存しない）。読めるのは本人と管理者。
+    // users/{uid}。uid は Firebase Auth の uid なので Google アカウントに紐づく。自己申告の YouTube チャンネル（channel。T55）も持つ。
+    // 持つのはニックネーム・同意の記録・任意の自己申告のチャンネルだけ（メールや本名は保存しない）。読めるのは本人と管理者。
 
     // 索引（nicknames/{キー}）の文書 ID に使えない形（/ を含む・. と ..・__ で囲む）も拒否する
     function validNickname(d) {
@@ -620,6 +620,13 @@ service cloud.firestore {
         && d.nickname.trim() == d.nickname
         && !(d.nickname in ['.', '..'])
         && !d.nickname.matches('__.*__');
+    }
+
+    // 自己申告のチャンネル（T55・ADR 0029）: チャンネル ID（UC＋22 字）か @ハンドル（3〜30 字。日本語なども通す）。項目ごと消してもよい
+    function validChannel(d) {
+      return !('channel' in d)
+        || (d.channel is string
+          && (d.channel.matches('^UC[A-Za-z0-9_-]{22}$') || d.channel.matches('^@[^\\s/?#@%]{3,30}$')));
     }
 
     // ---- ニックネームの重複の禁止（ADR 0019 決定 9）----
@@ -686,6 +693,13 @@ service cloud.firestore {
         && releasedOld(uid)
         && request.resource.data.updatedAt == request.time
         && request.time > resource.data.updatedAt + duration.value(60, 's');
+      // YouTube チャンネルの自己申告（T55・ADR 0029）。本人はいつでも登録・変更・削除できる。channel だけを変える
+      // （updatedAt は進めない。ニックネームの 60 秒の間隔に巻き込まないため）。照合とバッジは Actions が毎晩行う
+      allow update: if canWrite()
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['channel'])
+        && request.resource.data.get('channel', null) != resource.data.get('channel', null)
+        && validChannel(request.resource.data);
       // アカウント削除（要件 2.7・ADR 0021）。本人は自分のプロフィールを消せる。投稿は先に論理削除する（画面が順に行う）
       allow delete: if canWrite() && (isAdmin() || request.auth.uid == uid);
     }

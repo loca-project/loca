@@ -7,6 +7,7 @@
 import {
   Timestamp,
   collection,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -14,6 +15,7 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
   writeBatch,
   type DocumentData,
@@ -21,6 +23,7 @@ import {
 } from 'firebase/firestore';
 import type { UserProfile } from '@/core/types';
 import { CONSENT_VERSION, isValidNickname, nicknameKey, normalizeNickname } from '@/core/logic/profile';
+import { isValidChannel } from '@/core/logic/channel';
 import type { AuthUser, ProfileStorePort, Unsubscribe } from '@/ports';
 import { UpstreamError } from '@/ports';
 import { toUpstream } from './errors';
@@ -61,6 +64,7 @@ function toProfile(uid: string, data: DocumentData): UserProfile {
     agreedAt: ms(data.agreedAt),
     createdAt: ms(data.createdAt),
     updatedAt: ms(data.updatedAt),
+    ...(typeof data.channel === 'string' ? { channel: data.channel } : {}),
   };
 }
 
@@ -155,6 +159,16 @@ export function createProfileStore(db: Firestore, currentUser: () => AuthUser | 
         await batch.commit();
       } catch (e) {
         throw toUpstream(e, 'プロフィールを消せませんでした。');
+      }
+    },
+
+    async setChannel(channel: string | null): Promise<void> {
+      const user = requireUser();
+      if (channel !== null && !isValidChannel(channel)) throw new UpstreamError('チャンネルの URL の形が違います。');
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { channel: channel ?? deleteField() });
+      } catch (e) {
+        throw toUpstream(e, 'チャンネルを保存できませんでした。');
       }
     },
 

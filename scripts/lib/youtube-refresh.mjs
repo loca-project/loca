@@ -1,7 +1,8 @@
 /**
  * YouTube Data API の結果から、マーカーの更新と論理削除の計画を立てる（T24・ADR 0017）。通信しない。
  *
- * - 公開中・限定公開の動画: 再生数・高評価数・投稿日・長さ（秒）で youtube 項目を更新する
+ * - 公開中・限定公開の動画: 再生数・高評価数・投稿日・長さ（秒）・チャンネル ID で youtube 項目を更新する
+ * - 投稿者が自己申告したチャンネル（users の channel を ID に直したもの）と動画のチャンネルが同じなら ownChannel: true（T55・ADR 0029）
  * - API が返さない動画（削除・存在しない）と非公開の動画: 消えたものとして論理削除の対象にする
  * - 10 件以上あって 2 割を超えて「消えた」と出たら、削除を止める（API の異常で消しすぎないため）
  */
@@ -23,8 +24,8 @@ export function parseDuration(iso) {
 const isGone = (item) =>
   !item || item.status?.privacyStatus === 'private' || ['deleted', 'rejected', 'failed'].includes(item.status?.uploadStatus);
 
-/** API の 1 件を youtube 項目にする。無い値は持たない（再生数を隠している動画など）。 */
-function toStats(item) {
+/** API の 1 件を youtube 項目にする。無い値は持たない（再生数を隠している動画など）。ownerChannelId は投稿者の自己申告のチャンネル ID。 */
+function toStats(item, ownerChannelId) {
   const stats = {};
   const views = item.statistics?.viewCount;
   const likes = item.statistics?.likeCount;
@@ -33,21 +34,25 @@ function toStats(item) {
   if (item.snippet?.publishedAt) stats.publishedAt = item.snippet.publishedAt;
   const seconds = parseDuration(item.contentDetails?.duration);
   if (seconds !== null) stats.durationSec = seconds;
+  const channelId = item.snippet?.channelId;
+  if (channelId) stats.channelId = channelId;
+  if (channelId && ownerChannelId && channelId === ownerChannelId) stats.ownChannel = true;
   return stats;
 }
 
 /**
- * markers: 論理削除されていないマーカー（{ id, videoId }）。items: videos.list が返した動画。
+ * markers: 論理削除されていないマーカー（{ id, videoId, ownerUid }）。items: videos.list が返した動画。
+ * ownerChannels: 投稿者の uid → 自己申告のチャンネル ID（無ければ空の Map）。
  * 返り値: updates（{ id, youtube }）、gone（論理削除するマーカー ID）、blockedGone（止めた件数）
  */
-export function planRefresh(markers, items) {
+export function planRefresh(markers, items, ownerChannels = new Map()) {
   const byVideo = new Map(items.map((i) => [i.id, i]));
   const updates = [];
   let gone = [];
   for (const m of markers) {
     const item = byVideo.get(m.videoId);
     if (isGone(item)) gone.push(m.id);
-    else updates.push({ id: m.id, youtube: toStats(item) });
+    else updates.push({ id: m.id, youtube: toStats(item, ownerChannels.get(m.ownerUid)) });
   }
   let blockedGone = 0;
   if (markers.length >= GONE_RATIO_MIN_MARKERS && gone.length / markers.length > GONE_RATIO_LIMIT) {
@@ -55,6 +60,25 @@ export function planRefresh(markers, items) {
     gone = [];
   }
   return { updates, gone, blockedGone };
+}
+
+/** 自己申告の形（UC… か @ハンドル）。ルールの validChannel と同じ。 */
+export const CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
+export const HANDLE = /^@[^\s/?#@%]{3,30}$/u;
+
+/**
+ * users の行（{ id, channel }）と、ハンドル → チャンネル ID の対応から、投稿者の uid → チャンネル ID を作る。
+ * 形の違う値・ID に直せなかったハンドルは入れない。
+ */
+export function ownerChannelMap(users, handleIds) {
+  const map = new Map();
+  for (const u of users) {
+    const c = u.channel;
+    if (typeof c !== 'string') continue;
+    if (CHANNEL_ID.test(c)) map.set(u.id, c);
+    else if (HANDLE.test(c) && handleIds.get(c.toLowerCase())) map.set(u.id, handleIds.get(c.toLowerCase()));
+  }
+  return map;
 }
 
 /**

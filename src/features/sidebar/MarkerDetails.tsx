@@ -65,6 +65,13 @@ export default function MarkerDetails({
       <div>
         <p className="text-xs font-bold leading-snug text-gray-800">{marker.title ?? '-'}</p>
         <p className="mt-0.5 text-[11px] text-gray-500">{marker.channelTitle ?? '-'}</p>
+        {/* 投稿者が自己申告したチャンネルの動画（毎晩の更新が照合する。T55・ADR 0029） */}
+        {marker.youtube?.ownChannel && (
+          <p className="mt-1 inline-flex items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+            <i className="fa-solid fa-circle-check" />
+            {t.profile.ownChannel}
+          </p>
+        )}
       </div>
 
       <LinkButton variant="danger" href={marker.youtubeUrl} target="_blank" rel="noopener noreferrer">
