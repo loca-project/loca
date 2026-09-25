@@ -1,7 +1,7 @@
 /**
  * 本番への反映を、決まった順番で最後まで行う（手順は /publish）。途中で失敗したらそこで止まり、どこまで終わったかを出す。
  *
- *   npm run release                     ルールに変更があれば先に反映 → push → 公開を待つ → smoke
+ *   npm run release                     ルールに変更があれば先に反映 → push → 公開を待つ → smoke → Actions の注記を数える
  *   npm run release -- --sync           さらに同期ワークフローを実行して、公開データの件数を出す
  *   npm run release -- "メッセージ"     未コミットの変更があれば、このメッセージでコミットする
  *
@@ -76,5 +76,8 @@ if (SYNC) {
 
 // 5. 公開サイトの煙テスト
 npm('smoke', 'smoke', [`${SITE}/`]);
+
+// 6. Actions の注記（非推奨・移行の予告）と失敗したジョブを数える。注記は止めずに出すだけ（登録は /tasks）
+npm('Actions の注記', 'actions:warnings');
 
 console.log(`\nOK: ${done.length} 段すべて完了（${done.join(' → ')}）`);

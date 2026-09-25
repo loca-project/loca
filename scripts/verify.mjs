@@ -162,6 +162,17 @@ const srcEps = Number(/SAME_SPOT_EPS\s*=\s*([\d.]+)/.exec(
 record('撮影リクエストの地点のしきい値が scripts と src で一致', scriptEps === srcEps,
   `scripts=${scriptEps} / src=${srcEps}`);
 
+// 9. ワークフローの決まり（名前・runner の固定・Actions の版・cron の対応。.claude/rules/20-github-actions.md）
+const { lintWorkflows } = await import('./lib/workflow-lint.mjs');
+const workflowDir = path.join(ROOT, '.github', 'workflows');
+const workflows = await Promise.all(
+  (await readdir(workflowDir)).filter((f) => f.endsWith('.yml'))
+    .map(async (file) => ({ file, text: await readFile(path.join(workflowDir, file), 'utf8') })),
+);
+const workflowProblems = lintWorkflows(workflows);
+record('ワークフローが決まりどおり', workflows.length > 0 && workflowProblems.length === 0,
+  workflowProblems.length ? workflowProblems.join(' / ') : `${workflows.length} ファイル`);
+
 // 11. dist が静的ファイルだけであること（ビルド済みのときのみ）
 try {
   await stat(path.join(ROOT, 'dist', 'index.html'));

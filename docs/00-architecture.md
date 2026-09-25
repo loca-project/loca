@@ -140,7 +140,7 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 20 項目チェック（2026-09-25）
+npm run verify      # 設計上の約束を 21 項目チェック（2026-09-25）
 npm run check       # 上記 3 つをまとめて
 ```
 
@@ -152,5 +152,6 @@ npm run check       # 上記 3 つをまとめて
 - すべてのソースが 400 行以内（CP-2）
 - 公開データが読め、サンプルデータが混ざっていない
 - 都道府県リストと撮影リクエストの地点のしきい値が、scripts と src で一致
+- ワークフローが決まりどおり（日本語の名前・runner の版の固定・Node.js 24 対応の Actions・if で比べる cron が on.schedule にある。`scripts/lib/workflow-lint.mjs`）
 - `dist/` が静的ファイルのみ。初期読み込みの JS に Firebase SDK が無く、260 kB 以内
 - `version.json` の版が `index.html` の入口と一致（ADR 0022）。`feed.xml`（新着マーカーの RSS。T47）が RSS 2.0 で、公開データの新着 50 件までを載せている

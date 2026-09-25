@@ -33,7 +33,9 @@
     "data:reset": "node scripts/reset-data.mjs",
     "data:purge": "node scripts/purge-deleted.mjs --dry-run",
     "deploy": "node scripts/deploy.mjs",
-    "rules:build": "node scripts/build-rules.mjs"
+    "rules:build": "node scripts/build-rules.mjs",
+    "actions:warnings": "node scripts/actions-warnings.mjs",
+    "size:breakdown": "node scripts/size-breakdown.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.1.0",
