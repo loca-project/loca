@@ -74,18 +74,16 @@ npm run deploy
 
 `project/scripts/deploy.mjs` が順に実行する。
 
-1. `npm run typecheck`
-2. `npm run build`
-3. `npm run verify`
-4. `git add -A` → `git commit` → `git push`
+1. origin より先のコミットがあるかを確かめる（無ければ止まる）
+2. コミット済みの HEAD で `npm run check`（型・ビルド・検証・テスト）。ルール・Firebase のアダプタ・そのテストを変えたコミットなら `npm run test:rules` も
+3. `git push`
 
-**3 まででエラーが出たら push しない。** 壊れたものを公開しないため。
+**2 でエラーが出たら push しない。** 壊れたものを公開しないため。
 
-コミットメッセージを指定したいときは次のようにする。
-
-```
-npm run deploy -- "地図タイルを差し替え"
-```
+**deploy はコミットしない**（2026-09-25 から。T68）。以前は `git add -A` で作業ツリーをすべてコミットしていたが、
+複数のチャットが同じ作業ツリーを編集していると、他人の書きかけまで公開してしまう。
+先に自分の変更をコミットしてから実行する。作業ツリーに未コミットの変更があれば、HEAD を `tmp/head-*` に取り出して検証する
+（`scripts/lib/head-snapshot.mjs`。検証だけなら `npm run check:head`）。
 
 push すると `.github/workflows/deploy.yml` が走り、数分で Pages に反映される。
 進捗はリポジトリの **Actions** タブで見られる。

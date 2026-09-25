@@ -228,6 +228,16 @@ try {
   record('dist が静的ファイルのみ', true, 'dist 未生成のためスキップ');
 }
 
+// 12. ルールのコレクションが、すべて reset-data の「消す」か「残す」に入っている（T68）
+// 2026-09-25、likes・likeCounts を足したときに reset-data の対象から漏れていた（rules-reviewer が指摘）
+const collections = [...new Set([...rulesText.matchAll(/match \/(\w+)\/\{/g)].map((m) => m[1]))].filter((c) => c !== 'databases');
+const resetText = await readFile(path.join(ROOT, 'scripts', 'reset-data.mjs'), 'utf8');
+const listed = (name) => (new RegExp(`const ${name} = \\[([^\\]]*)\\]`).exec(resetText)?.[1] ?? '').match(/[\w]+/g) ?? [];
+const covered = new Set([...listed('TARGETS'), ...listed('KEEP')]);
+const uncovered = collections.filter((c) => !covered.has(c));
+record('ルールのコレクションがすべて reset-data の消す・残すに入っている', uncovered.length === 0,
+  uncovered.length ? `未分類: ${uncovered.join(', ')}` : `${collections.length} 件`);
+
 const passed = checks.filter((c) => c.ok).length;
 for (const c of checks) console.log(`${c.ok ? 'OK ' : 'NG '} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
 console.log(`\n${passed} / ${checks.length} 件 OK`);

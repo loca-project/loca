@@ -2,9 +2,9 @@
  * 1 コマンドで GitHub Pages へ公開する。
  *
  *   npm run deploy            （project/ で実行。ワークスペースのルートからでも委譲される）
- *   npm run deploy -- "メッセージ"
  *
- * やること: 型チェック → ビルド → 検証 → git add / commit / push。
+ * やること: コミット済みの HEAD を検証（check。ルール・アダプタを変えていれば test:rules も）→ push。
+ * コミットはしない。未コミットの変更（別のチャットの書きかけかもしれない）は検証にも公開にも含めない。
  * push すると .github/workflows/deploy.yml が走り、Pages に反映される。
  *
  * 検証に落ちたらそこで止まる。壊れたものを push しないため。
@@ -14,6 +14,8 @@
  */
 
 import { execFileSync } from 'node:child_process';
+import { checkHead, needsRuleTests } from './check-head.mjs';
+import { dirtyFiles } from './lib/head-snapshot.mjs';
 
 const CWD = process.cwd();
 
@@ -77,19 +79,6 @@ function push(branch) {
   }
 }
 
-/**
- * npm スクリプトを実行する。
- * npm は Windows では npm.cmd なので shell が要る。渡す引数に空白は無い。
- */
-function npm(script) {
-  process.stdout.write(`\n$ npm run ${script}\n`);
-  execFileSync('npm', ['run', script], {
-    cwd: CWD,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
-}
-
 // --- 1. git リポジトリか確認 -------------------------------------------------
 const top = tryGit(['rev-parse', '--show-toplevel']);
 if (!top.ok) {
@@ -128,30 +117,30 @@ if (!userName.ok || !userEmail.ok || !userName.out || !userEmail.out) {
   );
 }
 
-// --- 2. 品質チェック（落ちたら push しない）---------------------------------
+// --- 2. コミットはしない。push するのはコミット済みのものだけ ----------------
+// 以前は git add -A で作業ツリーをすべてコミットしていた。複数のチャットが同じ作業ツリーを編集していると、
+// 他人の書きかけまで公開してしまう（2026-09-25 T29）。自分の変更は stage-mine でコミットしてから呼ぶ。
+if (process.argv.slice(2).some((a) => !a.startsWith('--'))) {
+  console.log('\n注意: メッセージが渡されましたが、deploy はもうコミットしません（stage-mine でコミットしてから公開する）。');
+}
+const dirty = dirtyFiles(CWD);
+if (dirty.length > 0) {
+  console.log(`\n未コミットの変更 ${dirty.length} ファイルは公開しません:\n  ${dirty.slice(0, 20).join('\n  ')}`);
+}
+const branch = tryGit(['rev-parse', '--abbrev-ref', 'HEAD']).out;
+const ahead = tryGit(['rev-list', '--count', `origin/${branch}..HEAD`]).out;
+if (ahead === '0') fail(`push するコミットがありません（origin/${branch} と同じ）。先に自分の変更をコミットしてください。`);
+
+// --- 3. 品質チェック（HEAD で。落ちたら push しない）-------------------------
 try {
-  npm('typecheck');
-  npm('build');
-  npm('verify');
-} catch {
-  fail('検証に失敗したため公開を中止しました。上のログを確認してください。');
+  await checkHead({ rules: needsRuleTests(CWD), root: CWD });
+} catch (e) {
+  fail(`検証に失敗したため公開を中止しました（${e.message}）。上のログを確認してください。`);
 }
 
-// --- 3. コミットして push ----------------------------------------------------
-const message = process.argv.slice(2).join(' ') || `site: ${new Date().toISOString()}`;
-
+// --- 4. push -----------------------------------------------------------------
 try {
-  git(['add', '-A']);
-
-  const staged = tryGit(['diff', '--cached', '--name-only']).out;
-  if (!staged) {
-    console.log('\n変更がないため、コミットをスキップしました。');
-  } else {
-    console.log(`\n変更 ${staged.split('\n').length} ファイル`);
-    git(['commit', '-m', message]);
-  }
-
-  const branch = tryGit(['rev-parse', '--abbrev-ref', 'HEAD']).out;
+  console.log(`\npush するコミット: ${ahead} 件`);
   push(branch);
 
   console.log(`\nOK: ${remote.out} の ${branch} に push しました。`);

@@ -16,6 +16,9 @@
 import { FIRESTORE, PROJECT, call, ownerToken } from './lib/owner-auth.mjs';
 
 const TARGETS = ['markers', 'videos', 'requests', 'heatBudgets', 'rateLimits', 'reports', 'likes', 'likeCounts'];
+// 消さないもの（運用の設定・プロフィールと名前の索引・定期処理の記録）。ルールのコレクションは、
+// TARGETS か KEEP のどちらかに必ず入れる（npm run verify が検査する。足し忘れると試験データが残る。T68）
+const KEEP = ['admins', 'blacklist', 'users', 'nicknames', 'jobs'];
 const EXECUTE = process.argv.includes('--yes');
 const DATABASE = `projects/${PROJECT}/databases/(default)`;
 
