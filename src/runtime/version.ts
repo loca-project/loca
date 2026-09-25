@@ -16,8 +16,9 @@ const MIN_GAP_MS = 60 * 1000;
 let lastChecked = 0;
 let started = false;
 
-/** このタブが読み込んだ入口の JS の URL。開発サーバー（/src/main.tsx）では null */
+/** このタブが読み込んだ入口の JS の URL。開発サーバー（/src/main.tsx）と、ブラウザの外（アダプタのテスト）では null */
 function loadedEntry(): string | null {
+  if (typeof document === 'undefined') return null;
   const scripts = document.querySelectorAll<HTMLScriptElement>('script[type="module"][src]');
   for (const s of scripts) {
     if (/\/assets\/[^/]+\.js$/.test(new URL(s.src, document.baseURI).pathname)) return s.src;
