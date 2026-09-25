@@ -17,8 +17,9 @@ if (!YOUTUBE_API_KEY || !GOOGLE_ACCESS_TOKEN || !GCP_PROJECT) {
 const results = [];
 const check = (name, ok, detail = '') => results.push({ name, ok, detail });
 
-// 1. YouTube Data API（YouTube 最初の動画。消えにくい公開動画として使う）
-const VIDEO = 'jNQXAC9IVRw';
+// 1. YouTube Data API（既定は YouTube 最初の動画。消えにくい公開動画として使う。手動実行の入力 video で変えられる）
+const VIDEO = /^[\w-]{11}$/.test(process.env.PROBE_VIDEO ?? '') ? process.env.PROBE_VIDEO : 'jNQXAC9IVRw';
+console.log(`動画 ${VIDEO}`);
 const yt = await fetch(
   `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails,status&id=${VIDEO}&key=${YOUTUBE_API_KEY}`,
 );
@@ -29,6 +30,7 @@ check('投稿日と長さが取れる', Boolean(video?.snippet?.publishedAt && v
 // 他人の動画で containsSyntheticMedia が返るかは T44 の前提なので、有無を記録する
 check('status.containsSyntheticMedia の有無を記録', true,
   video?.status && 'containsSyntheticMedia' in video.status ? `あり（${video.status.containsSyntheticMedia}）` : '返らない');
+console.log(`status: ${JSON.stringify(video?.status ?? null)}`);
 
 // 2. Firestore（IAM の経路）
 const doc = `https://firestore.googleapis.com/v1/projects/${GCP_PROJECT}/databases/(default)/documents/probes/actions`;
