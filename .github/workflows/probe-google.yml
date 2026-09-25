@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       video:
-        description: 調べる動画 ID（合成メディアの申告が返るかを見る。T44）
+        description: 調べる動画 ID（status の中身を出す）
         required: false
         default: jNQXAC9IVRw
 

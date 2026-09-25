@@ -27,7 +27,7 @@ const video = yt.ok ? (await yt.json()).items?.[0] : null;
 check('YouTube Data API で動画情報を取れる', Boolean(video?.statistics?.viewCount), `HTTP ${yt.status}`);
 check('投稿日と長さが取れる', Boolean(video?.snippet?.publishedAt && video?.contentDetails?.duration),
   `${video?.snippet?.publishedAt ?? '-'} / ${video?.contentDetails?.duration ?? '-'}`);
-// 他人の動画で containsSyntheticMedia が返るかは T44 の前提なので、有無を記録する
+// containsSyntheticMedia の有無を記録する。2026-09-25、申告済みの動画でも API キーでは返らなかった（T44 取り下げ。ADR 0014 の追記）
 check('status.containsSyntheticMedia の有無を記録', true,
   video?.status && 'containsSyntheticMedia' in video.status ? `あり（${video.status.containsSyntheticMedia}）` : '返らない');
 console.log(`status: ${JSON.stringify(video?.status ?? null)}`);
