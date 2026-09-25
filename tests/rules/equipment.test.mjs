@@ -65,10 +65,10 @@ describe('機器マスタの書き込み', () => {
     await assertFails(setDoc(ref, { makers }));
   });
 
-  it('消せるのは管理者だけ（消すとコードの既定に戻る）', async () => {
+  it('誰も消せない（「既定に戻す」は置かない）', async () => {
+    await assertFails(deleteDoc(doc(as('root'), 'equipmentMaster', 'action')));
     await assertFails(deleteDoc(doc(as('alice'), 'equipmentMaster', 'action')));
     await assertFails(deleteDoc(doc(guest(), 'equipmentMaster', 'action')));
     await assertFails(deleteDoc(doc(as('root2'), 'equipmentMaster', 'action')));
-    await assertSucceeds(deleteDoc(doc(as('root'), 'equipmentMaster', 'action')));
   });
 });

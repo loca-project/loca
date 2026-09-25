@@ -1,0 +1,67 @@
+# 機器マスタ public/data/equipment.json を、管理者が画面で直した分類（Firestore の equipmentMaster）と
+# コードの既定から作り直す（ADR 0025・T28）。3 時間ごと（日本時間 0:45 から）と手動で動く。
+# 毎晩の同期（sync-firestore.yml）は機器マスタに触らない。
+# equipmentMaster はルールで誰でも読めるので、API キー（公開値。Variables）だけで読む。秘密情報は使わない。
+#
+# 変更があったときだけコミットし、publish.yml を直接呼んで公開しなおす
+# （GITHUB_TOKEN による push は他のワークフローを起動しないため）。
+name: 同期（機器マスタ）
+run-name: >-
+  ${{ github.event_name == 'schedule' && '機器マスタ・3 時間ごと'
+  || format('機器マスタ・手動（{0}）', github.actor) }}
+
+on:
+  schedule:
+    - cron: '45 */3 * * *' # UTC 0:45 から 3 時間ごと = 日本時間 9:45・12:45・…・6:45
+  workflow_dispatch:
+
+# 公開データの同期（sync-firestore.yml）と public/data を同時に書き換えないよう、同じ順番待ちに並ぶ
+concurrency:
+  group: sync-data
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # 依存パッケージを使わないスクリプトなので npm ci は要らない
+      - name: Firestore から equipment.json を作り直す
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+        run: node scripts/sync-equipment.mjs
+
+      - name: コミットして push
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/equipment.json
+          if git diff --cached --quiet; then
+            echo "変更なし"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "data: 機器マスタを再生成"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publish.yml

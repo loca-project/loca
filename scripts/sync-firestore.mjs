@@ -9,8 +9,6 @@
  * syncedAt は「読み始めた時刻」。アプリはこれより後の変更だけを onSnapshot で購読する。
  * 読んでいる間の変更は両方に入りうるが、同じ ID で上書き・重複除外されるだけで欠けはしない。
  *
- * 機器マスタ equipment.json も、管理者が画面で直した分類（equipmentMaster）とコードの既定から作り直す（ADR 0025）。
- *
  * 変更が無いファイルは書かない（毎日の空コミットを作らないため）。
  */
 
@@ -21,7 +19,6 @@ import { listCollection } from './lib/firestore-rest.mjs';
 import { fetchPlace } from './lib/enrich.mjs';
 import { mergeMarkers } from './lib/merge-markers.mjs';
 import { mergeRequests } from './lib/merge-requests.mjs';
-import { buildEquipment } from './lib/equipment-master.mjs';
 import { writeSummary } from './lib/summary.mjs';
 
 const DATA = path.join(process.cwd(), 'public', 'data');
@@ -90,19 +87,5 @@ const summaryRows = [
 ];
 await save('markers.json', currentMarkers, markers.markers, syncedAt);
 await save('requests.json', currentSpots, spots, syncedAt);
-
-// 機器マスタ: 検査に落ちた分類は既定のまま出し、理由を NG として残す（公開全体は止めない）
-const equipment = buildEquipment(await listCollection(config, 'equipmentMaster'));
-equipment.problems.forEach((p) => console.warn(`NG  機器マスタ: ${p}`));
-const equipmentFile = path.join(DATA, 'equipment.json');
-const equipmentBefore = JSON.parse(await readFile(equipmentFile, 'utf8'));
-const equipmentChanged = JSON.stringify(canonical(equipment.defs)) !== JSON.stringify(canonical(equipmentBefore));
-const equipmentLine = `画面で直した分類 ${equipment.edited.length} 件・NG ${equipment.problems.length} 件（${equipmentChanged ? '変更あり' : '変更なし'}）`;
-console.log(`equipment.json: ${equipmentLine}`);
-summaryRows.push(['equipment.json', equipmentLine]);
-if (equipmentChanged && !CHECK_ONLY) {
-  await writeFile(equipmentFile, `${JSON.stringify(equipment.defs, null, 2)}\n`, 'utf8');
-  console.log('OK  equipment.json を書きました');
-}
 // Actions のジョブ概要に件数を出す（T31）
 writeSummary(CHECK_ONLY ? '同期（確認だけ）' : '同期（Firestore → 公開データ）', summaryRows);

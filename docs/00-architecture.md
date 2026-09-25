@@ -25,7 +25,7 @@
 ```text
 閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot。updatedAt > syncedAt）
 投稿:  ブラウザ ──> Firebase Auth ──> Firestore（投稿・撮影リクエスト・通報・いいね。権限・重複・上限はルール）
-反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json / equipment.json を再生成 ──> ビルド（feed.xml も作る）──> Pages に反映
+反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json を再生成（equipment.json は 3 時間ごとの機器の同期） ──> ビルド（feed.xml も作る）──> Pages に反映
 ```
 
 同期より後の変更は、すべて updatedAt を進める書き込みで表す（論理削除）。だから差分の購読で取りこぼさない（ADR 0013）。

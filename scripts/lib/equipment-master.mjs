@@ -1,5 +1,5 @@
 /**
- * 機器マスタの検査と組み立て（ADR 0018・0025）。make-equipment.mjs と sync-firestore.mjs が使う。
+ * 機器マスタの検査と組み立て（ADR 0018・0025）。make-equipment.mjs と sync-equipment.mjs が使う。
  * 画面側の同じ検査は src/core/logic/equipmentText.ts（名前の長さの上限はルールの validEquipment と同じ 80 字）。
  */
 

@@ -158,9 +158,5 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
         await setDoc(doc(db, 'equipmentMaster', category), { makers, updatedAt: serverTimestamp() });
       }),
 
-    resetEquipment: (category) =>
-      guard(async () => {
-        await deleteDoc(doc(db, 'equipmentMaster', category));
-      }),
   };
 }

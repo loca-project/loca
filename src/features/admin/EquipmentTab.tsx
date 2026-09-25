@@ -1,7 +1,8 @@
 /**
  * 機器のタブ（T28・ADR 0025）。分類を選び、その中のメーカー・シリーズ・モデルを字下げの文章で直して保存する。
  * 分類そのものはコードで決める（ルールの validEquipment と同じ一覧）。
- * 保存先は equipmentMaster/{分類}。フォームが読む equipment.json には次の同期で入る（購読はしない）。
+ * 保存先は equipmentMaster/{分類}。フォームが読む equipment.json には 3 時間ごとの機器の同期で入る（購読はしない）。
+ * 「既定に戻す」は置かない（ADR 0025）。
  */
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -68,10 +69,6 @@ export default function EquipmentTab({ equipment }: EquipmentTabProps) {
     if (!window.confirm(interpolate(et.confirmSave, { category: equipmentCategoryLabel(category, lang), ...counts }))) return;
     void run(() => adminStore.saveEquipment(category, parsed.makers), et.saved);
   };
-  const reset = () => {
-    if (!adminStore || !window.confirm(et.confirmReset)) return;
-    void run(() => adminStore.resetEquipment(category), et.resetDone);
-  };
 
   if (error) return <p className="text-xs text-red-600">{error}</p>;
   if (!edited) return <p className="text-xs text-gray-500">{t.details.loading}</p>;
@@ -135,11 +132,6 @@ export default function EquipmentTab({ equipment }: EquipmentTabProps) {
         >
           {et.discard}
         </button>
-        {own && (
-          <button type="button" onClick={reset} disabled={busy} className="rounded border border-red-300 px-3 py-1.5 text-red-600">
-            {et.reset}
-          </button>
-        )}
       </div>
     </div>
   );

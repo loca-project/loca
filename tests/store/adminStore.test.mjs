@@ -162,7 +162,7 @@ describe('撮影リクエストの取り下げ: 熱量の記録が合わない�
 describe('機器マスタ（T28・ADR 0025）', () => {
   const makers = [{ name: 'GoPro', series: [{ name: 'HERO', models: ['HERO13 Black'] }] }];
 
-  it('管理者は分類を保存し、読み直し、既定に戻せる', async () => {
+  it('管理者は分類を保存し、読み直せる（上書きも同じ文書）', async () => {
     const store = storeFor('root');
     assert.deepEqual(await store.editedEquipment(), {});
     await store.saveEquipment('action', makers);
@@ -170,8 +170,8 @@ describe('機器マスタ（T28・ADR 0025）', () => {
     assert.deepEqual(Object.keys(edited), ['action']);
     assert.deepEqual(edited.action.makers, makers);
     assert.ok(edited.action.updatedAt > 0);
-    await store.resetEquipment('action');
-    assert.deepEqual(await store.editedEquipment(), {});
+    await store.saveEquipment('action', []);
+    assert.deepEqual((await store.editedEquipment()).action.makers, []);
   });
 
   it('一般の利用者の保存は、理由の分かるエラーになる', async () => {

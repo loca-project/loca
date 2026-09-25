@@ -502,7 +502,7 @@ service cloud.firestore {
     }
 
     // ---- 機器マスタ（ADR 0025・T28）----
-    // equipmentMaster/{分類のキー}。管理者が画面で直した分類だけを置き、同期が equipment.json を作り直す。
+    // equipmentMaster/{分類のキー}。管理者が画面で直した分類だけを置き、3 時間ごとの機器の同期が equipment.json を作り直す。
     // 分類のキーは validEquipment と同じ（空文字を除く）。分類そのものの追加はコードの変更に残す。
     // 入れ子の中身（名前の長さ・重複）はルールでは検査しきれないので、画面と同期が検査する。ここは形と件数の上限だけ。
 
@@ -519,8 +519,8 @@ service cloud.firestore {
       // 同期（Actions）が API キーだけで読むので、誰でも読める。誰が直したか（管理者の uid）は置かない（admins は伏せているため）
       allow read: if true;
       allow create, update: if canWrite() && isAdmin() && validEquipmentMaster(category);
-      // 消すとその分類はコードの既定（scripts/data/equipment-master.mjs）に戻る
-      allow delete: if canWrite() && isAdmin();
+      // 「既定に戻す」は置かない（利用者の判断）。戻すときは既定の中身を書き直して保存する
+      allow delete: if false;
     }
 
     // ---- プロフィール（要件 1.1・2.5・2.6・ADR 0019）----

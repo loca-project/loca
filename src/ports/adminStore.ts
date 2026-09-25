@@ -67,8 +67,6 @@ export interface AdminStorePort extends Adapter {
   withdrawRequest(entry: { id: string; heat: number; ownerUid: string }): Promise<void>;
   /** 画面で直した機器マスタの分類（キー → 中身）。直していない分類は入らない。 */
   editedEquipment(): Promise<Record<string, EditedEquipment>>;
-  /** 1 分類のメーカー以下を保存する。公開（equipment.json）は次の同期で行う。管理者だけ。 */
+  /** 1 分類のメーカー以下を保存する。公開（equipment.json）は 3 時間ごとの機器の同期で行う。管理者だけ。 */
   saveEquipment(category: string, makers: EquipmentDef['makers']): Promise<void>;
-  /** 1 分類の保存を消し、コードの既定に戻す（次の同期で反映）。管理者だけ。 */
-  resetEquipment(category: string): Promise<void>;
 }

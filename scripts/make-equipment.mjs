@@ -1,7 +1,7 @@
 /**
  * 撮影機器マスタ public/data/equipment.json をコードの既定から作る（ADR 0018）。元データは scripts/data/equipment-master.mjs。
  * 分類の並びが一覧どおりで、同じ段の名前が重複せず 80 字以内であることを確かめてから書く（scripts/lib/equipment-master.mjs）。
- * 管理者が画面で直した分類（Firestore の equipmentMaster）は、同期（sync-firestore.mjs）が上書きする（ADR 0025）。
+ * 管理者が画面で直した分類（Firestore の equipmentMaster）は、3 時間ごとの機器の同期（sync-equipment.mjs）が上書きする（ADR 0025）。
  *
  *   npm run data:equipment
  */
