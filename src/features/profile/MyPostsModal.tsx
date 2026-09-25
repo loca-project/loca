@@ -54,7 +54,8 @@ export default function MyPostsModal(props: MyPostsModalProps) {
           { id: 'requests', icon: 'fa-hand', label: interpolate(t.myPosts.tabRequests, { count: spots.length }) },
         ]}
       />
-      <div className="min-h-[20rem]">
+      {/* 中身の高さはタブによらず固定（切り替えるたびに窓の大きさが変わらないように。はみ出す分はこの中で巻き取る） */}
+      <div className="h-[60vh] overflow-y-auto">
         {tab === 'statistics' && (
           <>
             <p className="mb-3 text-xs font-bold text-pink-600">
