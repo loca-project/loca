@@ -33,10 +33,12 @@
       // 取り下げは論理削除（ADR 0013）: 本人か管理者が withdrawn と updatedAt だけを変え、
       // 持ち主の熱量の印を同じバッチで減らす（管理者の取り下げでも、持ち主の熱量はその分戻る）。
       // 物理削除すると、同期より前に作られた行の取り下げが差分の購読に届かないため。
+      // 依頼者が応えた動画を受け取るのも同じ取り下げで、answeredBy（マーカー ID）を足し、炎を answerCounts に移す（T43）。
       allow update: if canWrite()
         && (resource.data.ownerUid == request.auth.uid || isAdmin())
         && resource.data.get('withdrawn', false) == false
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt'])
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt'])
+          || (resource.data.ownerUid == request.auth.uid && answeredNow(requestId)))
         && request.resource.data.withdrawn == true
         && request.resource.data.updatedAt == request.time
         && getAfter(docPath('heatBudgets', resource.data.ownerUid)).data.target == requestId

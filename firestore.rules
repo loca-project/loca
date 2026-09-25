@@ -119,6 +119,8 @@ service cloud.firestore {
           'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'memo', 'equipment',
           'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
           'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted',
+          // 応えた撮影リクエストの ID（T43）。作成のときだけ付けられる（validAnswers・keepsAnswers）
+          'answers',
           // Actions だけが IAM の経路で書く（ADR 0017）。利用者の作成・更新では変えられない（touchesBatchOnly）
           'youtube', 'deletedReason'])
         && d.keys().hasAll([
@@ -142,7 +144,25 @@ service cloud.firestore {
         && d.updatedAt == request.time
         && d.deleted is bool
         && (!('youtube' in d) || d.youtube is map)
-        && (!('deletedReason' in d) || d.deletedReason in ['unavailable']);
+        && (!('deletedReason' in d) || d.deletedReason in ['unavailable'])
+        && validAnswers(d);
+    }
+
+    // 応えた撮影リクエストの ID の一覧（1〜10 件・重複なし・英数字 1〜40 字。T43）。リクエストがあるかは、依頼者が受け取るときに確かめる
+    // 要素の形は join して 1 本の正規表現で見る。join は数値も文字列にするので、split し直して元の一覧と同じ（すべて文字列）かも見る。
+    // markers.json に載るので長さを縛る
+    function validAnswers(d) {
+      return !('answers' in d)
+        || (d.answers is list && d.answers.size() >= 1 && d.answers.size() <= 10
+          && d.answers.toSet().size() == d.answers.size()
+          && d.answers.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,9}$')
+          && d.answers.join(',').split(',') == d.answers);
+    }
+
+    // 応えた撮影リクエストは作成のあと変えられない。後から付け替えて炎を集めさせないため。管理者も外す向きだけ
+    function keepsAnswers() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['answers'])
+        || (isAdmin() && resource.data.get('answers', []).hasAll(request.resource.data.get('answers', [])));
     }
 
     // Actions だけが書く項目（再生数など・消えた動画の論理削除の理由）
@@ -189,22 +209,6 @@ service cloud.firestore {
         && request.resource.data.deleted == false
         && !touchesBatchOnly(request.resource.data.keys());
 
-      // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
-      // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
-      allow update: if canWrite()
-        && validMarker(request.resource.data)
-        && keepsIdentity()
-        // 再生数などは誰も変えられない。論理削除の理由は、管理者が復元するときだけ外せる
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['youtube'])
-        && (isAdmin() || !touchesBatchOnly(request.resource.data.diff(resource.data).affectedKeys()))
-        // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
-        && (request.resource.data.videoId == resource.data.videoId
-          || indexedFor(markerId, request.resource.data.videoId))
-        && (
-          isAdmin()
-          || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
-        );
-
       // 投稿者名を、いまのプロフィールのニックネームにそろえる（ADR 0019 決定 7）。
       // 本人が createdBy と updatedAt だけを変える。名前はその時点のニックネームにしかできないので、他人の名前は名乗れない。
       // ニックネームの変更と同じバッチでも後からでも通るよう getAfter で読む。印（レートリミット）は求めない
@@ -217,13 +221,32 @@ service cloud.firestore {
         && request.resource.data.updatedAt == request.time;
 
       // 本人の論理削除（deleted を true にするだけ）は印なしで通す。アカウント削除でまとめて消すため（ADR 0021）。
-      // 消すだけなので連打されても困らない。戻すのは管理者だけ（上の更新）
+      // 消すだけなので連打されても困らない。戻すのは管理者だけ（下の通常の更新）
       allow update: if canWrite()
         && isOwner()
         && resource.data.deleted == false
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted', 'updatedAt'])
         && request.resource.data.deleted == true
         && request.resource.data.updatedAt == request.time;
+
+      // 通常の更新は最後に置く（validMarker などで式を多く使う）。ルールは 1 回の評価で式 1000 個までなので、
+      // 軽い条件（投稿者名をそろえる・本人の論理削除）を先に評価させ、重い条件で予算を使い切る前に通す（T43）
+      // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
+      // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
+      allow update: if canWrite()
+        && validMarker(request.resource.data)
+        && keepsIdentity()
+        && keepsAnswers()
+        // 再生数などは誰も変えられない。論理削除の理由は、管理者が復元するときだけ外せる
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['youtube'])
+        && (isAdmin() || !touchesBatchOnly(request.resource.data.diff(resource.data).affectedKeys()))
+        // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
+        && (request.resource.data.videoId == resource.data.videoId
+          || indexedFor(markerId, request.resource.data.videoId))
+        && (
+          isAdmin()
+          || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
+        );
 
       // 物理削除は管理者だけ（要件 1.4）
       allow delete: if canWrite() && isAdmin();
@@ -297,10 +320,12 @@ service cloud.firestore {
       // 取り下げは論理削除（ADR 0013）: 本人か管理者が withdrawn と updatedAt だけを変え、
       // 持ち主の熱量の印を同じバッチで減らす（管理者の取り下げでも、持ち主の熱量はその分戻る）。
       // 物理削除すると、同期より前に作られた行の取り下げが差分の購読に届かないため。
+      // 依頼者が応えた動画を受け取るのも同じ取り下げで、answeredBy（マーカー ID）を足し、炎を answerCounts に移す（T43）。
       allow update: if canWrite()
         && (resource.data.ownerUid == request.auth.uid || isAdmin())
         && resource.data.get('withdrawn', false) == false
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt'])
+        && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt'])
+          || (resource.data.ownerUid == request.auth.uid && answeredNow(requestId)))
         && request.resource.data.withdrawn == true
         && request.resource.data.updatedAt == request.time
         && getAfter(docPath('heatBudgets', resource.data.ownerUid)).data.target == requestId
@@ -356,6 +381,65 @@ service cloud.firestore {
       allow update: if validBudget(uid, resource.data.used);
       // 消して上限をリセットさせない
       allow delete: if false;
+    }
+
+    // ---- 撮影リクエストへの回答（T43・ADR 0028）----
+    // 投稿者は、撮影リクエストの地点から動画を登録すると、マーカーの answers にその地点のリクエスト ID を付けられる。
+    // 依頼者が「受け取る」と、リクエストを取り下げ（answeredBy を足す）、同じトランザクションで answerCounts/{markerId} に
+    // そのリクエストの炎（熱量）を足す。熱量の印も減るので、依頼者の熱量は戻る。
+    // answerCounts = { heat: 受け取った炎の合計, count: 件数, ownerUid: 投稿者, last: 最後に受け取ったリクエスト ID }。
+    // 誰でも読める（プロフィールで投稿者ごとに合計する）。いいねの likeCounts と同じ方式（ADR 0024）。
+    // 受け取りの 1 バッチ（requests・heatBudgets・answerCounts）で get・exists は上限 20 回の近くまで使う。
+    // 共通の関数（canWrite など）に get を足すときは、tests/rules/answers.test.mjs の受け取りが通るか確かめる。
+
+    // 応えた動画と頼んだ地点の距離の上限（度。約 1 km）。src/core/logic/answers.ts の ANSWER_NEAR_DEG と同じ
+    function nearEnough(m, r) {
+      return math.abs(m.lat - r.lat) <= 0.01 && math.abs(m.lng - r.lng) <= 0.01;
+    }
+
+    // この書き込みで、依頼者が自分のリクエストを受け取ったか（requests の更新側から見る）
+    function answeredNow(requestId) {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt', 'answeredBy'])
+        && d.answeredBy is string
+        && answerable(d.answeredBy, requestId)
+        && getAfter(docPath('answerCounts', d.answeredBy)).data.last == requestId;
+    }
+
+    // 応えたマーカーが残っていて、ほかの人の投稿で、このリクエストに応えていて、近くにある。
+    // リクエストはマーカーより前に作られていること（物理削除のあと同じ ID で作り直して二重に受け取る・
+    // まだ無い ID を先に並べておくのを防ぐ）。resource はリクエストなので get は増えない
+    function answerable(markerId, requestId) {
+      let m = get(docPath('markers', markerId)).data;
+      return m.deleted == false
+        && m.ownerUid != request.auth.uid
+        && m.get('answers', []).hasAny([requestId])
+        && resource.data.createdAt < m.createdAt
+        && nearEnough(m, resource.data);
+    }
+
+    // この書き込みで受け取られたリクエストの炎と件数だけ動いたか（answerCounts の側から見る）
+    function receivedNow(markerId, requestId) {
+      let path = docPath('requests', requestId);
+      let d = request.resource.data;
+      let heatBefore = resource == null ? 0 : resource.data.heat;
+      let countBefore = resource == null ? 0 : resource.data.count;
+      return get(path).data.get('withdrawn', false) == false
+        && getAfter(path).data.withdrawn == true
+        && getAfter(path).data.get('answeredBy', '') == markerId
+        && d.heat == heatBefore + get(path).data.heat
+        && d.count == countBefore + 1;
+    }
+
+    match /answerCounts/{markerId} {
+      allow read: if true;
+      allow create, update: if canWrite()
+        && request.resource.data.keys().hasOnly(['heat', 'count', 'ownerUid', 'last'])
+        && request.resource.data.last is string
+        && request.resource.data.ownerUid == get(docPath('markers', markerId)).data.ownerUid
+        && receivedNow(markerId, request.resource.data.last);
+      // 管理者が消せるのはマーカーがもう無いときだけ（いいねの件数と同じ）
+      allow delete: if canWrite() && isAdmin() && !exists(docPath('markers', markerId));
     }
 
     // ---- 通報（要件 3.8）----

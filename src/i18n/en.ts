@@ -116,6 +116,19 @@ export const en: DeepPartial<Dictionary> = {
     howToAnswer: 'Film under these conditions and post it to answer the request.',
   },
 
+  answers: {
+    formBanner: 'This post answers {count} shooting request(s). The requesters will be told a video has arrived.',
+    notice: 'A video arrived for your shooting request ({count})',
+    open: 'View',
+    dismiss: 'Close',
+    heading: 'Videos that arrived',
+    row: '"{title}" · {by}',
+    watch: 'Watch',
+    receive: 'Accept',
+    confirmReceive: 'Accept "{title}"? This request closes and you get {heat} heat back. The poster receives {heat} flame(s).',
+    received: 'Accepted ({heat} heat returned)',
+  },
+
   store: {
     submit: 'Register',
     update: 'Update',

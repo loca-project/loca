@@ -9,6 +9,7 @@ import type { EquipmentDef } from '@/core/types';
 import { MEMO_MAX_LENGTH, TAG_CATEGORIES, type TagCategory } from '@/core/constants';
 import { Button, Field, RadioGroup, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { interpolate } from '@/core/logic/format';
 import type { MarkerFormState } from '@/features/marker/formState';
 import { chipOptions } from '@/features/tags/tagChips';
 import EquipmentSelects from '@/features/equipment/EquipmentSelects';
@@ -51,6 +52,13 @@ export default function MarkerForm({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 撮影リクエストの地点から来た新規登録（ADR 0028） */}
+      {!editing && form.answers && form.answers.length > 0 && (
+        <p className="rounded bg-orange-50 px-2 py-1.5 text-[11px] text-orange-800">
+          <i className="fa-solid fa-fire mr-1" />
+          {interpolate(t.answers.formBanner, { count: form.answers.length })}
+        </p>
+      )}
       <Field label={t.form.url}>
         <TextInput
           value={form.youtubeUrl}

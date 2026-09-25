@@ -6,8 +6,8 @@
  *
  * --yes を npm 経由で渡さないこと。ルートからの委譲では npm 自身の --yes として解釈され、スクリプトに届かない。
  *
- * 消す: markers・videos・requests・heatBudgets・rateLimits・reports・likes・likeCounts（利用者の投稿と、その索引・印・通報・いいね）。
- * 残す: admins・blacklist（運用の設定）。
+ * 消す: markers・videos・requests・heatBudgets・rateLimits・reports・likes・likeCounts・answerCounts（利用者の投稿と、その索引・印・通報・いいね・炎）。
+ * 残す: admins・blacklist・users・nicknames・jobs・equipmentMaster（運用の設定・プロフィール・定期処理の記録・機器マスタ）。
  * 物理削除は差分の購読に届かないので、消したあとは同期で公開データを作り直す（ADR 0013）。
  *   gh workflow run sync-firestore.yml
  * 手順と確認は /reset-data。オーナーの権限（lib/owner-auth.mjs）で書く。
@@ -15,7 +15,7 @@
 
 import { FIRESTORE, PROJECT, call, ownerToken } from './lib/owner-auth.mjs';
 
-const TARGETS = ['markers', 'videos', 'requests', 'heatBudgets', 'rateLimits', 'reports', 'likes', 'likeCounts'];
+const TARGETS = ['markers', 'videos', 'requests', 'heatBudgets', 'rateLimits', 'reports', 'likes', 'likeCounts', 'answerCounts'];
 // 消さないもの（運用の設定・プロフィールと名前の索引・定期処理の記録）。ルールのコレクションは、
 // TARGETS か KEEP のどちらかに必ず入れる（npm run verify が検査する。足し忘れると試験データが残る。T68）
 const KEEP = ['admins', 'blacklist', 'users', 'nicknames', 'jobs', 'equipmentMaster'];

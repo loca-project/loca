@@ -95,6 +95,8 @@ export interface MarkerData {
   updatedAt?: number;
   /** 取り下げ済み。公開データには含めないが、混入しても弾けるよう型には残す */
   deleted?: boolean;
+  /** 応えた撮影リクエストの ID（作成のときだけ付く。ADR 0028） */
+  answers?: string[];
 }
 
 /** 新規登録時の入力（id とタイムスタンプは取り込み側で採番）。 */
@@ -106,7 +108,7 @@ export type MarkerDraft = Omit<MarkerData, 'id' | 'createdAt' | 'updatedAt'>;
  */
 export type MarkerContent = Pick<
   MarkerData,
-  'youtubeUrl' | 'lat' | 'lng' | 'tags' | 'memo' | 'equipment' | 'title' | 'channelTitle' | 'thumbnailUrl' | 'prefecture' | 'city'
+  'youtubeUrl' | 'lat' | 'lng' | 'tags' | 'memo' | 'equipment' | 'title' | 'channelTitle' | 'thumbnailUrl' | 'prefecture' | 'city' | 'answers'
 > & { videoId: string };
 
 /** 地図上の矩形範囲（範囲指定検索で使う）。 */

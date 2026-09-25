@@ -51,6 +51,8 @@ function contentOf(form: MarkerFormState, videoId: string, meta: VideoMeta, plac
     prefecture: place?.prefecture ?? prev?.prefecture,
     city: place?.city ?? prev?.city,
   };
+  // 応えるリクエストは新規登録のときだけ付ける（ルールも作成のあとは変えさせない）
+  if (!prev && form.answers?.length) content.answers = form.answers;
   return content;
 }
 

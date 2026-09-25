@@ -10,6 +10,8 @@
 const PUBLIC_KEYS = [
   'id', 'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'memo', 'youtube', 'equipment', 'title', 'channelTitle', 'thumbnailUrl',
   'prefecture', 'city', 'ownerUid', 'createdBy', 'createdAt', 'updatedAt',
+  // 応えた撮影リクエストの ID（依頼者のブラウザが「届きました」を探す。ADR 0028）
+  'answers',
 ];
 
 const pick = (row) => Object.fromEntries(PUBLIC_KEYS.filter((k) => row[k] !== undefined).map((k) => [k, row[k]]));

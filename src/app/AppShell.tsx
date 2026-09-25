@@ -35,6 +35,8 @@ import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
 import { useRangeSelect } from './useRangeSelect';
+import { answerTargets } from '@/core/logic/answers';
+import AnswerNotice from '@/features/profile/AnswerNotice';
 
 export default function AppShell() {
   const { t } = useI18n();
@@ -310,7 +312,10 @@ export default function AppShell() {
             },
             onPostVideoFromRequest: () => {
               if (!app.selectedRequest) return;
+              const answers = answerTargets(app.selectedRequest, auth.user?.uid ?? null);
               app.startRegisterAt({ lat: app.selectedRequest.lat, lng: app.selectedRequest.lng });
+              // 地点のほかの人のリクエストに応える投稿にする（ADR 0028）
+              if (answers.length > 0) app.setForm((f) => ({ ...f, answers }));
               app.setRegisterTab('marker');
             },
             onSearchRelated: () => {
@@ -352,6 +357,12 @@ export default function AppShell() {
       )}
 
       <HealthNotice />
+      <AnswerNotice
+        uid={auth.user?.uid ?? null}
+        markers={app.catalog.markers}
+        spots={app.catalog.requestMarkers}
+        onOpen={() => app.openModal('myPosts')}
+      />
 
       <HeaderBar
         onOpenGuide={() => app.openModal('guide')}

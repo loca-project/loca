@@ -107,6 +107,20 @@ export const ja = {
     howToAnswer: 'この条件で撮影して投稿すると、リクエストに応えられます。',
   },
 
+  // 撮影リクエストへの回答（T43・ADR 0028）。「炎」は受け取ったリクエストの熱量
+  answers: {
+    formBanner: '撮影リクエスト {count} 件に応える投稿です。登録すると依頼者に「動画が届きました」と知らせます。',
+    notice: '撮影リクエストに動画が届きました（{count} 件）',
+    open: '見る',
+    dismiss: '閉じる',
+    heading: '届いた動画',
+    row: '「{title}」 ・ {by}',
+    watch: '動画を見る',
+    receive: '受け取る',
+    confirmReceive: '「{title}」を受け取りますか？このリクエストは閉じ、熱量 {heat} が戻ります。投稿者には炎 {heat} が届きます。',
+    received: '受け取りました（熱量 {heat} が戻りました）',
+  },
+
   store: {
     submit: '登録する',
     update: '更新する',

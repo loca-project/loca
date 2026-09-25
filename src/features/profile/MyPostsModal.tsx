@@ -16,6 +16,8 @@ import { useServices } from '@/shared/hooks/useServices';
 import StatisticsTab from '@/features/admin/StatisticsTab';
 import MyMarkersTab from './MyMarkersTab';
 import MyRequestsTab from './MyRequestsTab';
+import DeliveredList from './DeliveredList';
+import { deliveredAnswers } from '@/core/logic/answers';
 
 interface MyPostsModalProps {
   open: boolean;
@@ -32,9 +34,11 @@ type TabId = 'statistics' | 'markers' | 'requests';
 export default function MyPostsModal(props: MyPostsModalProps) {
   const { open, uid, markers, requestMarkers, onPickMarker, onPickRequest, onClose } = props;
   const { t } = useI18n();
-  const [tab, setTab] = useState<TabId>('markers');
   const mine = useMemo(() => myMarkers(markers, uid), [markers, uid]);
   const spots = useMemo(() => myRequestSpots(requestMarkers, uid), [requestMarkers, uid]);
+  const delivered = useMemo(() => deliveredAnswers(markers, requestMarkers, uid), [markers, requestMarkers, uid]);
+  // 動画が届いていれば、撮影リクエストのタブから開く（届いた動画を受け取るため。ADR 0028）
+  const [tab, setTab] = useState<TabId>(delivered.length > 0 ? 'requests' : 'markers');
   const received = useReceivedLikes(open);
   // 合計は、いま地図にある自分のマーカーの分だけ（削除したマーカーの分は数えない）
   const receivedTotal = mine.reduce((sum, m) => sum + (received[m.id] ?? 0), 0);
@@ -61,6 +65,7 @@ export default function MyPostsModal(props: MyPostsModalProps) {
           </>
         )}
         {tab === 'markers' && <MyMarkersTab mine={mine} received={received} onJump={onPickMarker} />}
+        {tab === 'requests' && <DeliveredList delivered={delivered} onWatch={onPickMarker} />}
         {tab === 'requests' && <MyRequestsTab uid={uid} spots={spots} onJump={onPickRequest} />}
       </div>
     </Modal>

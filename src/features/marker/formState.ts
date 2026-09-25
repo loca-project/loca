@@ -15,6 +15,8 @@ export interface MarkerFormState {
   tags: TagInput;
   /** 現地メモ（入力途中のまま持ち、保存時に整える） */
   memo: string;
+  /** 撮影リクエストの地点から登録するとき、応えるリクエストの ID（新規登録だけ。ADR 0028） */
+  answers?: string[];
 }
 
 export const EMPTY_FORM: MarkerFormState = {

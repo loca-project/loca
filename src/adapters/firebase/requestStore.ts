@@ -15,6 +15,7 @@ import {
   getDocs,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   where,
   writeBatch,
@@ -110,6 +111,31 @@ export function createRequestStore(db: Firestore, currentUser: () => AuthUser | 
     },
 
     withdraw,
+
+    // 受け取り（ADR 0028）: リクエストの取り下げ（answeredBy）・熱量の印・炎の集計を 1 つのトランザクションで書く。
+    // 同じ動画を同時に受け取られたら、トランザクションが読み直して再試行する（いいねの件数と同じ。ADR 0024）
+    async receive(entry, marker): Promise<void> {
+      const user = currentUser();
+      if (!user) throw new UpstreamError('受け取るにはログインしてください。');
+      try {
+        await runTransaction(db, async (tx) => {
+          const budgetRef = doc(db, 'heatBudgets', user.uid);
+          const countRef = doc(db, 'answerCounts', marker.id);
+          const used = Number((await tx.get(budgetRef)).data()?.used ?? 0);
+          const counts = (await tx.get(countRef)).data();
+          tx.update(doc(db, 'requests', entry.id), { withdrawn: true, updatedAt: serverTimestamp(), answeredBy: marker.id });
+          tx.set(budgetRef, { used: Math.max(0, used - entry.heat), target: entry.id });
+          tx.set(countRef, {
+            heat: Number(counts?.heat ?? 0) + entry.heat,
+            count: Number(counts?.count ?? 0) + 1,
+            ownerUid: marker.ownerUid,
+            last: entry.id,
+          });
+        });
+      } catch (e) {
+        throw toUpstream(e, '受け取りが拒否されました。本人のリクエストに応えた、ほかの人の動画だけを受け取れます。');
+      }
+    },
 
     async withdrawAllMine(): Promise<number> {
       const user = currentUser();

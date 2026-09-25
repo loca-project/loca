@@ -13,6 +13,11 @@ export interface RequestStorePort extends Adapter {
   create(content: RequestContent): Promise<RequestEntry>;
   /** 本人のリクエストを取り下げる（論理削除）。熱量はその分戻る。 */
   withdraw(entry: { id: string; heat: number }): Promise<void>;
+  /**
+   * 本人のリクエストに応えた動画を受け取る（ADR 0028）。リクエストを閉じて熱量を戻し、その動画の炎（answerCounts）に熱量を足す。
+   * 応えていない動画・自分の動画・論理削除された動画はルールが拒否する（UpstreamError）。
+   */
+  receive(entry: { id: string; heat: number }, marker: { id: string; ownerUid: string }): Promise<void>;
   /** 本人のリクエストをすべて取り下げる（アカウント削除。ADR 0021）。取り下げた件数を返す。 */
   withdrawAllMine(): Promise<number>;
   /**

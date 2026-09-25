@@ -42,6 +42,8 @@
           'youtubeUrl', 'videoId', 'lat', 'lng', 'tags', 'memo', 'equipment',
           'title', 'channelTitle', 'thumbnailUrl', 'prefecture', 'city',
           'ownerUid', 'createdBy', 'createdAt', 'updatedAt', 'deleted',
+          // 応えた撮影リクエストの ID（T43）。作成のときだけ付けられる（validAnswers・keepsAnswers）
+          'answers',
           // Actions だけが IAM の経路で書く（ADR 0017）。利用者の作成・更新では変えられない（touchesBatchOnly）
           'youtube', 'deletedReason'])
         && d.keys().hasAll([
@@ -65,7 +67,25 @@
         && d.updatedAt == request.time
         && d.deleted is bool
         && (!('youtube' in d) || d.youtube is map)
-        && (!('deletedReason' in d) || d.deletedReason in ['unavailable']);
+        && (!('deletedReason' in d) || d.deletedReason in ['unavailable'])
+        && validAnswers(d);
+    }
+
+    // 応えた撮影リクエストの ID の一覧（1〜10 件・重複なし・英数字 1〜40 字。T43）。リクエストがあるかは、依頼者が受け取るときに確かめる
+    // 要素の形は join して 1 本の正規表現で見る。join は数値も文字列にするので、split し直して元の一覧と同じ（すべて文字列）かも見る。
+    // markers.json に載るので長さを縛る
+    function validAnswers(d) {
+      return !('answers' in d)
+        || (d.answers is list && d.answers.size() >= 1 && d.answers.size() <= 10
+          && d.answers.toSet().size() == d.answers.size()
+          && d.answers.join(',').matches('^[A-Za-z0-9]{1,40}(,[A-Za-z0-9]{1,40}){0,9}$')
+          && d.answers.join(',').split(',') == d.answers);
+    }
+
+    // 応えた撮影リクエストは作成のあと変えられない。後から付け替えて炎を集めさせないため。管理者も外す向きだけ
+    function keepsAnswers() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['answers'])
+        || (isAdmin() && resource.data.get('answers', []).hasAll(request.resource.data.get('answers', [])));
     }
 
     // Actions だけが書く項目（再生数など・消えた動画の論理削除の理由）
@@ -112,22 +132,6 @@
         && request.resource.data.deleted == false
         && !touchesBatchOnly(request.resource.data.keys());
 
-      // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
-      // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
-      allow update: if canWrite()
-        && validMarker(request.resource.data)
-        && keepsIdentity()
-        // 再生数などは誰も変えられない。論理削除の理由は、管理者が復元するときだけ外せる
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['youtube'])
-        && (isAdmin() || !touchesBatchOnly(request.resource.data.diff(resource.data).affectedKeys()))
-        // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
-        && (request.resource.data.videoId == resource.data.videoId
-          || indexedFor(markerId, request.resource.data.videoId))
-        && (
-          isAdmin()
-          || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
-        );
-
       // 投稿者名を、いまのプロフィールのニックネームにそろえる（ADR 0019 決定 7）。
       // 本人が createdBy と updatedAt だけを変える。名前はその時点のニックネームにしかできないので、他人の名前は名乗れない。
       // ニックネームの変更と同じバッチでも後からでも通るよう getAfter で読む。印（レートリミット）は求めない
@@ -140,13 +144,32 @@
         && request.resource.data.updatedAt == request.time;
 
       // 本人の論理削除（deleted を true にするだけ）は印なしで通す。アカウント削除でまとめて消すため（ADR 0021）。
-      // 消すだけなので連打されても困らない。戻すのは管理者だけ（上の更新）
+      // 消すだけなので連打されても困らない。戻すのは管理者だけ（下の通常の更新）
       allow update: if canWrite()
         && isOwner()
         && resource.data.deleted == false
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleted', 'updatedAt'])
         && request.resource.data.deleted == true
         && request.resource.data.updatedAt == request.time;
+
+      // 通常の更新は最後に置く（validMarker などで式を多く使う）。ルールは 1 回の評価で式 1000 個までなので、
+      // 軽い条件（投稿者名をそろえる・本人の論理削除）を先に評価させ、重い条件で予算を使い切る前に通す（T43）
+      // 要件 3.x: 本人は論理削除まで。削除済みは本人には戻せない
+      // 要件 5.x: 管理者は誰のマーカーでも更新・論理削除・復元できる（一括操作のためレートリミットなし）
+      allow update: if canWrite()
+        && validMarker(request.resource.data)
+        && keepsIdentity()
+        && keepsAnswers()
+        // 再生数などは誰も変えられない。論理削除の理由は、管理者が復元するときだけ外せる
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['youtube'])
+        && (isAdmin() || !touchesBatchOnly(request.resource.data.diff(resource.data).affectedKeys()))
+        // 動画を差し替えるなら、新しい動画の索引を同じバッチで作る
+        && (request.resource.data.videoId == resource.data.videoId
+          || indexedFor(markerId, request.resource.data.videoId))
+        && (
+          isAdmin()
+          || (isOwner() && resource.data.deleted == false && stampedFor(markerId))
+        );
 
       // 物理削除は管理者だけ（要件 1.4）
       allow delete: if canWrite() && isAdmin();

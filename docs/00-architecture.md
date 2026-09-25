@@ -75,7 +75,7 @@ Loca/                               ワークスペース（git の外）
 | `GeocodePort` | 座標 ⇄ 地名 | `gsi`（国土地理院） |
 | `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
-| `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く） |
+| `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
 | `ReportStorePort` | 通報（1 人 1 マーカー 1 件） | `firestore-reports` |
 | `ProfileStorePort` | プロフィール（ニックネーム・同意）の読み書き・アカウント削除 | `firestore-profiles`（ADR 0019・0021） |
 | `AdminStorePort` | 管理者モードの読み書き（利用者・投稿の論理削除・撮影リクエストの取り下げ・定期処理の記録・機器マスタ） | `firestore-admin`（T27・ADR 0025） |
@@ -105,13 +105,15 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
       "title": "...", "channelTitle": "...", "thumbnailUrl": "...",
       "prefecture": "東京都", "city": "台東区",
       "ownerUid": "<Firebase の uid>", "createdBy": "user-xxxxxx",
-      "createdAt": 1758400000000, "updatedAt": 1758400000000
+      "createdAt": 1758400000000, "updatedAt": 1758400000000,
+      "answers": ["<撮影リクエストの ID>"]
     }
   ]
 }
 ```
 
-`requests.json` も同じ形で、撮影リクエストの地点と、その内訳（`entries`: 熱量・季節・時間帯・撮り方・機器・`ownerUid`。季節・時間帯・撮り方は動画のタグと同じキー）を持つ。
+`requests.json` も同じ形で、撮影リクエストの地点と、その内訳（`entries`: `id`・熱量・季節・時間帯・撮り方・機器・`ownerUid`。季節・時間帯・撮り方は動画のタグと同じキー）を持つ。
+`answers` は撮影リクエストに応えた動画だけが持つ（応えたリクエストの `id`。ADR 0028）。
 `syncedAt` は「同期で Firestore を読み始めた時刻」で、画面はそれより後に `updatedAt` が変わった行だけを購読する。
 
 ## ランキングの基準

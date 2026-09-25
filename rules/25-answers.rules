@@ -1,0 +1,58 @@
+    // ---- 撮影リクエストへの回答（T43・ADR 0028）----
+    // 投稿者は、撮影リクエストの地点から動画を登録すると、マーカーの answers にその地点のリクエスト ID を付けられる。
+    // 依頼者が「受け取る」と、リクエストを取り下げ（answeredBy を足す）、同じトランザクションで answerCounts/{markerId} に
+    // そのリクエストの炎（熱量）を足す。熱量の印も減るので、依頼者の熱量は戻る。
+    // answerCounts = { heat: 受け取った炎の合計, count: 件数, ownerUid: 投稿者, last: 最後に受け取ったリクエスト ID }。
+    // 誰でも読める（プロフィールで投稿者ごとに合計する）。いいねの likeCounts と同じ方式（ADR 0024）。
+    // 受け取りの 1 バッチ（requests・heatBudgets・answerCounts）で get・exists は上限 20 回の近くまで使う。
+    // 共通の関数（canWrite など）に get を足すときは、tests/rules/answers.test.mjs の受け取りが通るか確かめる。
+
+    // 応えた動画と頼んだ地点の距離の上限（度。約 1 km）。src/core/logic/answers.ts の ANSWER_NEAR_DEG と同じ
+    function nearEnough(m, r) {
+      return math.abs(m.lat - r.lat) <= 0.01 && math.abs(m.lng - r.lng) <= 0.01;
+    }
+
+    // この書き込みで、依頼者が自分のリクエストを受け取ったか（requests の更新側から見る）
+    function answeredNow(requestId) {
+      let d = request.resource.data;
+      return d.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt', 'answeredBy'])
+        && d.answeredBy is string
+        && answerable(d.answeredBy, requestId)
+        && getAfter(docPath('answerCounts', d.answeredBy)).data.last == requestId;
+    }
+
+    // 応えたマーカーが残っていて、ほかの人の投稿で、このリクエストに応えていて、近くにある。
+    // リクエストはマーカーより前に作られていること（物理削除のあと同じ ID で作り直して二重に受け取る・
+    // まだ無い ID を先に並べておくのを防ぐ）。resource はリクエストなので get は増えない
+    function answerable(markerId, requestId) {
+      let m = get(docPath('markers', markerId)).data;
+      return m.deleted == false
+        && m.ownerUid != request.auth.uid
+        && m.get('answers', []).hasAny([requestId])
+        && resource.data.createdAt < m.createdAt
+        && nearEnough(m, resource.data);
+    }
+
+    // この書き込みで受け取られたリクエストの炎と件数だけ動いたか（answerCounts の側から見る）
+    function receivedNow(markerId, requestId) {
+      let path = docPath('requests', requestId);
+      let d = request.resource.data;
+      let heatBefore = resource == null ? 0 : resource.data.heat;
+      let countBefore = resource == null ? 0 : resource.data.count;
+      return get(path).data.get('withdrawn', false) == false
+        && getAfter(path).data.withdrawn == true
+        && getAfter(path).data.get('answeredBy', '') == markerId
+        && d.heat == heatBefore + get(path).data.heat
+        && d.count == countBefore + 1;
+    }
+
+    match /answerCounts/{markerId} {
+      allow read: if true;
+      allow create, update: if canWrite()
+        && request.resource.data.keys().hasOnly(['heat', 'count', 'ownerUid', 'last'])
+        && request.resource.data.last is string
+        && request.resource.data.ownerUid == get(docPath('markers', markerId)).data.ownerUid
+        && receivedNow(markerId, request.resource.data.last);
+      // 管理者が消せるのはマーカーがもう無いときだけ（いいねの件数と同じ）
+      allow delete: if canWrite() && isAdmin() && !exists(docPath('markers', markerId));
+    }

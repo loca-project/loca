@@ -176,3 +176,33 @@ describe('地点ごとの集計（mergeRequestEntries）', () => {
     assert.equal(spots[0].requestCount, 3);
   });
 });
+
+describe('受け取り（T43・ADR 0028）', () => {
+  it('依頼者が受け取ると熱量が戻り、動画の炎と件数が足される。2 件目は炎が積み上がる', async () => {
+    const { doc, getDoc, setDoc } = await import('firebase/firestore');
+    const { seed, storedMarker } = await import('../rules/helpers.mjs');
+    const alice = storeFor('alice');
+    const r1 = await alice.create(content(3));
+    // 別の地点として（地点をまとめる幅 0.0003 度より遠く）、応えた動画の近く（0.01 度以内）に置く
+    const r2 = await alice.create(content(2, 35.005));
+    const { Timestamp } = await import('firebase/firestore');
+    const soon = Timestamp.fromMillis(Date.now() + 60_000);
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'm1'),
+      storedMarker('bob', { answers: [r1.id, r2.id], lat: 35.0, lng: 135.0, createdAt: soon, updatedAt: soon })));
+    await alice.receive({ id: r1.id, heat: 3 }, { id: 'm1', ownerUid: 'bob' });
+    assert.equal(await alice.heatUsed(), 2);
+    await alice.receive({ id: r2.id, heat: 2 }, { id: 'm1', ownerUid: 'bob' });
+    assert.equal(await alice.heatUsed(), 0);
+    const counts = (await getDoc(doc(env.unauthenticatedContext().firestore(), 'answerCounts', 'm1'))).data();
+    assert.deepEqual({ heat: counts.heat, count: counts.count, ownerUid: counts.ownerUid }, { heat: 5, count: 2, ownerUid: 'bob' });
+  });
+
+  it('応えていない動画は、理由の分かる UpstreamError', async () => {
+    const { doc, setDoc } = await import('firebase/firestore');
+    const { seed, storedMarker } = await import('../rules/helpers.mjs');
+    const alice = storeFor('alice');
+    const r1 = await alice.create(content(1));
+    await seed(env, (db) => setDoc(doc(db, 'markers', 'm2'), storedMarker('bob')));
+    await assert.rejects(alice.receive({ id: r1.id, heat: 1 }, { id: 'm2', ownerUid: 'bob' }), /受け取りが拒否されました/);
+  });
+});
