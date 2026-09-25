@@ -121,7 +121,7 @@ export default function UsersTab() {
                 <span className="text-[11px] text-gray-400">{u.senior}</span>
               ) : (
                 <Button
-                  variant="secondary"
+                  variant="dangerSoft"
                   disabled={loading}
                   onClick={act(u.confirmToUser.replace('{name}', name(row)), () => adminStore.revokeAdmin(row.uid), u.demoted)}
                 >
@@ -137,7 +137,7 @@ export default function UsersTab() {
           render={(row) => (
             <UserLine key={row.uid} row={row}>
               <Button
-                variant="secondary"
+                variant="primarySoft"
                 disabled={loading || row.nickname === null}
                 onClick={act(u.confirmToAdmin.replace('{name}', name(row)), () => adminStore.grantAdmin(row.uid), u.promoted)}
               >

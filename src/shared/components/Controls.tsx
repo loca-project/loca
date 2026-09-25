@@ -6,7 +6,7 @@
 
 import React from 'react';
 
-type Variant = 'primary' | 'secondary' | 'danger' | 'dangerSoft' | 'ghost';
+type Variant = 'primary' | 'primarySoft' | 'secondary' | 'danger' | 'dangerSoft' | 'ghost';
 
 /** 操作部品の共通の高さと角丸。丸型（pill）は地図の上に浮かせるボタンに使う。 */
 const CONTROL = 'h-9 rounded-md';
@@ -18,6 +18,8 @@ const VARIANT: Record<Variant, string> = {
   danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-gray-300',
   // 取り消せない操作の入口（確定のボタンは danger）。背景と枠でボタンと分かるようにし、主の操作より目立たせない
   dangerSoft: 'bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:text-gray-400',
+  // 主の色の控えめな版（サイドメニューの選択中と同じ薄い青）。dangerSoft と対にして並べる操作に使う
+  primarySoft: 'bg-loca-50 text-loca-700 border border-loca-100 hover:bg-loca-100 disabled:text-gray-400',
   ghost: 'text-gray-600 hover:bg-gray-100 disabled:text-gray-300',
 };
 
