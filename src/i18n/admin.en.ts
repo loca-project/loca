@@ -50,7 +50,7 @@ export const adminEn: DeepPartial<typeof adminJa> = {
     delete: 'Delete',
     toBlacklist: 'Blacklist',
     unblacklist: 'Remove',
-    confirmDelete: 'Delete the profile of "{name}"? Their markers stay (remove them in Marker management). They start over from registration next time.',
+    confirmDelete: 'Delete the profile of "{name}"? Their markers stay (remove them in the Posted videos tab). They start over from registration next time.',
     confirmBlacklist: 'Blacklist "{name}"? They will not be able to sign in or post.',
     confirmUnblacklist: 'Remove "{name}" from the blacklist?',
     deleted: 'Profile deleted',

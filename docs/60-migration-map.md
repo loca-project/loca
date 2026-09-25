@@ -29,7 +29,7 @@
 | `components/MyMarkersModal.tsx` | 315 | `src/features/profile/MyPostsModal.tsx`, `src/core/logic/myPosts.ts` | 撮影リクエストも一覧する。地図の一覧から本人の uid で絞る（T53） |
 | `components/VideoDetailsModal.tsx` | 132 | `src/features/marker/VideoDetailsModal.tsx` | |
 | `components/RequestDetailsModal.tsx` | 224 | `src/features/request/RequestDetailsModal.tsx` | |
-| `components/AdminMode/*.tsx` | 12 ファイル | `src/features/admin/*.tsx`（11 ファイル） | タブ構成を整理（下記） |
+| `components/AdminMode/*.tsx` | 12 ファイル | `src/features/admin/*.tsx`（9 ファイル） | タブ構成を整理（下記） |
 | `equipment_data.json` | 28 | `public/data/equipment.json` | そのまま |
 | `docs/REQUIREMENTS.md` | 467 | `project/docs/10〜50-requirements-*.md` | 章ごとに分割＋差分注記 |
 | `firebase.json` | 16 | `deploy/firebase/firebase.json` | 配信先ごとの設定を `deploy/` に隔離 |
@@ -47,12 +47,12 @@
 | `Logs.tsx` | `LogsTab.tsx` |
 | `UserManagement.tsx` | `UsersTab.tsx` |
 | `MarkerManagement.tsx` | `MarkersTab.tsx` |
-| `EquipmentManagement.tsx` | `EquipmentTab.tsx` |
-| `NetworkRestrictions.tsx` | `NetworkTab.tsx` |
-| `UrlManagement.tsx` | `NetworkTab.tsx` に統合（URL ブロックはアクセス制限の一部） |
-| `Parameters.tsx` | `ConfigRepo.saveConfig()` に集約（専用 UI は未移植） |
-| `AiManagement.tsx`, `AIProcess.tsx` | `SemanticSearchPort` に集約（専用 UI は未移植） |
-| `RecurringTask.tsx` | `scripts/build-markers-json.mjs`（バッチ本体）に移管 |
+| `EquipmentManagement.tsx` | 未移植（T28） |
+| `NetworkRestrictions.tsx` | 作らない |
+| `UrlManagement.tsx` | 作らない |
+| `Parameters.tsx` | 未移植 |
+| `AiManagement.tsx`, `AIProcess.tsx` | 未移植（Edge AI 検索は T30） |
+| `RecurringTask.tsx` | `scripts/refresh-youtube.mjs`・`sync-firestore.mjs`・`purge-deleted.mjs`（Actions）と `JobsTab.tsx` に移管 |
 | （新規） | `ReportsTab.tsx`、`RequestsTab.tsx`（撮影リクエストの管理。2026-09-25）。`ExportTab.tsx` は 2026-09-25 に廃止し、書き出しは投稿動画・撮影リクエストのタブへ |
 
 ## 持ち込まなかったもの
@@ -84,8 +84,8 @@
 
 | 項目 | 理由 | どうするか |
 |---|---|---|
-| AI 品質管理 UI（`AiManagement`, `AIProcess`） | Gemini API 前提で、配信先とキー運用が未定 | ポート（`SemanticSearchPort`）は用意済み。UI は方針決定後 |
-| パラメータ管理 UI（`Parameters`） | 何を設定項目にするかが未確定 | `ConfigRepo` で読み書きはできる |
+| AI 品質管理 UI（`AiManagement`, `AIProcess`） | Gemini API 前提で、配信先とキー運用が未定 | 未移植（Edge AI 検索は T30） |
+| パラメータ管理 UI（`Parameters`） | 何を設定項目にするかが未確定 | 未移植 |
 | IP 単位の遮断 | 静的配信ではクライアントが IP を判定できない | 管理画面に台帳のみ。遮断は配信先の WAF |
 | サーバー側 API プロキシ | サーバーを前提にできない | 配信先決定後に追加 |
 

@@ -41,7 +41,7 @@ export interface AdminStorePort extends Adapter {
   jobs(): Promise<JobRecord[]>;
   /** ユーザー管理の 3 区画を Firestore から読み直す（要件 5.2.4 の「ユーザー情報の取得」）。管理者だけ。 */
   users(): Promise<AdminUserLists>;
-  /** 利用者のプロフィールと名前の索引を消す。マーカーは消さない（マーカー管理で個別に論理削除。T59 の判断）。 */
+  /** 利用者のプロフィールと名前の索引を消す。マーカーは消さない（投稿動画のタブで個別に論理削除。T59 の判断）。 */
   deleteUser(uid: string): Promise<void>;
   /** ブラックリストに入れる。次のログインで止まり、書き込みはルールが拒否する。 */
   blacklist(uid: string): Promise<void>;
