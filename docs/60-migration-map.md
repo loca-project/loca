@@ -74,6 +74,7 @@
 
 移植元は Tailwind・Font Awesome・Inter・各種 JS を CDN から読んでいた。
 ローカルとオフラインで確実に動かすため、すべて npm 依存に置き換えてビルドに含めた。
+サイト名の書体 Fraunces は Loca で足したもので、npm ではなく `src/assets/fonts/` に 4 文字だけ置き、CSS に埋め込む（ADR 0026）。
 
 ### 物理削除の既定
 

@@ -53,6 +53,9 @@ Loca/                               ワークスペース（git の外）
    │  ├─ runtime/    設定とサービス解決
    │  ├─ features/   画面
    │  ├─ shared/     共通 UI とフック
+   │  ├─ i18n/       日英の辞書
+   │  ├─ styles/     全体の CSS
+   │  ├─ assets/     書体（サイト名の 4 文字だけ。ADR 0026）
    │  └─ app/        画面の組み立てと状態
    └─ context/ docs/ decisions/ references/   資料
 ```

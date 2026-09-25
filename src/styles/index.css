@@ -5,6 +5,16 @@
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
+/*! Fraunces (c) 2018 The Fraunces Project Authors. SIL Open Font License 1.1 (https://openfontlicense.org) */
+/* サイト名 Loca だけに使う 4 文字の書体（ADR 0026。取得の手順は src/assets/fonts/README.md） */
+@font-face {
+  font-family: 'Loca Wordmark';
+  src: url('../assets/fonts/fraunces-loca.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

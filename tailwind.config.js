@@ -3,6 +3,10 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        // サイト名 Loca だけに使う（ADR 0026）
+        wordmark: ['"Loca Wordmark"', 'Georgia', 'serif'],
+      },
       colors: {
         loca: {
           50: '#eef6ff',
