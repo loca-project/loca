@@ -18,9 +18,10 @@ interface ProfileModalProps {
   profile: UserProfile;
   user: AuthUser;
   busy: boolean;
-  onSave: (nickname: string) => void;
-  /** 自己申告のチャンネルを保存する（空文字で消す。T55） */
-  onSaveChannel: (channel: string) => void;
+  /**
+   * 「更新」。変えた項目だけを渡す（変えていなければ null）。チャンネルは空文字で消す（T55）。
+   */
+  onSave: (changes: { nickname: string | null; channel: string | null }) => void;
   onClose: () => void;
   /** アカウント削除の確認を開く（ADR 0021） */
   onDelete: () => void;
@@ -35,15 +36,17 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   );
 }
 
-export default function ProfileModal({ profile, user, busy, onSave, onSaveChannel, onClose, onDelete }: ProfileModalProps) {
+export default function ProfileModal({ profile, user, busy, onSave, onClose, onDelete }: ProfileModalProps) {
   const { t } = useI18n();
   const [nickname, setNickname] = useState(profile.nickname);
   const normalized = normalizeNickname(nickname);
-  const canSave = !busy && isValidNickname(normalized) && normalized !== profile.nickname;
+  const nicknameChanged = normalized !== profile.nickname;
   const [channelText, setChannelText] = useState(profile.channel ? channelUrl(profile.channel) : '');
   const parsedChannel = parseChannelInput(channelText);
   const channelBad = channelText.trim() !== '' && parsedChannel === null;
-  const channelChanged = (parsedChannel ?? '') !== (profile.channel ?? '');
+  const channelChanged = !channelBad && (parsedChannel ?? '') !== (profile.channel ?? '');
+  // どちらかが変わっていて、どちらにも誤りが無いときだけ押せる
+  const canSave = !busy && isValidNickname(normalized) && !channelBad && (nicknameChanged || channelChanged);
 
   return (
     <Modal
@@ -59,7 +62,10 @@ export default function ProfileModal({ profile, user, busy, onSave, onSaveChanne
           <Button variant="secondary" onClick={onClose} disabled={busy}>
             {t.actions.cancel}
           </Button>
-          <Button onClick={() => onSave(normalized)} disabled={!canSave}>
+          <Button
+            onClick={() => onSave({ nickname: nicknameChanged ? normalized : null, channel: channelChanged ? (parsedChannel ?? '') : null })}
+            disabled={!canSave}
+          >
             {busy ? t.form.processing : t.profile.update}
           </Button>
         </>
@@ -89,17 +95,12 @@ export default function ProfileModal({ profile, user, busy, onSave, onSaveChanne
 
       <div className="mt-4">
         <Field label={t.profile.channel} hint={channelBad ? t.profile.channelInvalid : t.profile.channelNote}>
-          <div className="flex gap-2">
-            <TextInput
-              value={channelText}
-              placeholder="https://www.youtube.com/@..."
-              aria-label={t.profile.channel}
-              onChange={(e) => setChannelText(e.target.value)}
-            />
-            <Button variant="secondary" onClick={() => onSaveChannel(parsedChannel ?? '')} disabled={busy || channelBad || !channelChanged}>
-              {t.profile.channelSave}
-            </Button>
-          </div>
+          <TextInput
+            value={channelText}
+            placeholder="https://www.youtube.com/@..."
+            aria-label={t.profile.channel}
+            onChange={(e) => setChannelText(e.target.value)}
+          />
         </Field>
       </div>
 

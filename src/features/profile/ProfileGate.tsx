@@ -155,8 +155,19 @@ function ProfileGateBody() {
         profile={profile}
         user={auth.user}
         busy={loading}
-        onSave={save((n) => profileStore.rename(n), t.profile.updated, () => setEditorOpen(false))}
-        onSaveChannel={save((c) => profileStore.setChannel(c || null), t.profile.channelSaved)}
+        onSave={(changes) =>
+          void exclusive(async () => {
+            try {
+              // ニックネーム（投稿者名の追従を含む）→ チャンネルの順に、変えたものだけを書く
+              if (changes.nickname !== null) await profileStore.rename(changes.nickname);
+              if (changes.channel !== null) await profileStore.setChannel(changes.channel || null);
+              toast.success(changes.channel !== null ? t.profile.channelSaved : t.profile.updated);
+              setEditorOpen(false);
+            } catch (e) {
+              toast.error(e instanceof Error ? e.message : String(e));
+            }
+          })
+        }
         onClose={() => setEditorOpen(false)}
         onDelete={() => setDeletion('confirm')}
       />

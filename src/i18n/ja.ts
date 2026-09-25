@@ -47,10 +47,9 @@ export const ja = {
     updated: 'プロフィールを更新しました',
     // 自己申告の YouTube チャンネル（T55・ADR 0029）
     channel: '自分の YouTube チャンネル（任意）',
-    channelNote: 'チャンネルの URL（youtube.com/@ハンドル か /channel/UC…）。一致した動画に「本人のチャンネル（自己申告）」が毎晩の更新のあとに付きます。空にして保存すると消えます',
+    channelNote: 'チャンネルの URL（youtube.com/@ハンドル か /channel/UC…）。一致した動画に「本人のチャンネル（自己申告）」が毎晩の更新のあとに付きます。空にして更新すると消えます',
     channelInvalid: 'youtube.com/@ハンドル か youtube.com/channel/UC… の形で入れてください',
-    channelSave: '保存',
-    channelSaved: 'チャンネルを保存しました（バッジは次の毎晩の更新で付きます）',
+    channelSaved: 'プロフィールを更新しました（チャンネルのバッジは次の毎晩の更新で付きます）',
     ownChannel: '投稿者本人のチャンネル（自己申告）',
     aligned: '{count} 件のマーカーの投稿者名をニックネームにそろえました',
     loadFailed: 'プロフィールを読み込めませんでした。時間をおいて再読み込みしてください。',
