@@ -10,13 +10,18 @@ import type { MarkerData, RequestEntrySummary, RequestMarkerData } from '@/core/
 export const MAX_ANSWERS = 10;
 /** 応えた動画と頼んだ地点の距離の上限（度。約 1 km）。ルールの nearEnough と同じ。遠い動画は届いたことにしない */
 export const ANSWER_NEAR_DEG = 0.01;
+/** リクエストから動画の登録までに要る時間（ms。1 日）。ルールの answerable と同じ。炎を増やす速さを抑える */
+export const ANSWER_WAIT_MS = 86_400_000;
 const near = (m: MarkerData, s: RequestMarkerData) =>
   Math.abs(m.lat - s.lat) <= ANSWER_NEAR_DEG && Math.abs(m.lng - s.lng) <= ANSWER_NEAR_DEG;
 
-/** 地点から動画を登録するとき、応えるリクエストの ID。自分のリクエストは除き、新しい順に上限まで。 */
-export function answerTargets(spot: RequestMarkerData, uid: string | null): string[] {
+/**
+ * 地点から動画を登録するとき、応えるリクエストの ID。自分のリクエストと、出してから 1 日たっていないもの
+ * （いま登録しても受け取れない）は除き、新しい順に上限まで。
+ */
+export function answerTargets(spot: RequestMarkerData, uid: string | null, now = Date.now()): string[] {
   return (spot.entries ?? [])
-    .filter((e) => e.ownerUid && e.ownerUid !== uid)
+    .filter((e) => e.ownerUid && e.ownerUid !== uid && (e.createdAt ?? 0) + ANSWER_WAIT_MS <= now)
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
     .slice(0, MAX_ANSWERS)
     .map((e) => e.id);
@@ -40,9 +45,9 @@ export function deliveredAnswers(markers: MarkerData[], spots: RequestMarkerData
   const rows: DeliveredAnswer[] = [];
   for (const spot of spots) {
     for (const entry of spot.entries ?? []) {
-      // 受け取れるのと同じ条件だけを出す（近くにあり、リクエストより後に登録された動画。ルールの answerable）
+      // 受け取れるのと同じ条件だけを出す（近くにあり、リクエストから 1 日以上たって登録された動画。ルールの answerable）
       const found = (entry.ownerUid === uid ? byRequest.get(entry.id) ?? [] : [])
-        .filter((m) => near(m, spot) && (entry.createdAt === undefined || entry.createdAt < m.createdAt));
+        .filter((m) => near(m, spot) && (entry.createdAt === undefined || entry.createdAt + ANSWER_WAIT_MS <= m.createdAt));
       if (found.length) rows.push({ spot, entry, markers: [...found].sort((a, b) => b.createdAt - a.createdAt) });
     }
   }

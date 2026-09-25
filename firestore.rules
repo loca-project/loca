@@ -407,14 +407,15 @@ service cloud.firestore {
     }
 
     // 応えたマーカーが残っていて、ほかの人の投稿で、このリクエストに応えていて、近くにある。
-    // リクエストはマーカーより前に作られていること（物理削除のあと同じ ID で作り直して二重に受け取る・
-    // まだ無い ID を先に並べておくのを防ぐ）。resource はリクエストなので get は増えない
+    // マーカーはリクエストから 1 日以上たって登録されていること。物理削除のあと同じ ID で作り直して二重に受け取る・
+    // まだ無い ID を先に並べておくのを防ぎ、2 つのアカウントで炎を増やす速さを 1 日 5 までに抑える（利用者の判断）。
+    // resource はリクエストなので get は増えない
     function answerable(markerId, requestId) {
       let m = get(docPath('markers', markerId)).data;
       return m.deleted == false
         && m.ownerUid != request.auth.uid
         && m.get('answers', []).hasAny([requestId])
-        && resource.data.createdAt < m.createdAt
+        && resource.data.createdAt + duration.value(1, 'd') <= m.createdAt
         && nearEnough(m, resource.data);
     }
 
