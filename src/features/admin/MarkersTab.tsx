@@ -1,6 +1,7 @@
 /**
- * マーカー管理のタブ（要件 5.2.5・T60）。ニックネームで投稿者を探し、その人のマーカーを選んで論理削除する。
- * 1 件だけ選んでいるときは「地図へジャンプ」を押せる。削除は論理削除だけ（ADR 0021）。
+ * 管理者画面の「投稿動画」タブ（要件 5.2.5・T60）。左でニックネームから投稿者を探し、右は「自分の投稿」と同じ形の一覧
+ * （行ごとに地図へ・削除、チェックで選んで一括削除・書き出し）。削除は論理削除だけ（ADR 0021）。
+ * 書き出しは旧「データエクスポート」タブの代わり（「すべての投稿者」で全件を選べば全件を書き出せる）。
  * 消したマーカーは shared/localChanges.ts の知らせですぐ一覧から外す（ほかの人の画面には差分の購読で届く。ADR 0013）。
  */
 
@@ -8,12 +9,16 @@ import React, { useMemo, useState } from 'react';
 import type { MarkerData } from '@/core/types';
 import { markersOfOwner, postersMatching } from '@/core/logic/adminMarkers';
 import { formatDate, interpolate } from '@/core/logic/format';
-import { Button, TextInput } from '@/shared/components/Controls';
+import { tagLabel } from '@/core/constants';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
 import { useToast } from '@/shared/components/Toast';
 import { publishLocalChange } from '@/shared/localChanges';
+import PostsToolbar, { useSelection } from '@/features/profile/PostsToolbar';
+import PostRow from '@/features/profile/PostRow';
+import { MARKER_COLUMNS, markerExportRows, saveExport } from './exportData';
+import PosterPicker from './PosterPicker';
 
 interface MarkersTabProps {
   markers: MarkerData[];
@@ -22,105 +27,74 @@ interface MarkersTabProps {
 
 export default function MarkersTab({ markers, onJump }: MarkersTabProps) {
   const { adminStore } = useServices();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const mt = t.admin.markers;
   const toast = useToast();
   const { loading, exclusive } = useExclusive();
   const [query, setQuery] = useState('');
   const [owner, setOwner] = useState<string | null>(null);
-  const [checked, setChecked] = useState<Set<string>>(new Set());
 
-  const posters = useMemo(() => postersMatching(markers, query).slice(0, 30), [markers, query]);
-  const list = useMemo(() => (owner ? markersOfOwner(markers, owner) : []), [markers, owner]);
-  // 一覧から消えた（論理削除した）マーカーは選択からも外す
-  const selected = list.filter((m) => checked.has(m.id));
+  const posters = useMemo(() => postersMatching(markers, query), [markers, query]);
+  // 「すべての投稿者」は、探した名前に合う人の全員（名前が空なら全件）
+  const list = useMemo(() => {
+    const uids = owner ? [owner] : posters.map((p) => p.ownerUid);
+    return uids.flatMap((uid) => markersOfOwner(markers, uid)).sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+  }, [markers, owner, posters]);
+  const ids = useMemo(() => list.map((m) => m.id), [list]);
+  const selection = useSelection(ids);
+  const place = (m: MarkerData) => [m.prefecture, m.city].filter(Boolean).join(' ') || '-';
 
-  const toggle = (id: string) =>
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  const removeSelected = () => {
-    if (!adminStore || selected.length === 0) return;
-    if (!window.confirm(interpolate(mt.confirmDelete, { count: selected.length }))) return;
+  const remove = (targets: string[]) => {
+    if (!adminStore || targets.length === 0) return;
+    if (!window.confirm(interpolate(mt.confirmDelete, { count: targets.length }))) return;
     void exclusive(async () => {
       try {
-        const ids = selected.map((m) => m.id);
-        const count = await adminStore.softDeleteMarkers(ids);
-        publishLocalChange({ kind: 'markers', ids });
+        const count = await adminStore.softDeleteMarkers(targets);
+        publishLocalChange({ kind: 'markers', ids: targets });
         toast.success(interpolate(mt.deleted, { count }));
-        setChecked(new Set());
       } catch (e) {
         toast.error(e instanceof Error ? e.message : String(e));
       }
     });
   };
 
+  const exportSelected = (format: 'csv' | 'json') => {
+    const picked = list.filter((m) => selection.selected.includes(m.id));
+    saveExport('loca-markers', format, MARKER_COLUMNS, markerExportRows(picked));
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-[16rem_1fr]">
-      <section>
-        <TextInput
-          value={query}
-          placeholder={mt.search}
-          aria-label={mt.search}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <ul className="mt-2 max-h-[50vh] overflow-y-auto">
-          {posters.map((p) => (
-            <li key={p.ownerUid}>
-              <button
-                type="button"
-                onClick={() => {
-                  setOwner(p.ownerUid);
-                  setChecked(new Set());
-                }}
-                className={`flex w-full justify-between rounded px-2 py-1.5 text-left text-xs ${
-                  owner === p.ownerUid ? 'bg-loca-50 font-bold text-loca-700' : 'hover:bg-gray-50'
-                }`}
-              >
-                <span className="truncate">{p.name}</span>
-                <span className="shrink-0 text-gray-400">{p.count}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
+      <PosterPicker query={query} posters={posters} owner={owner} onQueryChange={setQuery} onPick={setOwner} />
       <section className="min-w-0">
-        {!owner ? (
-          <p className="text-xs text-gray-500">{mt.pick}</p>
+        <PostsToolbar
+          total={list.length}
+          selectedCount={selection.selected.length}
+          busy={loading}
+          deleteLabel={mt.deleteSelected}
+          onSelectAll={selection.setAll}
+          onDelete={() => remove(selection.selected)}
+          onExport={exportSelected}
+        />
+        <p className="mb-1 text-[11px] text-gray-500">{mt.note}</p>
+        {list.length === 0 ? (
+          <p className="mt-6 text-center text-xs text-gray-500">{mt.empty}</p>
         ) : (
-          <>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <Button variant="danger" disabled={loading || selected.length === 0} onClick={removeSelected}>
-                {interpolate(mt.delete, { count: selected.length })}
-              </Button>
-              <Button variant="secondary" disabled={selected.length !== 1} onClick={() => onJump(selected[0])}>
-                <i className="fa-solid fa-location-arrow mr-1.5" />
-                {mt.jump}
-              </Button>
-              <p className="text-[11px] text-gray-500">{mt.note}</p>
-            </div>
-            <ul className="max-h-[50vh] overflow-y-auto">
-              {list.map((m) => (
-                <li key={m.id} className="flex items-center gap-2 border-b border-gray-50 py-1.5 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={checked.has(m.id)}
-                    onChange={() => toggle(m.id)}
-                    aria-label={m.title ?? m.id}
-                    className="h-4 w-4 accent-loca-500"
-                  />
-                  <span className="min-w-0 grow truncate">{m.title ?? m.youtubeUrl}</span>
-                  <span className="shrink-0 text-[11px] text-gray-500">{[m.prefecture, m.city].filter(Boolean).join(' ')}</span>
-                  <span className="shrink-0 text-[11px] text-gray-400">{formatDate(m.updatedAt)}</span>
-                </li>
-              ))}
-            </ul>
-          </>
+          <ul className="max-h-[50vh] overflow-y-auto">
+            {list.map((m) => (
+              <PostRow
+                key={m.id}
+                title={m.title ?? m.youtubeUrl}
+                sub={`${m.createdBy} ・ ${place(m)} ・ ${tagLabel(m.tags?.mood, lang) || '-'} ・ ${formatDate(m.updatedAt)}`}
+                checked={selection.isPicked(m.id)}
+                busy={loading}
+                deleteLabel={mt.delete}
+                onToggle={() => selection.toggle(m.id)}
+                onJump={() => onJump(m)}
+                onDelete={() => remove([m.id])}
+              />
+            ))}
+          </ul>
         )}
       </section>
     </div>

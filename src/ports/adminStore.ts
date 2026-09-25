@@ -52,4 +52,9 @@ export interface AdminStorePort extends Adapter {
    * 物理削除は 30 日後に Actions が行う（ADR 0021）。消した件数を返す（削除済みは数えない）。
    */
   softDeleteMarkers(ids: string[]): Promise<number>;
+  /**
+   * ほかの人の撮影リクエストを 1 件取り下げる（論理削除）。持ち主の熱量の印を同じバッチで減らすので、熱量はその分戻る。
+   * 印は 1 件ずつしか動かせない（ルール）ので、まとめて取り下げるときは呼び出し側が順に呼ぶ。
+   */
+  withdrawRequest(entry: { id: string; heat: number; ownerUid: string }): Promise<void>;
 }

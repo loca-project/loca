@@ -4,7 +4,7 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { seed, resetFirestore, setupEnv } from './helpers.mjs';
 
 let env;
@@ -98,7 +98,7 @@ describe('熱量の印（heatBudgets）', () => {
     await assertFails(deleteDoc(doc(as('alice'), 'heatBudgets', 'alice')));
   });
 
-  it('本人だけが読める', async () => {
+  it('本人は読めて、管理者でない他人は読めない', async () => {
     await budgetedWrite(as('alice'), 'alice', 'r1', newRequest('alice', 3), 3);
     await assertSucceeds(getDoc(doc(as('alice'), 'heatBudgets', 'alice')));
     await assertFails(getDoc(doc(as('bob'), 'heatBudgets', 'alice')));
@@ -158,8 +158,105 @@ describe('取り下げ（熱量が戻る）', () => {
     await assertFails(withdraw(as('bob'), 'bob', 'r1', 0));
   });
 
+  it('管理者でない人は、持ち主の印を減らしても他人のリクエストを取り下げられない', async () => {
+    await assertFails(withdraw(as('bob'), 'alice', 'r1', 2));
+  });
+
+  it('管理者でない人は、他人の印だけを書き換えられない', async () => {
+    await assertFails(setDoc(doc(as('bob'), 'heatBudgets', 'alice'), { used: 2, target: 'r1' }));
+  });
+
+  it('印が最初から指している（最後に作った）リクエストでも、印を減らさない取り下げは拒否', async () => {
+    await assertFails(updateDoc(doc(as('alice'), 'requests', 'r2'), { withdrawn: true, updatedAt: serverTimestamp() }));
+  });
+
   it('リクエストを消さずに印だけ減らすのは拒否', async () => {
     await assertFails(setDoc(doc(as('alice'), 'heatBudgets', 'alice'), { used: 2, target: 'r1' }));
+  });
+});
+
+describe('管理者の取り下げ（持ち主の熱量が戻る。要件 5.2.5）', () => {
+  beforeEach(async () => {
+    await seed(env, (db) => setDoc(doc(db, 'admins', 'root'), { note: '初期管理者' }));
+    await budgetedWrite(as('alice'), 'alice', 'r1', newRequest('alice', 3), 3);
+    await budgetedWrite(as('alice'), 'alice', 'r2', newRequest('alice', 2), 5);
+    await budgetedWrite(as('bob'), 'bob', 'b1', newRequest('bob', 4), 4);
+  });
+
+  it('管理者は持ち主の印を減らして取り下げられる', async () => {
+    await assertSucceeds(withdraw(as('root'), 'alice', 'r1', 2));
+  });
+
+  it('管理者は持ち主の印を読める（減らす値を求める）', async () => {
+    await assertSucceeds(getDoc(doc(as('root'), 'heatBudgets', 'alice')));
+  });
+
+  it('取り下げた分の熱量で、持ち主がまた作成できる', async () => {
+    await withdraw(as('root'), 'alice', 'r1', 2);
+    await assertSucceeds(budgetedWrite(as('alice'), 'alice', 'r3', newRequest('alice', 3), 5));
+  });
+
+  it('管理者でも減らす量が熱量と合わなければ拒否', async () => {
+    await assertFails(withdraw(as('root'), 'alice', 'r1', 0));
+  });
+
+  it('管理者でも印を減らさない取り下げは拒否', async () => {
+    const ref = doc(as('root'), 'requests', 'r1');
+    await assertFails(updateDoc(ref, { withdrawn: true, updatedAt: serverTimestamp() }));
+  });
+
+  it('管理者でも別の人の印を減らしての取り下げは拒否', async () => {
+    await assertFails(withdraw(as('root'), 'bob', 'r1', 1));
+  });
+
+  it('管理者でも自分の印を減らしての取り下げは拒否', async () => {
+    await budgetedWrite(as('root'), 'root', 'x1', newRequest('root', 3), 3);
+    await assertFails(withdraw(as('root'), 'root', 'r1', 0));
+  });
+
+  it('管理者でも、印が最初から指しているリクエストを印を減らさずに取り下げるのは拒否', async () => {
+    await assertFails(updateDoc(doc(as('root'), 'requests', 'r2'), { withdrawn: true, updatedAt: serverTimestamp() }));
+  });
+
+  it('同じ持ち主の 2 件を 1 バッチで取り下げるのは拒否（印は 1 件ずつ）', async () => {
+    const db = as('root');
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'requests', 'r1'), { withdrawn: true, updatedAt: serverTimestamp() });
+    batch.update(doc(db, 'requests', 'r2'), { withdrawn: true, updatedAt: serverTimestamp() });
+    batch.set(doc(db, 'heatBudgets', 'alice'), { used: 0, target: 'r2' });
+    await assertFails(batch.commit());
+  });
+
+  it('印の一覧は管理者だけが読める', async () => {
+    await assertSucceeds(getDocs(collection(as('root'), 'heatBudgets')));
+    await assertFails(getDocs(collection(as('bob'), 'heatBudgets')));
+  });
+
+  it('ブラックリストに入った持ち主のリクエストも、管理者は取り下げられる', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'blacklist', 'alice'), { reason: '確認' }));
+    await assertSucceeds(withdraw(as('root'), 'alice', 'r1', 2));
+  });
+
+  it('管理者でも取り下げ済みを二重に取り下げるのは拒否', async () => {
+    await withdraw(as('root'), 'alice', 'r1', 2);
+    await assertFails(withdraw(as('root'), 'alice', 'r1', 0));
+  });
+
+  it('管理者でも持ち主の印を増やすことはできない', async () => {
+    await assertFails(setDoc(doc(as('root'), 'heatBudgets', 'bob'), { used: 5, target: 'b1' }));
+  });
+
+  it('管理者でもリクエストを消さずに印だけ減らすのは拒否', async () => {
+    await assertFails(setDoc(doc(as('root'), 'heatBudgets', 'bob'), { used: 0, target: 'b1' }));
+  });
+
+  it('管理者でない人は他人の印を読めない', async () => {
+    await assertFails(getDoc(doc(as('bob'), 'heatBudgets', 'alice')));
+  });
+
+  it('ブラックリストの管理者は取り下げられない', async () => {
+    await seed(env, (db) => setDoc(doc(db, 'blacklist', 'root'), { reason: '確認' }));
+    await assertFails(withdraw(as('root'), 'alice', 'r1', 2));
   });
 });
 

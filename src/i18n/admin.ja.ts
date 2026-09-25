@@ -3,20 +3,33 @@
 export const adminJa = {
   mode: '管理者モード',
   tabStatistics: '統計分析',
-  tabExport: 'データエクスポート',
   tabJobs: '定期処理',
   tabUsers: 'ユーザー管理',
-  tabMarkers: 'マーカー管理',
+  tabMarkers: '投稿動画',
+  tabRequests: '撮影リクエスト',
   tabLogs: 'ログ一覧',
-  // マーカー管理（要件 5.2.5・T60）。メールの代わりにニックネームで探す（ADR 0019）
+  // 投稿動画・撮影リクエストの左の列。メールの代わりにニックネームで探す（ADR 0019）
+  search: 'ニックネームで探す',
+  allPosters: 'すべての投稿者',
+  unknownPoster: '（ニックネーム不明）',
+  // 投稿動画（要件 5.2.5・T60）。形は「自分の投稿」と同じ
   markers: {
-    search: 'ニックネームで探す',
-    pick: '左の一覧から投稿者を選んでください。',
-    delete: '選んだ {count} 件を削除',
-    jump: '地図へジャンプ',
-    note: '削除は論理削除です（地図から消え、30 日後に完全に消去）。地図へジャンプは 1 件だけ選んだときに押せます。',
+    empty: '該当する投稿動画はありません。',
+    delete: '削除',
+    deleteSelected: '選んだ {count} 件を削除',
+    note: '削除は論理削除です（地図から消え、30 日後に完全に消去）。',
     confirmDelete: '選んだ {count} 件のマーカーを削除しますか？地図から消え、30 日後に完全に消去されます。',
     deleted: '{count} 件のマーカーを削除しました',
+  },
+  // 撮影リクエスト（要件 5.2.5）。1 行が 1 地点。取り下げると持ち主の熱量が戻る
+  requests: {
+    empty: '該当する撮影リクエストはありません。',
+    row: '熱量 {heat}（{count} 件）',
+    withdraw: '取り下げ',
+    withdrawSelected: '選んだ {count} 地点を取り下げ',
+    note: '取り下げは論理削除です。持ち主の熱量はその分戻ります。',
+    confirmWithdraw: '選んだ {count} 地点の撮影リクエスト（{entries} 件）を取り下げますか？持ち主の熱量はその分戻ります。',
+    withdrawn: '{count} 件の撮影リクエストを取り下げました',
   },
   // ログ一覧（要件 5.2.3・T60）
   logs: {

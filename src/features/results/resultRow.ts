@@ -18,7 +18,8 @@ export interface ResultRow {
   subtitle?: string;
   /** 右端に出す指標（件数・登録日・熱量など） */
   metric: string;
-  link?: string;
+  /** 共有できるマーカーの ID（行の「共有」で、このマーカーを開く URL をコピーする） */
+  markerId?: string;
   position?: LatLng;
   thumbnailUrl?: string;
 }
@@ -29,7 +30,7 @@ export function rowsFromMarkers(markers: MarkerData[]): ResultRow[] {
     title: m.title ?? m.youtubeUrl,
     subtitle: [m.channelTitle, m.prefecture, m.city].filter(Boolean).join(' / '),
     metric: formatDate(m.createdAt),
-    link: m.youtubeUrl,
+    markerId: m.id,
     position: { lat: m.lat, lng: m.lng },
     thumbnailUrl: m.thumbnailUrl,
   }));

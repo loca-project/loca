@@ -13,6 +13,9 @@ import type { MarkerFormState } from '@/features/marker/formState';
 import { chipOptions } from '@/features/tags/tagChips';
 import EquipmentSelects from '@/features/equipment/EquipmentSelects';
 
+/** 緯度・経度の矢印 1 回ぶんの刻み（度）。移植元 Chronos MAP の MarkerForm と同じ */
+const COORD_STEP = 0.0001;
+
 interface MarkerFormProps {
   form: MarkerFormState;
   equipment: EquipmentDef[];
@@ -83,9 +86,12 @@ export default function MarkerForm({
         />
       </Field>
 
+      {/* 矢印（スピンボタン・上下キー）で少しずつ動かせる。刻みは移植元と同じ 0.0001 度（約 10 m） */}
       <div className="grid grid-cols-2 gap-2">
         <Field label={t.form.lat}>
           <TextInput
+            type="number"
+            step={COORD_STEP}
             value={form.lat}
             inputMode="decimal"
             onChange={(e) => onChange({ lat: e.target.value })}
@@ -93,6 +99,8 @@ export default function MarkerForm({
         </Field>
         <Field label={t.form.lng}>
           <TextInput
+            type="number"
+            step={COORD_STEP}
             value={form.lng}
             inputMode="decimal"
             onChange={(e) => onChange({ lng: e.target.value })}

@@ -19,14 +19,17 @@ interface LazyModalsProps {
 }
 
 export default function LazyModals({ app, uid }: LazyModalsProps) {
-  /** 自分の投稿の一覧で選んだら、一覧を閉じて地図をその地点へ移し、詳細を開く（T53） */
-  const pickMine =
+  /** 自分の投稿・管理者モードの一覧で選んだら、画面を閉じて地図をその地点へ移し、詳細を開く（T53） */
+  const pickFrom =
+    (modal: 'myPosts' | 'admin') =>
     <T extends LatLng>(select: (item: T) => void) =>
     (item: T) => {
-      app.openModal('myPosts', false);
+      app.openModal(modal, false);
       app.jumpTo({ lat: item.lat, lng: item.lng });
       select(item);
     };
+  const pickMine = pickFrom('myPosts');
+  const pickAdmin = pickFrom('admin');
 
   return (
     <Suspense fallback={null}>
@@ -52,12 +55,10 @@ export default function LazyModals({ app, uid }: LazyModalsProps) {
         <AdminDashboard
           open
           markers={app.catalog.markers}
+          requestMarkers={app.catalog.requestMarkers}
           onClose={() => app.openModal('admin', false)}
-          onJump={(m) => {
-            app.openModal('admin', false);
-            app.jumpTo({ lat: m.lat, lng: m.lng });
-            app.handleMarkerClick(m);
-          }}
+          onJump={pickAdmin((m) => app.handleMarkerClick(m))}
+          onJumpRequest={pickAdmin((r) => app.handleRequestClick(r))}
         />
       )}
     </Suspense>

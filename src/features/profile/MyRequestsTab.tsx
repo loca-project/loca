@@ -57,7 +57,7 @@ export default function MyRequestsTab({ uid, spots, onJump }: MyRequestsTabProps
   };
 
   const exportSelected = (format: 'csv' | 'json') => {
-    saveExport('loca-my-requests', format, REQUEST_COLUMNS, requestExportRows(picked().map((r) => r.spot), uid));
+    saveExport('loca-my-requests', format, REQUEST_COLUMNS, requestExportRows(picked().map((r) => r.spot), (owner) => owner === uid));
   };
 
   if (spots.length === 0) return <p className="mt-6 text-center text-xs text-gray-500">{mp.emptyRequests}</p>;

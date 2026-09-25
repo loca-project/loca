@@ -1,36 +1,39 @@
 /**
  * 管理者モード（要件 5・T27）。右上のメニューの「管理者モード」から開く（admins/{uid} がある人だけに出す）。
  *
- * タブ（要件 5.1 の順）: 統計分析・データエクスポート（5.2.1・5.2.2）、ログ一覧（5.2.3・T60）、ユーザー管理（5.2.4・T59）、
- * マーカー管理（5.2.5・T60）、通報（3.8・T61）、定期処理（jobs の記録）。
- * 利用者向けは「自分の投稿」（自分の分だけの統計とエクスポート）。タブの見た目は DashboardTabs で共有する。
- * 画面の判定は表示の切り替えにだけ使い、権限はルールが守る。
+ * タブ（要件 5.1 の順）: 統計分析（5.2.1）、ユーザー管理（5.2.4・T59）、投稿動画（5.2.5・T60）、撮影リクエスト（5.2.5）、
+ * 定期処理（jobs の記録）、通報（3.8・T61）、ログ一覧（5.2.3・T60）。機器管理（T28）は撮影リクエストの右に置く予定。
+ * 投稿動画と撮影リクエストは「自分の投稿」と同じ形で、書き出しもここで行う（旧「データエクスポート」タブは廃止）。
+ * タブの見た目は DashboardTabs で共有する。画面の判定は表示の切り替えにだけ使い、権限はルールが守る。
  */
 
 import React, { useState } from 'react';
-import type { MarkerData } from '@/core/types';
+import type { MarkerData, RequestMarkerData } from '@/core/types';
 import Modal from '@/shared/components/Modal';
 import DashboardTabs from '@/shared/components/DashboardTabs';
 import { useI18n } from '@/shared/hooks/useI18n';
 import StatisticsTab from './StatisticsTab';
-import ExportTab from './ExportTab';
 import JobsTab from './JobsTab';
 import UsersTab from './UsersTab';
 import MarkersTab from './MarkersTab';
+import RequestsTab from './RequestsTab';
 import LogsTab from './LogsTab';
 import ReportsTab from './ReportsTab';
 
-type TabId = 'statistics' | 'export' | 'logs' | 'users' | 'markers' | 'reports' | 'jobs';
+type TabId = 'statistics' | 'users' | 'markers' | 'requests' | 'jobs' | 'reports' | 'logs';
 
 interface AdminDashboardProps {
   open: boolean;
   markers: MarkerData[];
+  requestMarkers: RequestMarkerData[];
   onClose: () => void;
-  /** マーカー管理の「地図へジャンプ」（管理者モードを閉じて地図を移す） */
+  /** 投稿動画・通報の「地図へ」（管理者モードを閉じて地図を移す） */
   onJump: (marker: MarkerData) => void;
+  /** 撮影リクエストの「地図へ」 */
+  onJumpRequest: (spot: RequestMarkerData) => void;
 }
 
-export default function AdminDashboard({ open, markers, onClose, onJump }: AdminDashboardProps) {
+export default function AdminDashboard({ open, markers, requestMarkers, onClose, onJump, onJumpRequest }: AdminDashboardProps) {
   const { t } = useI18n();
   const [tab, setTab] = useState<TabId>('statistics');
 
@@ -41,22 +44,22 @@ export default function AdminDashboard({ open, markers, onClose, onJump }: Admin
         onChange={setTab}
         tabs={[
           { id: 'statistics', icon: 'fa-chart-pie', label: t.admin.tabStatistics },
-          { id: 'export', icon: 'fa-file-export', label: t.admin.tabExport },
-          { id: 'logs', icon: 'fa-scroll', label: t.admin.tabLogs },
           { id: 'users', icon: 'fa-users-gear', label: t.admin.tabUsers },
-          { id: 'markers', icon: 'fa-location-dot', label: t.admin.tabMarkers },
-          { id: 'reports', icon: 'fa-flag', label: t.admin.tabReports },
+          { id: 'markers', icon: 'fa-video', label: t.admin.tabMarkers },
+          { id: 'requests', icon: 'fa-hand', label: t.admin.tabRequests },
           { id: 'jobs', icon: 'fa-clock-rotate-left', label: t.admin.tabJobs },
+          { id: 'reports', icon: 'fa-flag', label: t.admin.tabReports },
+          { id: 'logs', icon: 'fa-scroll', label: t.admin.tabLogs },
         ]}
       />
       <div className="min-h-[20rem]">
         {tab === 'statistics' && <StatisticsTab markers={markers} />}
-        {tab === 'export' && <ExportTab markers={markers} />}
-        {tab === 'logs' && <LogsTab markers={markers} />}
         {tab === 'users' && <UsersTab />}
         {tab === 'markers' && <MarkersTab markers={markers} onJump={onJump} />}
-        {tab === 'reports' && <ReportsTab markers={markers} onJump={onJump} />}
+        {tab === 'requests' && <RequestsTab markers={markers} requestMarkers={requestMarkers} onJump={onJumpRequest} />}
         {tab === 'jobs' && <JobsTab />}
+        {tab === 'reports' && <ReportsTab markers={markers} onJump={onJump} />}
+        {tab === 'logs' && <LogsTab markers={markers} />}
       </div>
     </Modal>
   );

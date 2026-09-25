@@ -113,3 +113,48 @@ describe('マーカー管理（T60）', () => {
     await assert.rejects(storeFor('bob').softDeleteMarkers(['a1']), { name: 'UpstreamError' });
   });
 });
+
+describe('撮影リクエストの取り下げ（要件 5.2.5）', () => {
+  beforeEach(async () => {
+    await seed(env, async (db) => {
+      const past = Timestamp.fromMillis(Date.parse('2026-09-01T00:00:00Z'));
+      const base = { lat: 35, lng: 135, equipment: { category: '', manufacturer: '', series: '', model: '' },
+        ownerUid: 'alice', createdAt: past, updatedAt: past };
+      await setDoc(doc(db, 'requests', 'r1'), { ...base, heat: 3 });
+      await setDoc(doc(db, 'requests', 'r2'), { ...base, heat: 2 });
+      await setDoc(doc(db, 'heatBudgets', 'alice'), { used: 5, target: 'r2' });
+    });
+  });
+
+  it('管理者が取り下げると論理削除になり、持ち主の熱量が戻る', async () => {
+    await storeFor('root').withdrawRequest({ id: 'r1', heat: 3, ownerUid: 'alice' });
+    await storeFor('root').withdrawRequest({ id: 'r2', heat: 2, ownerUid: 'alice' });
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      assert.equal((await getDoc(doc(db, 'requests', 'r1'))).data().withdrawn, true);
+      assert.equal((await getDoc(doc(db, 'requests', 'r2'))).data().withdrawn, true);
+      assert.equal((await getDoc(doc(db, 'heatBudgets', 'alice'))).data().used, 0);
+    });
+  });
+
+  it('取り下げ済みをもう一度取り下げると UpstreamError（熱量を二重に戻さない）', async () => {
+    await storeFor('root').withdrawRequest({ id: 'r1', heat: 3, ownerUid: 'alice' });
+    await assert.rejects(storeFor('root').withdrawRequest({ id: 'r1', heat: 3, ownerUid: 'alice' }), { name: 'UpstreamError' });
+  });
+
+  it('一般の利用者は他人のリクエストを取り下げられない（UpstreamError）', async () => {
+    await assert.rejects(storeFor('bob').withdrawRequest({ id: 'r1', heat: 3, ownerUid: 'alice' }), { name: 'UpstreamError' });
+  });
+});
+
+describe('撮影リクエストの取り下げ: 熱量の記録が合わない行', () => {
+  it('持ち主の印が無いときは、書く前に理由の分かる UpstreamError で止まる', async () => {
+    await seed(env, async (db) => {
+      const past = Timestamp.fromMillis(Date.parse('2026-09-01T00:00:00Z'));
+      await setDoc(doc(db, 'requests', 'orphan'), { lat: 35, lng: 135, heat: 2,
+        equipment: { category: '', manufacturer: '', series: '', model: '' }, ownerUid: 'carol', createdAt: past, updatedAt: past });
+    });
+    await assert.rejects(storeFor('root').withdrawRequest({ id: 'orphan', heat: 2, ownerUid: 'carol' }),
+      { name: 'UpstreamError', message: /熱量の記録（なし）/ });
+  });
+});

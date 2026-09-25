@@ -100,7 +100,7 @@ export default function ReportsTab({ markers, onJump }: ReportsTabProps) {
             <div className="mt-2 flex flex-wrap gap-2">
               <Button variant="secondary" disabled={!marker} onClick={() => marker && onJump(marker)}>
                 <i className="fa-solid fa-location-arrow mr-1.5" />
-                {t.admin.markers.jump}
+                {t.myPosts.jump}
               </Button>
               <Button
                 variant="danger"

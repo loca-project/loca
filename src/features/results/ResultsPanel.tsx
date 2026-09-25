@@ -1,15 +1,21 @@
 /**
  * 共通結果パネル（要件 2.3 / 4.1 / 4.4）。
  * サイドメニューの右端から 10px あけて配置し、開閉に連動して動く。
- * 行ごとのジャンプアイコンと、単一選択時のみ活性化する一括ジャンプボタンを持つ。
+ * 行ごとに「地図へ」「共有」のボタンを持つ。チェックボックスと下部の一括ジャンプは置かない
+ * （複数選んだときにどこへ飛ぶのか分からないため。2026-09-25）。
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import type { LatLng } from '@/core/types';
 import { interpolate } from '@/core/logic/format';
 import { Button, IconButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import type { ResultRow } from './resultRow';
+
+const PANEL_CLASS = [
+  'pointer-events-auto absolute bottom-4 top-4 z-30 flex w-[min(28rem,calc(100vw-5.5rem))] flex-col overflow-hidden',
+  'rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur transition-[left] duration-200',
+].join(' ');
 
 interface ResultsPanelProps {
   open: boolean;
@@ -21,6 +27,8 @@ interface ResultsPanelProps {
   limitedTo?: number;
   onClose: () => void;
   onJump: (position: LatLng) => void;
+  /** マーカーの行の「共有」。そのマーカーを開く URL をコピーする */
+  onShare?: (markerId: string) => void;
 }
 
 export default function ResultsPanel({
@@ -31,28 +39,15 @@ export default function ResultsPanel({
   limitedTo,
   onClose,
   onJump,
+  onShare,
 }: ResultsPanelProps) {
   const { t } = useI18n();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   if (!open) return null;
 
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  // 要件 3.6 / 4.4: 単一選択のときだけ活性。未選択・複数選択は非活性（非表示にはしない）
-  const single = selected.size === 1 ? rows.find((r) => selected.has(r.id)) : undefined;
-  const jumpEnabled = Boolean(single?.position);
-
   return (
     <section
-      className="pointer-events-auto absolute bottom-4 top-4 z-30 flex w-[min(28rem,calc(100vw-5.5rem))] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur transition-[left] duration-200"
+      className={PANEL_CLASS}
       style={{ left: offsetLeft + 10 }}
       aria-label={title}
     >
@@ -73,13 +68,6 @@ export default function ResultsPanel({
           <ul className="divide-y divide-gray-100">
             {rows.map((row) => (
               <li key={row.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50">
-                <input
-                  type="checkbox"
-                  checked={selected.has(row.id)}
-                  onChange={() => toggle(row.id)}
-                  className="h-3.5 w-3.5 shrink-0 accent-loca-500"
-                  aria-label={row.title}
-                />
                 {row.thumbnailUrl && (
                   <img src={row.thumbnailUrl} alt="" className="h-9 w-16 shrink-0 rounded object-cover" />
                 )}
@@ -88,46 +76,34 @@ export default function ResultsPanel({
                   {row.subtitle && <p className="truncate text-[10px] text-gray-500">{row.subtitle}</p>}
                 </div>
                 <span className="shrink-0 text-[11px] font-mono text-gray-600">{row.metric}</span>
-                {row.link && (
-                  <a
-                    href={row.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0 text-[11px] text-loca-600 underline"
-                  >
-                    {t.results.link}
-                  </a>
-                )}
-                <button
-                  type="button"
+                {/* 動線の順（見に行く → 人に渡す）に、同じ大きさで並べる。文言は自分の投稿・マーカーの詳細とそろえる */}
+                <Button
+                  variant="secondary"
+                  className="w-20 shrink-0"
                   disabled={!row.position}
                   onClick={() => row.position && onJump(row.position)}
                   title={t.form.jumpToMap}
-                  aria-label={t.form.jumpToMap}
-                  className="shrink-0 rounded p-1 text-gray-400 hover:bg-loca-50 hover:text-loca-600 disabled:text-gray-200"
                 >
-                  <i className="fa-solid fa-location-crosshairs" />
-                </button>
+                  <i className="fa-solid fa-location-arrow mr-1" />
+                  {t.myPosts.jump}
+                </Button>
+                {onShare && row.markerId && (
+                  <Button variant="secondary" className="w-20 shrink-0" onClick={() => onShare(row.markerId!)}>
+                    <i className="fa-solid fa-share-nodes mr-1" />
+                    {t.actions.share}
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <footer className="flex shrink-0 items-center justify-between gap-2 border-t border-gray-100 px-3 py-2">
-        {limitedTo ? (
+      {limitedTo ? (
+        <footer className="shrink-0 border-t border-gray-100 px-3 py-2">
           <p className="text-[10px] text-gray-400">{interpolate(t.results.limitMsg, { limit: limitedTo })}</p>
-        ) : (
-          <span />
-        )}
-        <Button
-          disabled={!jumpEnabled}
-          onClick={() => single?.position && onJump(single.position)}
-        >
-          <i className="fa-solid fa-location-crosshairs mr-1.5" />
-          {t.form.jumpToMap}
-        </Button>
-      </footer>
+        </footer>
+      ) : null}
     </section>
   );
 }

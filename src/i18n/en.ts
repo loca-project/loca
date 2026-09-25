@@ -320,7 +320,6 @@ export const en: DeepPartial<Dictionary> = {
   results: {
     empty: 'No results found.',
     limitMsg: 'Filters are active, so the list is limited to {limit} rows.',
-    link: 'Link',
     count: '{count} rows',
     videos: 'videos',
     channel: 'Channel',

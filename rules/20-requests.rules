@@ -30,15 +30,20 @@
         && request.resource.data.get('withdrawn', false) == false
         && request.resource.data.ownerUid == request.auth.uid
         && getAfter(docPath('heatBudgets', request.auth.uid)).data.target == requestId;
-      // 取り下げは論理削除（ADR 0013）: 本人が withdrawn と updatedAt だけを変え、熱量の印を同じバッチで減らす。
+      // 取り下げは論理削除（ADR 0013）: 本人か管理者が withdrawn と updatedAt だけを変え、
+      // 持ち主の熱量の印を同じバッチで減らす（管理者の取り下げでも、持ち主の熱量はその分戻る）。
       // 物理削除すると、同期より前に作られた行の取り下げが差分の購読に届かないため。
       allow update: if canWrite()
-        && resource.data.ownerUid == request.auth.uid
+        && (resource.data.ownerUid == request.auth.uid || isAdmin())
         && resource.data.get('withdrawn', false) == false
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['withdrawn', 'updatedAt'])
         && request.resource.data.withdrawn == true
         && request.resource.data.updatedAt == request.time
-        && getAfter(docPath('heatBudgets', request.auth.uid)).data.target == requestId;
+        && getAfter(docPath('heatBudgets', resource.data.ownerUid)).data.target == requestId
+        // 印が同じバッチでこの熱量ぶん減っていること。印が最初からこのリクエストを指している
+        // （最後に作ったリクエスト）とき、印を書かずに取り下げだけを通して熱量を戻らなくするのを防ぐ
+        && get(docPath('heatBudgets', resource.data.ownerUid)).data.used
+          - getAfter(docPath('heatBudgets', resource.data.ownerUid)).data.used == resource.data.heat;
       // 物理削除は管理者だけ（削除したら同期で公開データを作り直す）
       allow delete: if canWrite() && isAdmin();
     }
@@ -62,25 +67,27 @@
         && get(path).data.heat == delta;
     }
 
-    function budgetShape(uid) {
+    function budgetShape() {
       let d = request.resource.data;
       return canWrite()
-        && request.auth.uid == uid
         && d.keys().hasOnly(['used', 'target'])
         && d.used is int && d.used >= 0 && d.used <= 5
         && reqString(d, 'target', 1, 128);
     }
 
-    // 増やす（リクエストの作成）か、減らす（取り下げ）。どちらも差分が対象のリクエストの熱量と一致すること
+    // 増やす（リクエストの作成）のは本人だけ。減らす（取り下げ）のは本人か管理者（管理者の取り下げ。要件 5.2.5）。
+    // どちらも差分が対象のリクエストの熱量と一致すること
     function validBudget(uid, before) {
       let d = request.resource.data;
-      return budgetShape(uid)
-        && ((d.used > before && pairedRequest(uid, d.target, d.used - before))
-          || (d.used < before && withdrawnRequest(uid, d.target, before - d.used)));
+      return budgetShape()
+        && ((request.auth.uid == uid && d.used > before && pairedRequest(uid, d.target, d.used - before))
+          || ((request.auth.uid == uid || isAdmin()) && d.used < before
+            && withdrawnRequest(uid, d.target, before - d.used)));
     }
 
     match /heatBudgets/{uid} {
-      allow read: if signedIn() && request.auth.uid == uid;
+      // 管理者は、取り下げで減らす値を求めるために読む
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow create: if validBudget(uid, 0);
       allow update: if validBudget(uid, resource.data.used);
       // 消して上限をリセットさせない

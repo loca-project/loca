@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import type { LatLng, ReportReason } from '@/core/types';
 import { MapMode, TabMode } from '@/core/types';
+import { encodeSharedView } from '@/core/logic/shareUrl';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useExclusive } from '@/shared/hooks/useExclusive';
@@ -33,6 +34,7 @@ import { readSharedView, useShareUrl } from './useShareUrl';
 import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
+import { useRangeSelect } from './useRangeSelect';
 
 export default function AppShell() {
   const { t } = useI18n();
@@ -176,17 +178,35 @@ export default function AppShell() {
     app.resetToSearch();
   }, [app, requestSubmit, toast, t]);
 
+  const copyLink = useCallback(
+    async (url: string) => {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.info(t.actions.linkCopied);
+      } catch (e) {
+        console.error('[loca] リンクをコピーできませんでした', e);
+        toast.error(t.actions.linkCopyFailed);
+      }
+    },
+    [t, toast],
+  );
+
   const handleShare = useCallback(async () => {
     if (!app.selectedMarker) return;
     // 今の URL には地図フィルタと選択中のマーカーが載っている（T42）。開いた人に同じ地図を見せる
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.info(t.actions.linkCopied);
-    } catch (e) {
-      console.error('[loca] リンクをコピーできませんでした', e);
-      toast.error(t.actions.linkCopyFailed);
-    }
-  }, [app.selectedMarker, t, toast]);
+    await copyLink(window.location.href);
+  }, [app.selectedMarker, copyLink]);
+
+  /** 結果パネルの行の「共有」。今の地図フィルタのまま、その行のマーカーを開く URL を渡す（T42 と同じ形） */
+  const handleShareRow = useCallback(
+    (markerId: string) => {
+      const { origin, pathname, search, hash } = window.location;
+      void copyLink(`${origin}${pathname}${encodeSharedView({ filter: mapFilter.filter, markerId }, search)}${hash}`);
+    },
+    [copyLink, mapFilter.filter],
+  );
+
+  const range = useRangeSelect(app, search, mapFilter.markers, closeMobileSidebar);
 
   /** 通報（要件 3.8）。Firestore に保存し、管理者が対応するまでマーカーは表示したまま。 */
   const report = useExclusive();
@@ -234,13 +254,8 @@ export default function AppShell() {
         ghost={app.tempPos}
         rectangle={app.rectangle}
         drawing={app.drawing}
-        onMapClick={app.handleMapClick}
-        onRectangleDrawn={(bounds) => {
-          app.setDrawing(false);
-          app.setRectangle(bounds);
-          search.searchInBounds(bounds, mapFilter.markers);
-          closeMobileSidebar();
-        }}
+        onMapClick={range.onMapClick}
+        onRectangleDrawn={range.onRectangleDrawn}
       />
 
       <TabRail
@@ -273,11 +288,7 @@ export default function AppShell() {
           handlers={{
             onSearch: handleSearch,
             onStartDrawing: () => app.setDrawing(true),
-            onClearRectangle: () => {
-              app.setDrawing(false);
-              app.setRectangle(null);
-              search.close();
-            },
+            onClearRectangle: range.clear,
             onSubmitMarker: handleSubmitMarker,
             onSubmitRequest: handleSubmitRequest,
             onApplyRanking: () => {
@@ -327,6 +338,7 @@ export default function AppShell() {
         limitedTo={search.results.limitedTo}
         onClose={search.close}
         onJump={jump}
+        onShare={handleShareRow}
       />
 
       {filterLeft !== null && (

@@ -312,7 +312,6 @@ export const ja = {
   results: {
     empty: '該当する結果がありません。',
     limitMsg: '現在、フィルタが適用されているため、表示は最大{limit}件に制限されています',
-    link: 'Link',
     count: '{count}件',
     videos: '本',
     channel: 'チャンネル',

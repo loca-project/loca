@@ -31,11 +31,14 @@ export function markerExportRows(markers: MarkerData[]): MarkerExportRow[] {
     });
 }
 
-/** 地点ごとの集計から、uid のリクエストだけを 1 件 1 行にする。 */
-export function requestExportRows(spots: RequestMarkerData[], uid: string): RequestExportRow[] {
+/** 地点ごとの集計から、持ち主が keep に合うリクエストだけを 1 件 1 行にする。 */
+export function requestExportRows(
+  spots: RequestMarkerData[],
+  keep: (ownerUid: string) => boolean,
+): RequestExportRow[] {
   return spots.flatMap((spot) =>
     (spot.entries ?? [])
-      .filter((e) => e.ownerUid === uid)
+      .filter((e) => keep(e.ownerUid ?? ''))
       .map((e) => ({
         lat: String(spot.lat),
         lng: String(spot.lng),

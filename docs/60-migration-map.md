@@ -53,7 +53,7 @@
 | `Parameters.tsx` | `ConfigRepo.saveConfig()` に集約（専用 UI は未移植） |
 | `AiManagement.tsx`, `AIProcess.tsx` | `SemanticSearchPort` に集約（専用 UI は未移植） |
 | `RecurringTask.tsx` | `scripts/build-markers-json.mjs`（バッチ本体）に移管 |
-| （新規） | `ExportTab.tsx`, `ReportsTab.tsx`, `BackupTab.tsx` |
+| （新規） | `ReportsTab.tsx`、`RequestsTab.tsx`（撮影リクエストの管理。2026-09-25）。`ExportTab.tsx` は 2026-09-25 に廃止し、書き出しは投稿動画・撮影リクエストのタブへ |
 
 ## 持ち込まなかったもの
 

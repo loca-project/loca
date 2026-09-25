@@ -124,9 +124,12 @@ export function useLocaApp() {
   );
 
   /**
-   * 地図のクリック（指摘 9）。地図タブでは何もしない（見ているだけの人を投稿画面に飛ばさない）。
+   * 地図のクリック（指摘 9）。見ているだけの人を投稿画面に飛ばさない。
    * 投稿タブの間だけ、入力を保ったままピンの位置を決める・動かす。
+   * マーカー・撮影リクエストを選んでいるときは、マーカー以外のクリックで選択を解き、サイドメニューを検索の最初に戻す
+   * （ピンのクリックは pinLayer が止めるので、ここには地図の地面のクリックだけが届く）。
    */
+  const hasSelection = pickedMarker !== null || pickedRequest !== null;
   const handleMapClick = useCallback(
     (pos: LatLng) => {
       if (drawing) return;
@@ -135,9 +138,13 @@ export function useLocaApp() {
         setForm((prev) => ({ ...prev, lat: pos.lat.toFixed(6), lng: pos.lng.toFixed(6) }));
         return;
       }
+      if (hasSelection) {
+        resetToSearch();
+        return;
+      }
       services.map.closeInfoWindow();
     },
-    [drawing, tab, services.map],
+    [drawing, tab, hasSelection, resetToSearch, services.map],
   );
 
   const handleMarkerClick = useCallback((marker: MarkerData) => {

@@ -127,5 +127,21 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
         }
         return alive.length;
       }),
+
+    withdrawRequest: (entry) =>
+      guard(async () => {
+        const budget = (await getDoc(doc(db, 'heatBudgets', entry.ownerUid))).data();
+        const used = Number(budget?.used ?? 0);
+        // 印が無い・使った熱量がこのリクエストより少ない行は、ルールが拒否する。送る前に理由の分かる形で止める
+        if (!budget || used < entry.heat) {
+          throw new UpstreamError(
+            `リクエスト ${entry.id} は取り下げられません。持ち主の熱量の記録（${budget ? used : 'なし'}）が熱量 ${entry.heat} と合いません。`,
+          );
+        }
+        const batch = writeBatch(db);
+        batch.update(doc(db, 'requests', entry.id), { withdrawn: true, updatedAt: serverTimestamp() });
+        batch.set(doc(db, 'heatBudgets', entry.ownerUid), { used: used - entry.heat, target: entry.id });
+        await batch.commit();
+      }),
   };
 }
