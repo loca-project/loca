@@ -38,6 +38,7 @@
     "deploy": "node scripts/deploy.mjs",
     "rules:build": "node scripts/build-rules.mjs",
     "actions:warnings": "node scripts/actions-warnings.mjs",
+    "probe": "node scripts/probe-run.mjs",
     "size:breakdown": "node scripts/size-breakdown.mjs"
   },
   "dependencies": {

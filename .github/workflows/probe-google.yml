@@ -8,6 +8,11 @@ run-name: ${{ format('疎通確認・手動（{0}）', github.actor) }}
 
 on:
   workflow_dispatch:
+    inputs:
+      video:
+        description: 調べる動画 ID（status の中身を出す）
+        required: false
+        default: jNQXAC9IVRw
 
 permissions:
   contents: read
@@ -33,4 +38,5 @@ jobs:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           GCP_PROJECT: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          PROBE_VIDEO: ${{ inputs.video }}
         run: node scripts/probe-google.mjs

@@ -14,6 +14,7 @@
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 const args = process.argv.slice(2);
@@ -30,10 +31,19 @@ function stop(step, detail) {
 }
 const out = (cmd, a) => execFileSync(cmd, a, { encoding: 'utf8' }).trim();
 
+/**
+ * npm の本体（npm-cli.js）を node で直接起動する。
+ * shell: true に引数配列を渡すと Node が DEP0190 を警告し、引数もクォートされない（空白入りのメッセージが分かれる）。
+ * npm run 経由なら npm_execpath に本体の場所が入る。直接 node で起動したときは node と同じ場所の npm を使う。
+ */
+const NPM_CLI = process.env.npm_execpath?.endsWith('.js')
+  ? process.env.npm_execpath
+  : join(dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js');
+
 /** npm のスクリプトを出力をそのまま見せて実行する。 */
 function npm(step, script, extra = []) {
   console.log(`\n=== ${step} ===`);
-  const r = spawnSync('npm', ['run', script, ...(extra.length ? ['--', ...extra] : [])], { stdio: 'inherit', shell: true });
+  const r = spawnSync(process.execPath, [NPM_CLI, 'run', script, ...(extra.length ? ['--', ...extra] : [])], { stdio: 'inherit' });
   if (r.status !== 0) stop(step, `npm run ${script} が終了コード ${r.status} で終わりました。`);
   done.push(step);
 }

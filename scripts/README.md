@@ -15,6 +15,9 @@
 - 実行方法をスクリプト先頭のコメントに書く。
 - 破壊的な処理には `-WhatIf` / `--dry-run` 相当を用意する。
 - 頻繁に使うものは `.claude/skills/` からラップすると `/名前` で呼べます。
+- 子プロセスを `shell: true` で起動しない（`npm run verify` が検出）。npm は `process.execPath` と `npm_execpath` で、
+  gh・git は `execFileSync` で直接起動する（T65。`release.mjs` の `npm()` が見本）。
+- YouTube Data API の返り値を確かめるときは `npm run probe -- <動画ID> [--ref <枝>]`（キーは Actions の Secrets にだけある）。
 - **`.ps1` は UTF-8 BOM 付きで保存する**（Shift-JIS 環境のため。詳細は `.claude/hooks/README.md`）。
 
 ## 一時スクリプトとの違い
