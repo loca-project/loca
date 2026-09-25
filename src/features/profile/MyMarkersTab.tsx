@@ -18,10 +18,12 @@ import PostRow from './PostRow';
 
 interface MyMarkersTabProps {
   mine: MarkerData[];
+  /** 受け取ったいいね（マーカー ID → 件数。0 件は無い） */
+  received: Record<string, number>;
   onJump: (marker: MarkerData) => void;
 }
 
-export default function MyMarkersTab({ mine, onJump }: MyMarkersTabProps) {
+export default function MyMarkersTab({ mine, received, onJump }: MyMarkersTabProps) {
   const { markerStore } = useServices();
   const { t, lang } = useI18n();
   const mp = t.myPosts;
@@ -69,7 +71,9 @@ export default function MyMarkersTab({ mine, onJump }: MyMarkersTabProps) {
           <PostRow
             key={m.id}
             title={m.title ?? m.youtubeUrl}
-            sub={`${place(m)} ・ ${tagLabel(m.tags?.mood, lang) || '-'} ・ ${t.details.registeredAt} ${formatDate(m.createdAt)}`}
+            sub={`${place(m)} ・ ${tagLabel(m.tags?.mood, lang) || '-'} ・ ${t.details.registeredAt} ${formatDate(m.createdAt)}${
+              received[m.id] ? ` ・ ${interpolate(t.likes.receivedRow, { count: received[m.id] })}` : ''
+            }`}
             checked={selection.isPicked(m.id)}
             busy={loading}
             deleteLabel={mp.delete}

@@ -24,7 +24,7 @@
 
 ```text
 閲覧:  ブラウザ ──> GitHub Pages ──> dist/data/*.json ＋ Firestore の差分（onSnapshot。updatedAt > syncedAt）
-投稿:  ブラウザ ──> Firebase Auth ──> Firestore（投稿・撮影リクエスト・通報。権限・重複・上限はルール）
+投稿:  ブラウザ ──> Firebase Auth ──> Firestore（投稿・撮影リクエスト・通報・いいね。権限・重複・上限はルール）
 反映:  Actions（毎日 0:00）──> Firestore を読んで markers.json / requests.json を再生成 ──> ビルド（feed.xml も作る）──> Pages に反映
 ```
 
@@ -73,11 +73,12 @@ Loca/                               ワークスペース（git の外）
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
 | `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く） |
 | `ReportStorePort` | 通報（1 人 1 マーカー 1 件） | `firestore-reports` |
+| `LikeStorePort` | いいねの付け外し・件数・自分の投稿が受け取った件数（1 人 1 マーカー 1 件） | `firestore-likes`（件数の文書とトランザクションで書く。ADR 0024） |
 
 `AuthPort` と書き込みのポートは Firebase の設定値がそろったときだけ作られ、無ければ `null`（閲覧だけで動く）。
 Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初期読み込みには含めない（`npm run verify` が検査する）。
 
-書き込みは `MarkerStorePort`・`RequestStorePort`・`ReportStorePort` だけ。GitHub Issue 経由の投稿は 2026-09-24 に廃止した。
+利用者の書き込みの主なポートは `MarkerStorePort`・`RequestStorePort`・`ReportStorePort`・`LikeStorePort`。GitHub Issue 経由の投稿は 2026-09-24 に廃止した。
 
 ## データの形
 

@@ -64,7 +64,7 @@ export const en: DeepPartial<Dictionary> = {
       title: 'Final check: delete your account',
       lead: 'This cannot be undone.',
       items: [
-        'All your markers are removed from the map, and all your shooting requests are withdrawn.',
+        'All your markers are removed from the map, all your shooting requests are withdrawn, and all your likes are removed.',
         'Your profile (nickname and consent record) and your Google sign-in registration are deleted.',
         'Removed posts are kept for 30 days, visible only to administrators (for mistakes and report reviews), then erased completely.',
         'If you sign in again with the same Google account, you start over as a new user. Your previous posts are not carried over.',
@@ -225,6 +225,16 @@ export const en: DeepPartial<Dictionary> = {
     reportUpdated: 'Your report was updated. An administrator will review it.',
     reportLogin: 'Sign in to report ("Sign in" at the top right)',
     reportUnavailable: 'Reporting is not available in this setup.',
+  },
+
+  likes: {
+    label: 'Like {count}',
+    hint: 'Send a thank-you to the poster',
+    undo: 'Press again to remove your like',
+    own: 'You cannot like your own post',
+    login: 'Sign in to like ("Sign in" at the top right)',
+    received: 'Likes received: {count} in total',
+    receivedRow: '{count} likes',
   },
 
   details: {

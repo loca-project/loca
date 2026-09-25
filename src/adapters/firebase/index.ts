@@ -3,12 +3,13 @@
  */
 
 import { getFirestore } from 'firebase/firestore';
-import type { AdminStorePort, AuthPort, MarkerStorePort, ProfileStorePort, ReportStorePort, RequestStorePort } from '@/ports';
+import type { AdminStorePort, AuthPort, MarkerStorePort, LikeStorePort, ProfileStorePort, ReportStorePort, RequestStorePort } from '@/ports';
 import { firebaseApp } from './app';
 import { FirebaseAuthAdapter } from './auth';
 import { createMarkerStore } from './markerStore';
 import { createRequestStore } from './requestStore';
 import { createReportStore } from './reportStore';
+import { createLikeStore } from './likeStore';
 import { createProfileStore } from './profileStore';
 import { createAdminStore } from './adminStore';
 
@@ -17,6 +18,7 @@ export interface FirebaseServices {
   markerStore: MarkerStorePort;
   requestStore: RequestStorePort;
   reportStore: ReportStorePort;
+  likeStore: LikeStorePort;
   profileStore: ProfileStorePort;
   adminStore: AdminStorePort;
 }
@@ -32,6 +34,7 @@ export async function createFirebaseServices(): Promise<FirebaseServices> {
     markerStore: createMarkerStore(db, user),
     requestStore: createRequestStore(db, user),
     reportStore: createReportStore(db, user),
+    likeStore: createLikeStore(db, user),
     profileStore: createProfileStore(db, user),
     adminStore: createAdminStore(db, user),
   };

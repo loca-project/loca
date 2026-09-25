@@ -104,7 +104,7 @@
 | Google Maps はメインバンドルに含める | MapLibre を既定にし、地図ライブラリは独立チャンク（動的 import）に変更 | 地図エンジンを差し替え可能にするため |
 | 定時バッチは cron / Firebase Functions | GitHub Actions（`sync-firestore.yml`）が Node のスクリプト（`scripts/refresh-youtube.mjs`・`sync-firestore.mjs`・`purge-deleted.mjs`）を毎日 0:00 JST に動かす | Cloud Functions は請求先が必須で使えないため |
 | `markers.json` ベース + Firestore 差分 | 維持。ベースは `public/data/markers.json`、差分は `MarkerStorePort.subscribeChanges` の購読（ADR 0013）。バックエンドが落ちればベースだけで縮退運転する | 可用性の要求に直結するため |
-| レートリミット（IP あたり 10 回/分） | 利用者単位をセキュリティルールで実装。マーカーを書くバッチで `rateLimits/{uid}` の印を更新させ、直前から 6 秒以上あいていないと拒否する（ADR 0012）。**IP 単位の遮断は未実装** | 静的配信では IP を判定できない。配信先の WAF で行う |
+| レートリミット（IP あたり 10 回/分） | 利用者単位をセキュリティルールで実装。マーカーを書くバッチ（といいねを付ける書き込み。ADR 0024）で `rateLimits/{uid}` の印を更新させ、直前から 6 秒以上あいていないと拒否する（ADR 0012）。**IP 単位の遮断は未実装** | 静的配信では IP を判定できない。配信先の WAF で行う |
 
 ### 未実装として明示するもの
 

@@ -11,6 +11,7 @@ import { equipmentText } from '@/core/logic/equipment';
 import { Button, LinkButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { publishedLabel } from '@/features/marker/published';
+import LikeButton from '@/features/marker/LikeButton';
 
 interface MarkerDetailsProps {
   marker: MarkerData;
@@ -49,7 +50,7 @@ export default function MarkerDetails({
     .filter(Boolean)
     .join('：');
 
-  // 並びは利用者の動線の順: 見る（動画）→ 共有・通報 → 知る（詳細）→ 自分の操作 → 閉じる
+  // 並びは利用者の動線の順: 見る（動画）→ いいね・共有・通報 → 知る（詳細）→ 自分の操作 → 閉じる
   return (
     <div className="flex flex-col gap-3">
       {marker.thumbnailUrl && (
@@ -67,6 +68,7 @@ export default function MarkerDetails({
         {t.details.openYoutube}
       </LinkButton>
       <div className="flex gap-2">
+        <LikeButton marker={marker} />
         <Button variant="secondary" className="flex-1" onClick={onShare}>
           <i className="fa-solid fa-share-nodes mr-1.5" />
           {t.actions.share}
