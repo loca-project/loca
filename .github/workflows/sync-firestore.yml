@@ -1,6 +1,8 @@
 # Firestore から public/data/markers.json と requests.json を作り直す（要件 1.3 の定時バッチ。ADR 0010）。
 #
 # 毎日 0:00（日本時間）と、手動（workflow_dispatch）で動く。先に refresh ジョブで再生数などを更新する（ADR 0017）。
+# 毎時 15 分（0:00 の回を除く）は、登録したばかりで YouTube の情報が無いマーカーだけを取り、
+# 何か書いたときだけ同期して公開する（T57。purge は毎晩と手動だけ）。
 # 同期のあと purge ジョブが、論理削除から 30 日たった行を物理削除する（ADR 0021）。
 # Firestore の markers と requests はルールで誰でも読めるので、API キー（公開値。Variables）だけで読む。
 # サービスアカウントの鍵などの秘密情報は使わない。
@@ -8,13 +10,23 @@
 # 変更があったときだけコミットし、publish.yml を直接呼んで公開しなおす
 # （GITHUB_TOKEN による push は他のワークフローを起動しないため、deploy.yml には任せられない）。
 name: 同期（Firestore → 公開データ）
-# 実行名で契機を分ける（毎晩の定期と手動。命名規則は docs/70-publish.md。T31）。件数は各ジョブの概要に出る
-run-name: ${{ github.event_name == 'schedule' && '同期・毎晩' || format('同期・手動（{0}）', github.actor) }}
+# 実行名で契機を分ける（毎晩・毎時・手動。命名規則は docs/70-publish.md。T31）。件数は各ジョブの概要に出る
+run-name: >-
+  ${{ (github.event.schedule == '15 0-14,16-23 * * *' || inputs.hourly) && '同期・毎時（未取得だけ）'
+  || github.event_name == 'schedule' && '同期・毎晩'
+  || format('同期・手動（{0}）', github.actor) }}
 
 on:
   schedule:
     - cron: '0 15 * * *' # UTC 15:00 = 日本時間 0:00
+    # 毎時 15 分。毎晩の回（UTC 15 時台）は除く。この文字列は下の if でも使うので、変えるときはまとめて変える
+    - cron: '15 0-14,16-23 * * *'
   workflow_dispatch:
+    inputs:
+      hourly:
+        description: 毎時の経路（未取得のマーカーだけ取り、変更があるときだけ同期。purge なし）で動かす
+        type: boolean
+        default: false
 
 # 手動と定期が重なっても public/data を同時に書き換えないよう、順番に動かす
 concurrency:
@@ -26,6 +38,8 @@ jobs:
   # 認証は Workload Identity 連携（鍵ファイルなし）。YouTube API が失敗したら何も書かずに止まる。
   refresh:
     runs-on: ubuntu-26.04
+    outputs:
+      changed: ${{ steps.refresh.outputs.changed }}
     permissions:
       contents: read
       id-token: write
@@ -44,16 +58,18 @@ jobs:
           token_format: access_token
           create_credentials_file: false
       - name: YouTube の情報で Firestore のマーカーを更新する
+        id: refresh
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
           GOOGLE_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           GCP_PROJECT: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
-        run: node scripts/refresh-youtube.mjs
+        run: node scripts/refresh-youtube.mjs ${{ (github.event.schedule == '15 0-14,16-23 * * *' || inputs.hourly) && '--missing-only' || '' }}
 
   sync:
     # 更新が失敗しても公開データの作り直しは行う（失敗はこの実行の結果として赤で残る）
+    # 毎時は、refresh が何か書いたときだけ（Firestore の読み取りを増やさないため）
     needs: refresh
-    if: ${{ !cancelled() }}
+    if: ${{ !cancelled() && (!((github.event.schedule == '15 0-14,16-23 * * *' || inputs.hourly)) || needs.refresh.outputs.changed == 'true') }}
     runs-on: ubuntu-26.04
     permissions:
       contents: write
@@ -94,7 +110,7 @@ jobs:
   # 公開データに含まれない行だけを消すので、publish とは関係なく、失敗しても公開は止めない。
   purge:
     needs: sync
-    if: ${{ needs.sync.result == 'success' }}
+    if: ${{ needs.sync.result == 'success' && !((github.event.schedule == '15 0-14,16-23 * * *' || inputs.hourly)) }}
     runs-on: ubuntu-26.04
     permissions:
       contents: read

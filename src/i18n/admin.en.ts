@@ -55,6 +55,7 @@ export const adminEn: DeepPartial<typeof adminJa> = {
   jobRanAt: 'Last run',
   jobNames: {
     'youtube-refresh': 'YouTube info refresh (nightly)',
+    'youtube-refresh-hourly': 'YouTube info for new markers (hourly)',
     'purge-deleted': 'Erase rows deleted 30+ days ago (nightly)',
   },
   jobValues: {

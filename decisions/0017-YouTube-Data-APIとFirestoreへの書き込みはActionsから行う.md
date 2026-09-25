@@ -59,3 +59,18 @@ YouTube Data API の既定の割り当ては 1 日 10,000 ユニット（公式�
 ## 確かめ方
 
 `gh workflow run probe-google.yml -R loca-project/loca-project.github.io` が成功し、ログに `6 / 6 件 OK` が出る。
+
+## 追記（2026-09-25 毎時の取得。T57）
+
+登録した当日のマーカーは、毎晩の更新まで投稿日・長さ・再生数が無い（再生数 0・投稿日は登録日で代わりに数える）。
+利用者の判断で、毎時、未取得のマーカーだけを取るようにした。
+
+- 同じワークフロー（`sync-firestore.yml`）に毎時 15 分の予定を足す（UTC 15 時台の毎晩の回は除く）。同時実行の制御がそのまま効く。
+- `refresh-youtube.mjs --missing-only` は、登録から 48 時間以内のマーカーだけを Firestore から読み（`createdAt` の範囲の問い合わせ）、
+  `youtube` の無いものだけを YouTube Data API に問い合わせる。対象が無ければ API は呼ばない。記録は `jobs/youtube-refresh-hourly`。
+- 何か書いたときだけ同期して公開する。書き込みは updatedAt を進めない（ADR 0013 はそのまま。利用者の判断）。
+  そのため、取った値が画面に出るのは公開のあと（登録から最大で 1 時間強）。
+- 手動でも `gh workflow run sync-firestore.yml -f hourly=true` で同じ経路を試せる。
+
+注意: 毎時の同期は Firestore の markers と requests を全件読む。登録が毎時続くと 1 日に最大 23 回になるので、
+マーカーが 1000 件を超えたら、Spark の読み取りの上限（1 日 5 万件）に対して見直す。

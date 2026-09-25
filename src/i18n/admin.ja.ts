@@ -55,6 +55,7 @@ export const adminJa = {
   jobRanAt: '最後に動いた日時',
   jobNames: {
     'youtube-refresh': 'YouTube の情報の更新（毎晩）',
+    'youtube-refresh-hourly': 'YouTube の情報の取得（毎時・未取得だけ）',
     'purge-deleted': '30 日たった論理削除の物理削除（毎晩）',
   },
   jobValues: {

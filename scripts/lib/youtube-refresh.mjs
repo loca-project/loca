@@ -56,3 +56,14 @@ export function planRefresh(markers, items) {
   }
   return { updates, gone, blockedGone };
 }
+
+/**
+ * 毎時の更新（T57）で読む範囲。登録からこの時間以内のマーカーだけを読む（全件を毎時読むと Firestore の読み取りが増えるため）。
+ * 毎晩の全件更新が 1 回失敗しても拾えるよう、1 日より長くとる。
+ */
+export const MISSING_WINDOW_MS = 48 * 60 * 60 * 1000;
+
+/** 毎時の更新の対象: 論理削除されておらず、動画 ID があり、YouTube の情報をまだ取っていないマーカー。 */
+export function missingTargets(rows) {
+  return rows.filter((m) => m.deleted !== true && m.videoId && !m.youtube);
+}

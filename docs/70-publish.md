@@ -135,7 +135,8 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 |---|---|---|
 | `publish.yml` | 他から呼ばれたときだけ | ビルド → 検証 → Pages へ公開 |
 | `deploy.yml` | `main` に push したとき | `publish.yml` を呼ぶ |
-| `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | Firestore から `markers.json` と `requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ |
+| `sync-firestore.yml` | 毎日 0:00（日本時間）と手動 | YouTube の情報を更新 → Firestore から `markers.json` と `requests.json` を作り直す → 変更があれば commit/push → `publish.yml` を呼ぶ → 30 日たった行を物理削除 |
+| `sync-firestore.yml`（毎時） | 毎時 15 分（0:00 の回を除く） | 未取得のマーカーだけ YouTube の情報を取る → 何か書いたときだけ同期と公開（T57。ADR 0017 の追記） |
 
 ### 名前・実行名・ジョブ概要の決まり（T31）
 
@@ -160,6 +161,7 @@ CLI のログインが切れていたら、上の手順 1（または `/firebase
 |---|---|
 | 手元で件数だけ確かめる | `npm run data:sync:check` |
 | 本番で今すぐ同期する | `gh workflow run sync-firestore.yml` → `gh run watch` |
+| 毎時の経路を手動で試す | `gh workflow run sync-firestore.yml -f hourly=true` |
 
 ## 公開 URL
 
@@ -211,12 +213,12 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 | 確認項目 | 期待 |
 |---|---|
 | 地図が表示される | 地理院タイル（淡色地図）が出る。右下に「地理院タイル」の出典 |
-| ピンが出る | markers.json の件数ぶん |
+| ピンが出る | ピンと、重なったものをまとめた白い円の数字の合計が markers.json と requests.json の件数ぶん（ADR 0023） |
 | ピンをクリック | サイドメニューがマーカー情報になる |
 | ランキングタブ → 適用 | 結果パネルに件数順で並ぶ |
 | 地図をクリック | 何も起きない（投稿は左の「投稿」タブから） |
 | 投稿タブ → 登録する（要ログイン） | すぐ地図に出る |
-| 右上のバッジ | 「最新」と生成日時が出る |
+| 画面上部の帯 | 何も出ない（公開データや地図タイルを読めないとき、新しい版があるときだけ出る） |
 
 ## 困ったとき
 
@@ -224,7 +226,7 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 |---|---|
 | `Permission to <owner>/<repo>.git denied to <別名>` / 403 | Windows に**別の GitHub アカウント**の資格情報がキャッシュされている。下記参照 |
 | 404 になる | Settings → Pages の Source が「GitHub Actions」か確認 |
-| 地図が灰色のまま | バッジが「注意」なら地理院タイルに到達できていない。「最新」のままなら地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
+| 地図が灰色のまま | 画面上部に地図タイルの帯が出ていれば地理院タイルに到達できていない。帯が無ければ地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
 | ピンが出ない | `project/public/data/markers.json` が空。`npm run seed` で復旧できる |
 | ログインが出ない・投稿タブが「受け付けていません」 | Firebase の設定値が空。本番はリポジトリの Variables、ローカルは `.env.local` の `VITE_FIREBASE_*` を確認する |
 | 公開データに消したはずの行が残る | 物理削除は購読に届かない。`gh workflow run sync-firestore.yml` で作り直す |

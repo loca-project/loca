@@ -4,6 +4,11 @@
  *
  *   node scripts/refresh-youtube.mjs            更新して書く
  *   node scripts/refresh-youtube.mjs --dry-run  計画だけ出して書かない
+ *   node scripts/refresh-youtube.mjs --missing-only
+ *       毎時の更新（T57）。登録から 48 時間以内で、まだ YouTube の情報が無いマーカーだけを取る。
+ *       対象が無ければ YouTube API を呼ばない。記録は jobs/youtube-refresh-hourly
+ *
+ * Actions では、何か書いたかを GITHUB_OUTPUT の changed（true / false）で返す（毎時は変更があるときだけ同期する）。
  *
  * 環境変数: YOUTUBE_API_KEY（Secrets）、GOOGLE_ACCESS_TOKEN（Workload Identity 連携）、GCP_PROJECT
  *
@@ -15,10 +20,13 @@
  */
 
 import { fromFields } from './lib/firestore-rest.mjs';
-import { VIDEOS_PER_CALL, planRefresh } from './lib/youtube-refresh.mjs';
+import { appendFileSync } from 'node:fs';
+import { MISSING_WINDOW_MS, VIDEOS_PER_CALL, missingTargets, planRefresh } from './lib/youtube-refresh.mjs';
 import { writeSummary } from './lib/summary.mjs';
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const MISSING_ONLY = process.argv.includes('--missing-only');
+const JOB_ID = MISSING_ONLY ? 'youtube-refresh-hourly' : 'youtube-refresh';
 const { YOUTUBE_API_KEY, GOOGLE_ACCESS_TOKEN, GCP_PROJECT } = process.env;
 if (!YOUTUBE_API_KEY || !GOOGLE_ACCESS_TOKEN || !GCP_PROJECT) {
   console.error('NG: YOUTUBE_API_KEY・GOOGLE_ACCESS_TOKEN・GCP_PROJECT のどれかがありません');
@@ -51,6 +59,31 @@ async function liveMarkers() {
     pageToken = body.nextPageToken ?? '';
   } while (pageToken);
   return rows.filter((m) => m.deleted !== true && m.videoId);
+}
+
+/** 登録から MISSING_WINDOW_MS 以内で、YouTube の情報をまだ取っていないマーカー（毎時の更新。T57）。 */
+async function recentMissingMarkers() {
+  const since = new Date(Date.now() - MISSING_WINDOW_MS).toISOString();
+  const query = {
+    structuredQuery: {
+      from: [{ collectionId: 'markers' }],
+      where: { fieldFilter: { field: { fieldPath: 'createdAt' }, op: 'GREATER_THAN_OR_EQUAL', value: { timestampValue: since } } },
+      select: { fields: ['videoId', 'deleted', 'youtube'].map((fieldPath) => ({ fieldPath })) },
+    },
+  };
+  const body = await mustOk(
+    await fetch(`${API}/documents:runQuery`, { method: 'POST', headers, body: JSON.stringify(query) }),
+    '新しいマーカーの読み出し',
+  );
+  const rows = body
+    .filter((r) => r.document)
+    .map((r) => ({ id: r.document.name.split('/').pop(), ...fromFields(r.document.fields ?? {}) }));
+  return missingTargets(rows);
+}
+
+/** Actions の後続のジョブに、何か書いたかを渡す。Actions の外では何もしない。 */
+function setOutput(changed) {
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `changed=${changed}\n`, 'utf8');
 }
 
 /** 動画情報を 50 本ずつ取る。1 回でも失敗したら止まる。 */
@@ -102,7 +135,7 @@ async function commit(writes) {
   }
 }
 
-const markers = await liveMarkers();
+const markers = MISSING_ONLY ? await recentMissingMarkers() : await liveMarkers();
 const { items, calls } = await fetchVideos([...new Set(markers.map((m) => m.videoId))]);
 const plan = planRefresh(markers, items);
 
@@ -110,7 +143,8 @@ console.log(`対象 ${markers.length} 件・YouTube API ${calls} 回（${calls} 
 console.log(`更新 ${plan.updates.length} 件・論理削除 ${plan.gone.length} 件${plan.blockedGone ? `（${plan.blockedGone} 件は割合が多すぎるので止めた）` : ''}`);
 if (plan.gone.length) console.log(`論理削除: ${plan.gone.join(', ')}`);
 // Actions のジョブ概要に件数を出す（T31）
-writeSummary(DRY_RUN ? 'YouTube の情報の更新（確認だけ）' : 'YouTube の情報の更新', [
+const title = MISSING_ONLY ? 'YouTube の情報の取得（毎時・未取得だけ）' : 'YouTube の情報の更新';
+writeSummary(DRY_RUN ? `${title}（確認だけ）` : title, [
   ['対象のマーカー', `${markers.length} 件`],
   ['YouTube API の呼び出し', `${calls} 回（${calls} ユニット）`],
   ['再生数などの更新', `${plan.updates.length} 件`],
@@ -119,6 +153,7 @@ writeSummary(DRY_RUN ? 'YouTube の情報の更新（確認だけ）' : 'YouTube
 
 if (DRY_RUN) {
   console.log('--dry-run のため書き込みません');
+  setOutput(false);
   process.exit(0);
 }
 
@@ -128,13 +163,14 @@ await commit([
   ...plan.gone.map(goneWrite),
   {
     update: {
-      name: docName('jobs', 'youtube-refresh'),
+      name: docName('jobs', JOB_ID),
       fields: Object.fromEntries(Object.entries(summary).map(([k, v]) => [k, { integerValue: String(v) }])),
     },
     updateTransforms: [{ fieldPath: 'ranAt', ...now }],
   },
 ]);
-console.log('OK  書き込みました（jobs/youtube-refresh に記録）');
+console.log(`OK  書き込みました（jobs/${JOB_ID} に記録）`);
+setOutput(plan.updates.length + plan.gone.length > 0);
 // 割合で削除を止めたときは、人が確かめるまで気づけるよう失敗で終える
 if (plan.blockedGone) {
   console.error('NG: 消えた動画が多すぎるため論理削除を止めました。YouTube 側の状態を確かめてください');

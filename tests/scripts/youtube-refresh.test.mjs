@@ -4,7 +4,7 @@
  */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseDuration, planRefresh } from '../../scripts/lib/youtube-refresh.mjs';
+import { MISSING_WINDOW_MS, missingTargets, parseDuration, planRefresh } from '../../scripts/lib/youtube-refresh.mjs';
 
 const marker = (id, videoId = `v_${id}`) => ({ id, videoId });
 const item = (videoId, over = {}) => ({
@@ -67,5 +67,21 @@ describe('planRefresh', () => {
     const plan = planRefresh([marker('a'), marker('b')], [item('v_a')]);
     assert.deepEqual(plan.gone, ['b']);
     assert.equal(plan.blockedGone, 0);
+  });
+});
+
+describe('missingTargets（毎時の更新。T57）', () => {
+  it('YouTube の情報が無く、論理削除されておらず、動画 ID があるものだけ', () => {
+    const rows = [
+      { id: 'new', videoId: 'v1' },
+      { id: 'done', videoId: 'v2', youtube: { viewCount: 1 } },
+      { id: 'gone', videoId: 'v3', deleted: true },
+      { id: 'broken' },
+    ];
+    assert.deepEqual(missingTargets(rows).map((m) => m.id), ['new']);
+  });
+
+  it('読む範囲は 1 日より長い（毎晩の全件更新が 1 回失敗しても拾える）', () => {
+    assert.ok(MISSING_WINDOW_MS > 24 * 60 * 60 * 1000);
   });
 });
