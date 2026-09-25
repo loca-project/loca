@@ -178,3 +178,18 @@ describe('機器マスタ（T28・ADR 0025）', () => {
     await assert.rejects(storeFor('alice').saveEquipment('action', makers), /管理者/);
   });
 });
+
+describe('管理者への昇格と一般への戻し（T75）', () => {
+  it('管理者は一般ユーザーを管理者にし、一般に戻せる。自分自身を戻すのは通信する前に止める', async () => {
+    const store = storeFor('root');
+    await store.grantAdmin('alice');
+    assert.deepEqual((await store.users()).admins.map((r) => r.uid).sort(), ['alice', 'root']);
+    await store.revokeAdmin('alice');
+    assert.deepEqual((await store.users()).admins.map((r) => r.uid), ['root']);
+    await assert.rejects(store.revokeAdmin('root'), /自分自身は一般に戻せません/);
+  });
+
+  it('一般ユーザーの昇格は、理由の分かるエラーになる', async () => {
+    await assert.rejects(storeFor('alice').grantAdmin('bob'), /管理者/);
+  });
+});

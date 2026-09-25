@@ -32,7 +32,7 @@ describe('5.x 管理者モード', () => {
   });
 
   it('管理者は管理者を追加できる', async () => {
-    await assertSucceeds(setDoc(doc(as('root'), 'admins', 'alice'), { note: '追加' }));
+    await assertSucceeds(setDoc(doc(as('root'), 'admins', 'alice'), { note: '追加', addedAt: serverTimestamp() }));
   });
 
   it('一般利用者は自分を管理者にできない', async () => {
@@ -123,5 +123,82 @@ describe('ルールに無いコレクションは拒否', () => {
   it('未定義のコレクションは読み書きとも拒否', async () => {
     await assertFails(getDoc(doc(as('root'), 'unknownCollection', 'x1')));
     await assertFails(setDoc(doc(as('root'), 'unknownCollection', 'x1'), { a: 1 }));
+  });
+});
+
+describe('管理者への昇格と一般への戻し（T75）', () => {
+  const grant = (by, uid, over = {}) => setDoc(doc(as(by), 'admins', uid), { note: '管理者画面から', addedAt: serverTimestamp(), ...over });
+
+  it('管理者は、プロフィール登録済みの一般ユーザーを管理者にでき、一般に戻せる', async () => {
+    await assertSucceeds(grant('root', 'alice'));
+    await assertSucceeds(deleteDoc(doc(as('root'), 'admins', 'alice')));
+  });
+
+  it('一般ユーザーは昇格も降格もできない', async () => {
+    await assertFails(grant('alice', 'bob'));
+    await assertFails(deleteDoc(doc(as('alice'), 'admins', 'root')));
+  });
+
+  it('自分自身は一般に戻せない。後から管理者になった人は、先の管理者を戻せない（先任順）', async () => {
+    await assertFails(deleteDoc(doc(as('root'), 'admins', 'root')));
+    await grant('root', 'alice');
+    await assertFails(deleteDoc(doc(as('alice'), 'admins', 'root')));
+    await assertSucceeds(deleteDoc(doc(as('root'), 'admins', 'alice')));
+  });
+
+  it('同じ時刻に管理者になった人どうしは、互いに戻せない（0 人にならない）', async () => {
+    const t = new Date('2026-01-01T00:00:00Z');
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'admins', 'alice'), { note: 'x', addedAt: t });
+      await setDoc(doc(db, 'admins', 'bob'), { note: 'x', addedAt: t });
+    });
+    await assertFails(deleteDoc(doc(as('alice'), 'admins', 'bob')));
+    await assertFails(deleteDoc(doc(as('bob'), 'admins', 'alice')));
+  });
+
+  it('ブラックリストの管理者は昇格も戻しもできない。メモは 200 字まで。既に管理者の人への書き込みは拒否', async () => {
+    await grant('root', 'alice');
+    await seed(env, async (db) => {
+      await setDoc(doc(db, 'admins', 'mallory'), { note: 'x', addedAt: new Date('2025-01-01T00:00:00Z') });
+      await setDoc(doc(db, 'blacklist', 'mallory'), { reason: '試験' });
+    });
+    await assertFails(grant('mallory', 'carol'));
+    await assertFails(deleteDoc(doc(as('mallory'), 'admins', 'alice')));
+    await assertFails(grant('root', 'carol', { note: 'a'.repeat(201) }));
+    await assertFails(grant('root', 'alice'));
+  });
+
+  it('1 回の書き込みで「管理者にする」と「ブラックリストに入れる」を同時にはできない。「戻す」と「入れる」は一緒にできる', async () => {
+    const db = as('root');
+    const both = writeBatch(db);
+    both.set(doc(db, 'admins', 'carol'), { note: 'x', addedAt: serverTimestamp() });
+    both.set(doc(db, 'blacklist', 'carol'), { reason: '試験' });
+    await assertFails(both.commit());
+    await grant('root', 'alice');
+    const swap = writeBatch(db);
+    swap.delete(doc(db, 'admins', 'alice'));
+    swap.set(doc(db, 'blacklist', 'alice'), { reason: '試験' });
+    await assertSucceeds(swap.commit());
+  });
+
+  it('プロフィール未登録・ブラックリストの人は昇格できない。形が違う・時刻が端末のものは拒否', async () => {
+    await assertFails(grant('root', 'dave'));
+    await seed(env, (db) => setDoc(doc(db, 'blacklist', 'bob'), { reason: '試験' }));
+    await assertFails(grant('root', 'bob'));
+    await assertFails(grant('root', 'carol', { extra: 1 }));
+    await assertFails(grant('root', 'carol', { addedAt: new Date(0) }));
+    await assertFails(grant('root', 'carol', { note: '' }));
+  });
+
+  it('付けたあとの書き換えはできない', async () => {
+    await grant('root', 'alice');
+    await assertFails(updateDoc(doc(as('root'), 'admins', 'alice'), { note: '書き換え' }));
+  });
+
+  it('管理者はブラックリストに入れられない（先に一般に戻す）。一般ユーザーは入れられる', async () => {
+    await grant('root', 'alice');
+    await assertFails(setDoc(doc(as('root'), 'blacklist', 'alice'), { reason: '試験' }));
+    await assertFails(setDoc(doc(as('root'), 'blacklist', 'root'), { reason: '試験' }));
+    await assertSucceeds(setDoc(doc(as('root'), 'blacklist', 'bob'), { reason: '試験' }));
   });
 });

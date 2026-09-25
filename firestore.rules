@@ -720,7 +720,25 @@ service cloud.firestore {
 
     match /admins/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if canWrite() && isAdmin();
+      // 昇格（T75）: 管理者が、プロフィール登録済みでブラックリストに入っていない人を足す。形は { note, addedAt }
+      allow create: if canWrite() && isAdmin()
+        && request.resource.data.keys().hasOnly(['note', 'addedAt'])
+        && reqString(request.resource.data, 'note', 1, 200)
+        && request.resource.data.addedAt == request.time
+        && existsAfter(docPath('users', uid))
+        && !existsAfter(docPath('blacklist', uid));
+      // 付けたあとの書き換えはしない（外して付け直す）
+      allow update: if false;
+      // 一般に戻す（T75）: 先に管理者になった人だけが、後から管理者になった人を戻せる（addedAt の古い順。無い初期の文書はいちばん古い）。
+      // 自分自身・同時に付いた人・自分より古い人は戻せないので、互いに外し合って 0 人になることも、昇格した直後の人が
+      // ほかの管理者を全員外すこともできない。いちばん古い管理者はオーナーの CLI（scripts/admins.mjs）でだけ外せる
+      allow delete: if canWrite() && isAdmin() && uid != request.auth.uid
+        && adminSince(request.auth.uid) < adminSince(uid);
+    }
+
+    // 管理者になった時刻（無い初期の文書は epoch 0 として、いちばん古い扱い）
+    function adminSince(u) {
+      return get(docPath('admins', u)).data.get('addedAt', timestamp.value(0));
     }
 
     // 定期処理の記録（ADR 0017）。Actions が IAM の経路で書き、管理者だけが読む
@@ -731,7 +749,9 @@ service cloud.firestore {
 
     match /blacklist/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow write: if canWrite() && isAdmin();
+      // 管理者はブラックリストに入れられない（先に一般に戻す。T75）。管理者同士で締め出し合わせないため
+      allow create, update: if canWrite() && isAdmin() && !existsAfter(docPath('admins', uid));
+      allow delete: if canWrite() && isAdmin();
     }
   }
 }

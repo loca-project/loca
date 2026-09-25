@@ -79,7 +79,7 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
         const adminIds = new Set(admins.docs.map((d) => d.id));
         const blackIds = new Set(blacklist.docs.map((d) => d.id));
         return {
-          admins: [...adminIds].map(rowOf),
+          admins: admins.docs.map((d) => ({ ...rowOf(d.id), adminSince: ms(d.data().addedAt) })),
           users: [...byUid.values()]
             .filter((u) => !adminIds.has(u.uid) && !blackIds.has(u.uid))
             .sort((a, b) => b.createdAt - a.createdAt),
@@ -109,6 +109,18 @@ export function createAdminStore(db: Firestore, currentUser: () => AuthUser | nu
     unblacklist: (uid) =>
       guard(async () => {
         await deleteDoc(doc(db, 'blacklist', uid));
+      }),
+
+    grantAdmin: (uid) =>
+      guard(async () => {
+        await setDoc(doc(db, 'admins', uid), { note: '管理者画面から追加', addedAt: serverTimestamp() });
+      }),
+
+    revokeAdmin: (uid) =>
+      guard(async () => {
+        const user = currentUser();
+        if (user?.uid === uid) throw new UpstreamError('自分自身は一般に戻せません。ほかの管理者に頼んでください。');
+        await deleteDoc(doc(db, 'admins', uid));
       }),
 
     softDeleteMarkers: (ids) =>

@@ -25,6 +25,8 @@ export interface AdminUserRow {
   nickname: string | null;
   /** 登録日（epoch ms。プロフィールが無ければ 0） */
   createdAt: number;
+  /** 管理者になった時刻（epoch ms。管理者の区画だけ。記録の無い初期の管理者は 0）。先に管理者になった人だけが後の人を戻せる（T75） */
+  adminSince?: number;
 }
 
 /** ユーザー管理の 3 区画。 */
@@ -55,6 +57,10 @@ export interface AdminStorePort extends Adapter {
   blacklist(uid: string): Promise<void>;
   /** ブラックリストから外す。 */
   unblacklist(uid: string): Promise<void>;
+  /** 管理者にする（T75）。プロフィール未登録・ブラックリストの人はルールが拒否する。 */
+  grantAdmin(uid: string): Promise<void>;
+  /** 一般に戻す（T75）。自分自身は戻せない（ルールが拒否する。最後の 1 人を消させないため）。 */
+  revokeAdmin(uid: string): Promise<void>;
   /**
    * マーカーをまとめて論理削除し、動画の索引を外す（禁止の印が付いた索引は残す）。要件 5.2.5・T60。
    * 物理削除は 30 日後に Actions が行う（ADR 0021）。消した件数を返す（削除済みは数えない）。

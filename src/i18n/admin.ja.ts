@@ -85,6 +85,15 @@ export const adminJa = {
     deleted: 'プロフィールを削除しました',
     blacklisted: 'ブラックリストに入れました',
     unblacklisted: 'ブラックリストから外しました',
+    // 管理者への昇格と一般への戻し（T75）
+    toAdmin: '管理者にする',
+    toUser: '一般に戻す',
+    you: '（あなた）',
+    senior: '（先任の管理者）',
+    confirmToAdmin: '「{name}」を管理者にしますか？管理者モードのすべての操作（削除・ブラックリストなど）ができるようになります。',
+    confirmToUser: '「{name}」を一般ユーザーに戻しますか？管理者モードが使えなくなります。',
+    promoted: '管理者にしました',
+    demoted: '一般ユーザーに戻しました',
   },
   blocked: {
     title: 'ログインできません',

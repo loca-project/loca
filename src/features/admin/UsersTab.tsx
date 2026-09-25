@@ -13,6 +13,7 @@ import { Button, TextInput } from '@/shared/components/Controls';
 import { useExclusive } from '@/shared/hooks/useExclusive';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { useServices } from '@/shared/hooks/useServices';
+import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/Toast';
 
 /** 1 人分の行。登録日が無くても行を 3 段にして、区画の間で行の高さをそろえる。 */
@@ -62,6 +63,7 @@ export default function UsersTab() {
   const toast = useToast();
   const { loading, exclusive } = useExclusive();
   const [lists, setLists] = useState<AdminUserLists | null>(null);
+  const { user } = useAuth();
 
   const reload = useCallback(async () => {
     if (!adminStore) return;
@@ -94,6 +96,9 @@ export default function UsersTab() {
   if (!lists) return <p className="text-xs text-gray-500">{t.details.loading}</p>;
 
   const name = (row: AdminUserRow) => row.nickname ?? row.uid;
+  const me = user?.uid ?? null;
+  // 自分が管理者になった時刻。これより後に管理者になった人だけを一般に戻せる（ルールの adminSince と同じ。T75）
+  const mySince = lists.admins.find((r) => r.uid === me)?.adminSince ?? 0;
   return (
     <div>
       <div className="mb-3 flex items-center gap-3">
@@ -104,12 +109,40 @@ export default function UsersTab() {
         <p className="text-[11px] text-gray-500">{u.note}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <Section title={u.admins} rows={lists.admins} render={(row) => <UserLine key={row.uid} row={row} />} />
+        <Section
+          title={u.admins}
+          rows={lists.admins}
+          render={(row) => (
+            <UserLine key={row.uid} row={row}>
+              {/* 自分自身と、自分より先に管理者になった人は一般に戻せない（ルールでも拒否する。T75） */}
+              {row.uid === me ? (
+                <span className="text-[11px] text-gray-400">{u.you}</span>
+              ) : (row.adminSince ?? 0) <= mySince ? (
+                <span className="text-[11px] text-gray-400">{u.senior}</span>
+              ) : (
+                <Button
+                  variant="secondary"
+                  disabled={loading}
+                  onClick={act(u.confirmToUser.replace('{name}', name(row)), () => adminStore.revokeAdmin(row.uid), u.demoted)}
+                >
+                  {u.toUser}
+                </Button>
+              )}
+            </UserLine>
+          )}
+        />
         <Section
           title={u.users}
           rows={lists.users}
           render={(row) => (
             <UserLine key={row.uid} row={row}>
+              <Button
+                variant="secondary"
+                disabled={loading || row.nickname === null}
+                onClick={act(u.confirmToAdmin.replace('{name}', name(row)), () => adminStore.grantAdmin(row.uid), u.promoted)}
+              >
+                {u.toAdmin}
+              </Button>
               <Button
                 variant="dangerSoft"
                 disabled={loading}
