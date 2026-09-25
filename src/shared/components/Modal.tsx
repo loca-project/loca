@@ -9,6 +9,11 @@ interface ModalProps {
   footer?: React.ReactNode;
   /** 画面幅いっぱいに近い大きさが要る管理者モードなどで指定する */
   size?: 'sm' | 'md' | 'lg' | 'full';
+  /**
+   * 高さを中身によらず固定する（タブで中身が変わる画面で、タブごとに枠の高さが変わらないように）。
+   * 本文は縦に並べるだけで巻き取らない。はみ出す分は、子に `min-h-0 grow overflow-y-auto` の箱を置いて巻き取る
+   */
+  fixedHeight?: boolean;
 }
 
 const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
@@ -19,7 +24,7 @@ const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
 };
 
 /** 画面中央に出すオーバーレイ。Esc と背景クリックで閉じる。 */
-export default function Modal({ open, title, onClose, children, footer, size = 'sm' }: ModalProps) {
+export default function Modal({ open, title, onClose, children, footer, size = 'sm', fixedHeight = false }: ModalProps) {
   React.useEffect(() => {
     if (!open || !onClose) return undefined;
     const onKey = (e: KeyboardEvent) => {
@@ -42,7 +47,7 @@ export default function Modal({ open, title, onClose, children, footer, size = '
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${SIZE_CLASS[size]}`}
+        className={`flex ${fixedHeight ? 'h-[90vh]' : 'max-h-[90vh]'} w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${SIZE_CLASS[size]}`}
       >
         <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
           <h2 className="text-sm font-bold text-gray-800">{title}</h2>
@@ -58,7 +63,7 @@ export default function Modal({ open, title, onClose, children, footer, size = '
           )}
         </header>
 
-        <div className="grow overflow-y-auto px-5 py-4 text-sm">{children}</div>
+        <div className={`grow px-5 py-4 text-sm ${fixedHeight ? 'flex min-h-0 flex-col' : 'overflow-y-auto'}`}>{children}</div>
 
         {footer && (
           <footer className="flex shrink-0 justify-end gap-2 border-t border-gray-100 px-5 py-3">

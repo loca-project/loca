@@ -35,14 +35,14 @@ export default function PosterPicker({ query, posters, owner, onQueryChange, onP
   );
 
   return (
-    <section>
+    <section className="flex min-h-0 flex-col">
       <TextInput
         value={query}
         placeholder={t.admin.search}
         aria-label={t.admin.search}
         onChange={(e) => onQueryChange(e.target.value)}
       />
-      <ul className="mt-2 max-h-[50vh] overflow-y-auto">
+      <ul className="mt-2 max-h-[50vh] overflow-y-auto md:max-h-none md:min-h-0 md:grow">
         {item(null, t.admin.allPosters, total)}
         {posters.slice(0, 30).map((p) => item(p.ownerUid, p.name, p.count))}
       </ul>

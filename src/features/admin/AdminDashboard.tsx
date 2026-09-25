@@ -41,7 +41,7 @@ export default function AdminDashboard({ open, markers, requestMarkers, equipmen
   const [tab, setTab] = useState<TabId>('statistics');
 
   return (
-    <Modal open={open} title={t.admin.mode} size="lg" onClose={onClose}>
+    <Modal open={open} title={t.admin.mode} size="lg" fixedHeight onClose={onClose}>
       <DashboardTabs<TabId>
         value={tab}
         onChange={setTab}
@@ -56,7 +56,8 @@ export default function AdminDashboard({ open, markers, requestMarkers, equipmen
           { id: 'logs', icon: 'fa-scroll', label: t.admin.tabLogs },
         ]}
       />
-      <div className="min-h-[20rem]">
+      {/* タブの列は固定し、中身だけをここで巻き取る。一覧を持つタブは md 以上でこの高さいっぱいに伸ばす（h-full） */}
+      <div className="min-h-0 grow overflow-y-auto">
         {tab === 'statistics' && <StatisticsTab markers={markers} />}
         {tab === 'users' && <UsersTab />}
         {tab === 'markers' && <MarkersTab markers={markers} onJump={onJump} />}

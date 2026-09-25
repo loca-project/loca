@@ -19,14 +19,14 @@ export default function LogsTab({ markers }: { markers: MarkerData[] }) {
   const { rows, total } = useMemo(() => logRows(markers, query, LIMIT), [markers, query]);
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <div className="w-64">
           <TextInput value={query} placeholder={lt.search} aria-label={lt.search} onChange={(e) => setQuery(e.target.value)} />
         </div>
         <p className="text-[11px] text-gray-500">{interpolate(lt.count, { shown: rows.length, total })}</p>
       </div>
-      <div className="max-h-[55vh] overflow-auto">
+      <div className="min-h-0 grow overflow-auto">
         <table className="w-full text-left text-[11px]">
           <thead className="sticky top-0 bg-white text-gray-500">
             <tr>

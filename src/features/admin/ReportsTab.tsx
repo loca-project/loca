@@ -65,7 +65,7 @@ export default function ReportsTab({ markers, onJump }: ReportsTabProps) {
   };
 
   return (
-    <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
+    <ul className="h-full space-y-3 overflow-y-auto">
       {summaries.map((s) => {
         const marker = byId.get(s.markerId);
         const title = marker?.title ?? rt.gone;

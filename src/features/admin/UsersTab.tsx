@@ -42,13 +42,13 @@ function Section({ title, rows, render }: { title: string; rows: AdminUserRow[];
   const shown = usersMatching(rows, query);
   const label = u.searchIn.replace('{title}', title);
   return (
-    <section className="flex min-w-0 flex-col rounded-lg border border-gray-100 p-3">
+    <section className="flex min-h-0 min-w-0 flex-col rounded-lg border border-gray-100 p-3">
       <h3 className="mb-1.5 text-xs font-bold text-gray-700">
         {title}（{query.trim() ? `${shown.length} / ${rows.length}` : rows.length}）
       </h3>
       <TextInput type="search" value={query} placeholder={label} aria-label={label} onChange={(e) => setQuery(e.target.value)} />
       {/* スクロールバーの有無で中の幅が変わり、区画の間でボタンの幅がずれないよう、場所を常に空けておく */}
-      <ul className="mt-1 h-[50vh] overflow-y-auto [scrollbar-gutter:stable]">
+      <ul className="mt-1 h-[50vh] overflow-y-auto [scrollbar-gutter:stable] md:h-auto md:min-h-0 md:grow">
         {shown.map(render)}
         {shown.length === 0 && <li className="py-3 text-center text-[11px] text-gray-400">{u.noMatch}</li>}
       </ul>
@@ -100,7 +100,7 @@ export default function UsersTab() {
   // 自分が管理者になった時刻。これより後に管理者になった人だけを一般に戻せる（ルールの adminSince と同じ。T75）
   const mySince = lists.admins.find((r) => r.uid === me)?.adminSince ?? 0;
   return (
-    <div>
+    <div className="md:flex md:h-full md:flex-col">
       <div className="mb-3 flex items-center gap-3">
         <Button variant="secondary" onClick={() => void exclusive(reload)} disabled={loading}>
           <i className="fa-solid fa-rotate mr-1.5" />
@@ -108,7 +108,7 @@ export default function UsersTab() {
         </Button>
         <p className="text-[11px] text-gray-500">{u.note}</p>
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:min-h-0 md:grow md:grid-cols-3 md:grid-rows-[minmax(0,1fr)]">
         <Section
           title={u.admins}
           rows={lists.admins}

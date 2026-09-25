@@ -75,9 +75,9 @@ export default function RequestsTab({ markers, requestMarkers, onJump }: Request
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-[16rem_1fr]">
+    <div className="grid gap-4 md:h-full md:grid-cols-[16rem_1fr] md:grid-rows-[minmax(0,1fr)]">
       <PosterPicker query={query} posters={posters} owner={owner} onQueryChange={setQuery} onPick={setOwner} />
-      <section className="min-w-0">
+      <section className="flex min-h-0 min-w-0 flex-col">
         <PostsToolbar
           total={rows.length}
           selectedCount={selection.selected.length}
@@ -91,7 +91,7 @@ export default function RequestsTab({ markers, requestMarkers, onJump }: Request
         {rows.length === 0 ? (
           <p className="mt-6 text-center text-xs text-gray-500">{rt.empty}</p>
         ) : (
-          <ul className="max-h-[50vh] overflow-y-auto">
+          <ul className="max-h-[50vh] overflow-y-auto md:max-h-none md:min-h-0 md:grow">
             {rows.map((r) => (
               <PostRow
                 key={r.spot.id}
