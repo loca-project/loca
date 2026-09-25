@@ -3,7 +3,7 @@
  *
  * 反映するのはコミット済みのルールだけ。rules/ か firestore.rules に未コミットの変更があれば、
  * HEAD を取り出した場所で行う（別のチャットのレビュー前のルールを本番に出さないため。2026-09-25 T29）。
- * 順番: test:rules → firebase deploy → rules:probe（未ログインの読み書き）→ rules:diff（本番と HEAD の一致）
+ * 順番: test:rules → firebase deploy（ルールと索引 firestore.indexes.json）→ rules:probe（未ログインの読み書き）→ rules:diff（本番と HEAD の一致）
  *
  * 本番のルールが入れ替わる操作なので、実行前に利用者の承認を 1 回取ること。
  */

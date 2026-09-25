@@ -16,7 +16,7 @@
     "smoke": "node scripts/smoke.mjs",
     "test:rules": "npm run rules:build && firebase emulators:exec --only firestore --project demo-loca \"node --test --test-concurrency=1 tests/rules/*.test.mjs tests/store/*.test.mjs\"",
     "deploy:rules": "node scripts/deploy-rules.mjs",
-    "rules:publish": "firebase deploy --only firestore:rules --project loca-d3792",
+    "rules:publish": "firebase deploy --only firestore:rules,firestore:indexes --project loca-d3792",
     "check:head": "node scripts/check-head.mjs",
     "rules:probe": "node scripts/probe-rules.mjs",
     "rules:diff": "node scripts/rules-diff.mjs",
