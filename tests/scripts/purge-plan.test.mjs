@@ -64,6 +64,39 @@ describe('planPurge', () => {
     assert.deepEqual(plan.videoIds, ['v_old', 'v_orphan']);
   });
 
+  it('外してから 30 日たったいいねと、マーカーが消える・消えたいいねを消す。付いたままのいいねは残す（T66）', () => {
+    const plan = planPurge({
+      ...base,
+      markers: [
+        { id: 'old', deleted: true, updatedAt: now - 31 * DAY },
+        { id: 'alive', deleted: false, updatedAt: now },
+      ],
+      likes: [
+        { id: 'offOld', markerId: 'alive', deleted: true, updatedAt: now - 31 * DAY },
+        { id: 'offRecent', markerId: 'alive', deleted: true, updatedAt: now - 29 * DAY },
+        { id: 'on', markerId: 'alive', deleted: false, updatedAt: now - 400 * DAY },
+        { id: 'onPurged', markerId: 'old', deleted: false, updatedAt: now },
+        { id: 'onGone', markerId: 'gone', deleted: false, updatedAt: now },
+      ],
+    });
+    assert.deepEqual(plan.likeIds, ['offOld', 'onPurged', 'onGone']);
+  });
+
+  it('いいねの件数と炎は、マーカーが消える・消えたものだけを消す（T66）', () => {
+    const plan = planPurge({
+      ...base,
+      markers: [
+        { id: 'old', deleted: true, updatedAt: now - 31 * DAY },
+        { id: 'recent', deleted: true, updatedAt: now - 29 * DAY },
+        { id: 'alive', deleted: false, updatedAt: now },
+      ],
+      likeCounts: [{ id: 'old' }, { id: 'recent' }, { id: 'alive' }, { id: 'gone' }],
+      answerCounts: [{ id: 'old' }, { id: 'alive' }, { id: 'gone' }],
+    });
+    assert.deepEqual(plan.likeCountIds, ['old', 'gone']);
+    assert.deepEqual(plan.answerCountIds, ['old', 'gone']);
+  });
+
   it('公開データの syncedAt が読めなければ止める', () => {
     assert.throws(() => planPurge({ ...base, syncedAt: 0 }), /syncedAt/);
   });

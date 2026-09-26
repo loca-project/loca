@@ -1,5 +1,6 @@
 /**
  * 論理削除・取り下げから 30 日たった行と動画の索引を物理削除する（ADR 0021・T58）。
+ * 外してから 30 日たったいいねと、マーカーが消えたいいね・件数・炎も消す（ADR 0024・T66）。
  * 毎晩の sync-firestore.yml が、公開データを作り直したあとに呼ぶ。
  *
  *   node scripts/purge-deleted.mjs            消す
@@ -67,22 +68,33 @@ async function publishedSyncedAt() {
   return Math.min(Number(await read('markers.json')), Number(await read('requests.json')));
 }
 
-const [markers, requests, videos, syncedAt] = await Promise.all([
+const [markers, requests, videos, likes, likeCounts, answerCounts, syncedAt] = await Promise.all([
   list('markers', ['deleted', 'updatedAt', 'videoId']),
   list('requests', ['withdrawn', 'updatedAt']),
   list('videos', ['markerId', 'blocked']),
+  list('likes', ['markerId', 'deleted', 'updatedAt']),
+  list('likeCounts', ['count']),
+  list('answerCounts', ['count']),
   publishedSyncedAt(),
 ]);
-const plan = planPurge({ markers, requests, videos, now: Date.now(), syncedAt });
+const plan = planPurge({ markers, requests, videos, likes, likeCounts, answerCounts, now: Date.now(), syncedAt });
+
+// 消す対象: [コレクション（記録の項目名も兼ねる）, 表示名, 読んだ行, 消す ID]
+const targets = [
+  ['markers', 'マーカー', markers, plan.markerIds],
+  ['requests', '撮影リクエスト', requests, plan.requestIds],
+  ['videos', '動画の索引', videos, plan.videoIds],
+  ['likes', 'いいね', likes, plan.likeIds],
+  ['likeCounts', 'いいねの件数', likeCounts, plan.likeCountIds],
+  ['answerCounts', '炎', answerCounts, plan.answerCountIds],
+];
 
 console.log(`基準: ${new Date(plan.cutoff).toISOString()} より前に論理削除・取り下げされた行`);
-console.log(`マーカー ${plan.markerIds.length} / ${markers.length} 件・リクエスト ${plan.requestIds.length} / ${requests.length} 件・動画の索引 ${plan.videoIds.length} / ${videos.length} 件を消す`);
+console.log(`${targets.map(([, label, rows, ids]) => `${label} ${ids.length} / ${rows.length} 件`).join('・')}を消す`);
 // Actions のジョブ概要に件数を出す（T31）
 writeSummary(DRY_RUN ? '30 日たった行の物理削除（計画だけ）' : '30 日たった行の物理削除', [
   ['基準（これより前に論理削除）', new Date(plan.cutoff).toISOString()],
-  ['マーカー', `${plan.markerIds.length} / ${markers.length} 件`],
-  ['撮影リクエスト', `${plan.requestIds.length} / ${requests.length} 件`],
-  ['動画の索引', `${plan.videoIds.length} / ${videos.length} 件`],
+  ...targets.map(([, label, rows, ids]) => [label, `${ids.length} / ${rows.length} 件`]),
 ]);
 if (DRY_RUN) {
   console.log('--dry-run のため消しません');
@@ -94,15 +106,11 @@ const docName = (collection, id) => `${DB}/documents/${collection}/${id}`;
 /** 読んだときから変わっていなければ消す。 */
 const remove = (collection, row) => ({ delete: docName(collection, row.id), currentDocument: { updateTime: row.updateTime } });
 
-const markerRows = byId(markers);
-const requestRows = byId(requests);
-const videoRows = byId(videos);
-const writes = [
-  ...plan.markerIds.map((id) => remove('markers', markerRows.get(id))),
-  ...plan.requestIds.map((id) => remove('requests', requestRows.get(id))),
-  ...plan.videoIds.map((id) => remove('videos', videoRows.get(id))),
-];
-const summary = { markers: plan.markerIds.length, requests: plan.requestIds.length, videos: plan.videoIds.length };
+const writes = targets.flatMap(([collection, , rows, ids]) => {
+  const byRow = byId(rows);
+  return ids.map((id) => remove(collection, byRow.get(id)));
+});
+const summary = Object.fromEntries(targets.map(([key, , , ids]) => [key, ids.length]));
 writes.push({
   update: {
     name: docName('jobs', 'purge-deleted'),
