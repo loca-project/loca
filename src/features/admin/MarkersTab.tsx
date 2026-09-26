@@ -80,7 +80,7 @@ export default function MarkersTab({ markers, onJump }: MarkersTabProps) {
         {list.length === 0 ? (
           <p className="mt-6 text-center text-xs text-gray-500">{mt.empty}</p>
         ) : (
-          <ul className="max-h-[50vh] overflow-y-auto md:max-h-none md:min-h-0 md:grow">
+          <ul className="md:min-h-0 md:grow md:overflow-y-auto">
             {list.map((m) => (
               <PostRow
                 key={m.id}

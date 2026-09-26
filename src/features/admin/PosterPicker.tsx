@@ -42,7 +42,7 @@ export default function PosterPicker({ query, posters, owner, onQueryChange, onP
         aria-label={t.admin.search}
         onChange={(e) => onQueryChange(e.target.value)}
       />
-      <ul className="mt-2 max-h-[50vh] overflow-y-auto md:max-h-none md:min-h-0 md:grow">
+      <ul className="mt-2 md:min-h-0 md:grow md:overflow-y-auto">
         {item(null, t.admin.allPosters, total)}
         {posters.slice(0, 30).map((p) => item(p.ownerUid, p.name, p.count))}
       </ul>

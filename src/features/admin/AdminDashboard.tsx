@@ -56,7 +56,8 @@ export default function AdminDashboard({ open, markers, requestMarkers, equipmen
           { id: 'logs', icon: 'fa-scroll', label: t.admin.tabLogs },
         ]}
       />
-      {/* タブの列は固定し、中身だけをここで巻き取る。一覧を持つタブは md 以上でこの高さいっぱいに伸ばす（h-full） */}
+      {/* タブの列は固定し、中身だけをここで巻き取る。一覧を持つタブは md 以上でこの高さいっぱいに伸ばす（h-full）。
+          md 未満の一覧は自分では巻き取らず、ここだけが巻き取る（二重に巻き取らせない。T85） */}
       <div className="min-h-0 grow overflow-y-auto">
         {tab === 'statistics' && <StatisticsTab markers={markers} />}
         {tab === 'users' && <UsersTab />}

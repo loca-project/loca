@@ -91,7 +91,7 @@ export default function RequestsTab({ markers, requestMarkers, onJump }: Request
         {rows.length === 0 ? (
           <p className="mt-6 text-center text-xs text-gray-500">{rt.empty}</p>
         ) : (
-          <ul className="max-h-[50vh] overflow-y-auto md:max-h-none md:min-h-0 md:grow">
+          <ul className="md:min-h-0 md:grow md:overflow-y-auto">
             {rows.map((r) => (
               <PostRow
                 key={r.spot.id}

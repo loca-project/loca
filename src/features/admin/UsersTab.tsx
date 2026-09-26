@@ -48,7 +48,7 @@ function Section({ title, rows, render }: { title: string; rows: AdminUserRow[];
       </h3>
       <TextInput type="search" value={query} placeholder={label} aria-label={label} onChange={(e) => setQuery(e.target.value)} />
       {/* スクロールバーの有無で中の幅が変わり、区画の間でボタンの幅がずれないよう、場所を常に空けておく */}
-      <ul className="mt-1 h-[50vh] overflow-y-auto [scrollbar-gutter:stable] md:h-auto md:min-h-0 md:grow">
+      <ul className="mt-1 md:min-h-0 md:grow md:overflow-y-auto md:[scrollbar-gutter:stable]">
         {shown.map(render)}
         {shown.length === 0 && <li className="py-3 text-center text-[11px] text-gray-400">{u.noMatch}</li>}
       </ul>
