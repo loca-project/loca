@@ -10,12 +10,21 @@ import type { LatLng } from '@/core/types';
 import { interpolate } from '@/core/logic/format';
 import { Button, IconButton } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
+import { useViewportWidth } from '@/shared/hooks/useViewportWidth';
 import type { ResultRow } from './resultRow';
 
 const PANEL_CLASS = [
-  'pointer-events-auto absolute bottom-4 top-4 z-30 flex w-[min(28rem,calc(100vw-5.5rem))] flex-col overflow-hidden',
+  'pointer-events-auto absolute bottom-4 z-30 flex w-[min(28rem,calc(100vw-5.5rem))] flex-col overflow-hidden',
   'rounded-xl border border-gray-200 bg-white/95 shadow-xl backdrop-blur transition-[left] duration-200',
 ].join(' ');
+
+/** パネルの幅（PANEL_CLASS の w-[min(28rem,calc(100vw-5.5rem))] と同じ式） */
+const panelWidth = (viewport: number) => Math.min(448, viewport - 88);
+/** 右上のアカウントのボタン（HeaderBar。right-4・ログインの文字で約 80px）が占める幅に余白を足したもの */
+const HEADER_RESERVE = 112;
+/** 上端。右上のボタンに重なるときだけ、その下（top-4 ＋ 高さ 36px ＋ 12px）に下げる（T94） */
+const TOP = 16;
+const TOP_UNDER_HEADER = 64;
 
 interface ResultsPanelProps {
   open: boolean;
@@ -45,13 +54,16 @@ export default function ResultsPanel({
   onOpenPoster,
 }: ResultsPanelProps) {
   const { t } = useI18n();
+  const viewport = useViewportWidth();
 
   if (!open) return null;
+  // スマホ幅では右端が右上のボタンに届き、閉じるボタンが隠れて押せなかった（T94）
+  const underHeader = offsetLeft + 10 + panelWidth(viewport) > viewport - HEADER_RESERVE;
 
   return (
     <section
       className={PANEL_CLASS}
-      style={{ left: offsetLeft + 10 }}
+      style={{ left: offsetLeft + 10, top: underHeader ? TOP_UNDER_HEADER : TOP }}
       aria-label={title}
     >
       <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-2.5">
