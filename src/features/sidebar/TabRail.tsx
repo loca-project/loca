@@ -10,7 +10,7 @@ import { useI18n } from '@/shared/hooks/useI18n';
 type TabLabelKey = 'map' | 'people' | 'post' | 'request' | 'region' | 'gear';
 
 export const TAB_ICONS: { mode: TabMode; icon: string; labelKey: TabLabelKey }[] = [
-  // 並びは動線の順: 投稿 → 検索 → 人 → ランキング（リクエスト・地域・機器）。人はチャンネル別の代わり（T88・ADR 0031）
+  // 並びは動線の順: 投稿 → 検索 → ユーザー → ランキング（リクエスト・地域・機器）。ユーザーはチャンネル別の代わり（T88・ADR 0031）
   { mode: TabMode.POST, icon: 'fa-circle-plus', labelKey: 'post' },
   { mode: TabMode.MAP, icon: 'fa-magnifying-glass', labelKey: 'map' },
   { mode: TabMode.PEOPLE, icon: 'fa-user', labelKey: 'people' },

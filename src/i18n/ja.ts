@@ -126,18 +126,17 @@ export const ja = {
     channel: 'YouTube チャンネル',
   },
 
-  // 人のタブ（T88・ADR 0031）。地図にある動画の投稿者だけを探せる
+  // ユーザーのタブ（T88・T93・ADR 0031）。地図にある動画の投稿者だけを探せる
   people: {
-    search: '投稿者名',
-    placeholder: '名前の一部で探す',
-    noHit: '当てはまる投稿者はいません。',
-    empty: 'まだ投稿者がいません。',
-    byViews: '再生数',
-    byPosts: '投稿数',
-    recent: '最近',
-    stats: '動画 {posts} 本・{views} 回',
-    latest: '最新の投稿 {date}',
-    note: '地図に動画を投稿している人だけが出ます。名前を押すとプロフィールを開きます。',
+    name: 'ユーザー名',
+    placeholder: '名前の一部（空ならすべて）',
+    order: 'ソート順',
+    orders: { posts: '投稿数', views: '再生数', likes: 'いいね', requests: '撮影リクエスト' },
+    search: '検索',
+    results: 'ユーザー',
+    stats: '投稿 {posts}・再生 {views}・いいね {likes}・リクエスト {requests}',
+    profile: 'プロフィール',
+    note: '地図に動画を投稿している人だけが出ます。条件に合う動画だけで数えます。いいねは毎晩の集計、撮影リクエストは動画で応えた件数です。',
   },
 
   // 撮影リクエストへの回答（T43・ADR 0028）。「炎」は受け取ったリクエストの熱量
@@ -176,7 +175,7 @@ export const ja = {
     post: '投稿',
     request: 'リクエスト',
     region: '地域別',
-    people: '人',
+    people: 'ユーザー',
     gear: '機器別',
     collapse: 'メニューを閉じる',
     expand: 'メニューを開く',
@@ -185,7 +184,7 @@ export const ja = {
   headers: {
     mapSearch: '地図検索',
     regionRanking: '地域別ランキング',
-    people: '投稿者を探す',
+    people: 'ユーザー',
     gearRanking: '機器別ランキング',
     requestRanking: '撮影リクエストランキング',
     newReg: '投稿',
@@ -265,7 +264,7 @@ export const ja = {
     reportUnavailable: 'この構成では通報を受け付けていません。',
   },
 
-  // いいね（ADR 0016・0024）。投稿者への「ありがとう」で、順位の基準にはしない
+  // いいね（ADR 0016・0024）。投稿者への「ありがとう」。ユーザーのタブでは件数の順に並べられる（ADR 0031）
   likes: {
     label: 'いいね {count}',
     hint: '投稿者に「ありがとう」を届けます',

@@ -10,6 +10,8 @@ import { isLimitedByFilter, rankEquipment, rankPrefectures } from '@/core/logic/
 import { searchMarkersByBounds, searchMarkersByText } from '@/core/logic/search';
 import { rankRequestSpots } from '@/core/logic/requests';
 import { boundsOf } from '@/core/logic/geo';
+import { formatCount, interpolate } from '@/core/logic/format';
+import { rankPeople, type PeopleFilter } from '@/core/logic/people';
 import { useServices } from '@/shared/hooks/useServices';
 import { useI18n } from '@/shared/hooks/useI18n';
 import {
@@ -113,5 +115,26 @@ export function useSearchAndRanking() {
     [t],
   );
 
-  return { results, loading, close, searchPlace, searchMarkers, searchInBounds, applyRanking };
+  /** ユーザーのタブの検索（T93・ADR 0031）。条件に合う動画だけで投稿者ごとに数え、ソート順に並べる。 */
+  const searchPeople = useCallback(
+    (filter: PeopleFilter, markers: MarkerData[]) => {
+      const pt = t.people;
+      const rows: ResultRow[] = rankPeople(markers, filter).map((p) => ({
+        id: p.uid,
+        title: p.name,
+        subtitle: interpolate(pt.stats, {
+          posts: formatCount(p.posts),
+          views: formatCount(p.views),
+          likes: formatCount(p.likes),
+          requests: formatCount(p.requests),
+        }),
+        metric: '',
+        poster: { uid: p.uid, name: p.name },
+      }));
+      setResults({ open: true, title: `${pt.results}（${pt.orders[filter.order]}）`, rows });
+    },
+    [t],
+  );
+
+  return { results, loading, close, searchPlace, searchMarkers, searchInBounds, applyRanking, searchPeople };
 }

@@ -15,7 +15,7 @@ import RequestForm from '@/features/sidebar/RequestForm';
 import RequestView from '@/features/sidebar/RequestView';
 import type { LocaApp } from './useLocaApp';
 
-// 人のタブは開いたときに読む（初期読み込みの JS を 260 kB 以内に保つ。T62・T88）
+// ユーザーのタブは開いたときに読む（初期読み込みの JS を 260 kB 以内に保つ。T62・T88）
 const PeoplePanel = lazy(() => import('@/features/people/PeoplePanel'));
 
 export interface SidebarHandlers {
@@ -25,6 +25,8 @@ export interface SidebarHandlers {
   onSubmitMarker: () => void;
   onSubmitRequest: () => void;
   onApplyRanking: () => void;
+  /** ユーザーのタブの「検索」（T93） */
+  onSearchPeople: () => void;
   onShare: () => void;
   onReport: () => void;
   onWatch: () => void;
@@ -132,7 +134,13 @@ export default function SidebarContent({
   if (app.tab === TabMode.PEOPLE) {
     return (
       <Suspense fallback={<p className="text-[11px] text-gray-400">{t.details.loading}</p>}>
-        <PeoplePanel markers={app.catalog.markers} onOpen={app.setPoster} />
+        <PeoplePanel
+          filter={app.people}
+          equipment={app.catalog.equipment}
+          loading={busy}
+          onChange={(patch) => app.setPeople((prev) => ({ ...prev, ...patch }))}
+          onSearch={handlers.onSearchPeople}
+        />
       </Suspense>
     );
   }

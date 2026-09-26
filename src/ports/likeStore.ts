@@ -8,7 +8,7 @@ export interface LikeState {
 }
 
 /**
- * いいねのポート（ADR 0016・0024）。投稿者への「ありがとう」で、順位の基準にはしない。
+ * いいねのポート（ADR 0016・0024）。投稿者への「ありがとう」。ユーザーのタブでは受け取った件数の順に並べられる（ADR 0031）。
  * 件数は誰でも読める。誰が付けたかは本人と管理者にしか読めない（ルールで守る）。
  */
 export interface LikeStorePort extends Adapter {

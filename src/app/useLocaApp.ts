@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Bounds, LatLng, MarkerData, RankingFilter, RequestMarkerData } from '@/core/types';
+import { DEFAULT_PEOPLE_FILTER, type PeopleFilter } from '@/core/logic/people';
 import { DEFAULT_RANKING_FILTER, MapMode, TabMode } from '@/core/types';
 import { JUMP_ZOOM } from '@/core/logic/geo';
 import { useCatalog } from '@/shared/hooks/useCatalog';
@@ -53,6 +54,8 @@ export function useLocaApp() {
   const [rectangle, setRectangle] = useState<Bounds | null>(null);
 
   const [filter, setFilter] = useState<RankingFilter>(DEFAULT_RANKING_FILTER);
+  /** ユーザーのタブの条件（T93）。タブを切り替えても残す */
+  const [people, setPeople] = useState<PeopleFilter>(DEFAULT_PEOPLE_FILTER);
   const [modals, setModals] = useState<Record<ModalName, boolean>>({
     admin: false,
     report: false,
@@ -240,6 +243,8 @@ export function useLocaApp() {
     setRectangle,
     filter,
     setFilter,
+    people,
+    setPeople,
     modals,
     openModal,
     resetToSearch,

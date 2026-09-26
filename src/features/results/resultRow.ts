@@ -21,6 +21,8 @@ export interface ResultRow {
   markerId?: string;
   position?: LatLng;
   thumbnailUrl?: string;
+  /** ユーザーの行（T93）。押すと公開プロフィールを開く。地図へ・共有のボタンは出さない */
+  poster?: { uid: string; name: string };
 }
 
 export function rowsFromMarkers(markers: MarkerData[]): ResultRow[] {

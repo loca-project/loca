@@ -134,16 +134,15 @@ export const en: DeepPartial<Dictionary> = {
   },
 
   people: {
-    search: 'Poster name',
-    placeholder: 'Search by part of a name',
-    noHit: 'No matching posters.',
-    empty: 'No posters yet.',
-    byViews: 'Views',
-    byPosts: 'Videos',
-    recent: 'Recent',
-    stats: '{posts} videos · {views} views',
-    latest: 'Latest post {date}',
-    note: 'Only people who have posted videos on the map appear. Tap a name to open their profile.',
+    name: 'User name',
+    placeholder: 'Part of a name (blank for all)',
+    order: 'Sort by',
+    orders: { posts: 'Videos', views: 'Views', likes: 'Likes', requests: 'Photo requests' },
+    search: 'Search',
+    results: 'Users',
+    stats: '{posts} videos · {views} views · {likes} likes · {requests} requests',
+    profile: 'Profile',
+    note: 'Only people who have posted videos on the map appear. Counts use only matching videos. Likes are tallied nightly; requests are the ones answered with a video.',
   },
 
   answers: {
@@ -181,7 +180,7 @@ export const en: DeepPartial<Dictionary> = {
     post: 'Post',
     request: 'Requests',
     region: 'Region',
-    people: 'People',
+    people: 'Users',
     gear: 'Gear',
     collapse: 'Collapse menu',
     expand: 'Expand menu',
@@ -190,7 +189,7 @@ export const en: DeepPartial<Dictionary> = {
   headers: {
     mapSearch: 'Map search',
     regionRanking: 'Regional ranking',
-    people: 'Find posters',
+    people: 'Users',
     gearRanking: 'Equipment ranking',
     requestRanking: 'Shooting request ranking',
     newReg: 'Post',

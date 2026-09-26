@@ -7,7 +7,7 @@ export enum TabMode {
   POST = 'POST',
   RANKING_REQUEST = 'RANKING_REQUEST',
   RANKING_REGION = 'RANKING_REGION',
-  /** 人（投稿者の検索と一覧。T88・ADR 0031）。チャンネル別ランキングの代わり */
+  /** ユーザー（投稿者を絞って並べる。T88・T93・ADR 0031）。チャンネル別ランキングの代わり */
   PEOPLE = 'PEOPLE',
   RANKING_EQUIPMENT = 'RANKING_EQUIPMENT',
   REQUEST_LIST = 'REQUEST_LIST',

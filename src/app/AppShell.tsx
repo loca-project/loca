@@ -297,6 +297,10 @@ export default function AppShell() {
               closeMobileSidebar();
               search.applyRanking(app.tab, app.filter, app.catalog.markers, app.catalog.requestMarkers);
             },
+            onSearchPeople: () => {
+              closeMobileSidebar();
+              search.searchPeople(app.people, app.catalog.markers);
+            },
             onShare: handleShare,
             onReport: () => app.openModal('report'),
             onWatch: () => app.openModal('videoDetails'),
@@ -344,6 +348,7 @@ export default function AppShell() {
         onClose={search.close}
         onJump={jump}
         onShare={handleShareRow}
+        onOpenPoster={app.setPoster}
       />
 
       {filterLeft !== null && (

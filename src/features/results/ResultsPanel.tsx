@@ -29,6 +29,8 @@ interface ResultsPanelProps {
   onJump: (position: LatLng) => void;
   /** マーカーの行の「共有」。そのマーカーを開く URL をコピーする */
   onShare?: (markerId: string) => void;
+  /** ユーザーの行（T93）を押したとき。公開プロフィールを開く */
+  onOpenPoster?: (poster: { uid: string; name: string }) => void;
 }
 
 export default function ResultsPanel({
@@ -40,6 +42,7 @@ export default function ResultsPanel({
   onClose,
   onJump,
   onShare,
+  onOpenPoster,
 }: ResultsPanelProps) {
   const { t } = useI18n();
 
@@ -71,22 +74,44 @@ export default function ResultsPanel({
                 {row.thumbnailUrl && (
                   <img src={row.thumbnailUrl} alt="" className="h-9 w-16 shrink-0 rounded object-cover" />
                 )}
+                {row.poster && <i className="fa-solid fa-circle-user shrink-0 text-lg text-gray-300" />}
                 <div className="min-w-0 grow">
-                  <p className="truncate text-[11px] font-bold text-gray-800">{row.title}</p>
-                  {row.subtitle && <p className="truncate text-[10px] text-gray-500">{row.subtitle}</p>}
+                  {row.poster ? (
+                    <button
+                      type="button"
+                      className="block max-w-full truncate text-left text-[11px] font-bold text-loca-700 hover:underline"
+                      onClick={() => onOpenPoster?.(row.poster!)}
+                    >
+                      {row.title}
+                    </button>
+                  ) : (
+                    <p className="truncate text-[11px] font-bold text-gray-800">{row.title}</p>
+                  )}
+                  {/* ユーザーの行は 4 つの数を切らずに折り返す（スマホ幅で「いいね …」になるため。T93） */}
+                  {row.subtitle && (
+                    <p className={`${row.poster ? 'break-words' : 'truncate'} text-[10px] text-gray-500`}>{row.subtitle}</p>
+                  )}
                 </div>
                 <span className="shrink-0 text-[11px] font-mono text-gray-600">{row.metric}</span>
+                {row.poster && (
+                  <Button variant="secondary" className="w-20 shrink-0" onClick={() => onOpenPoster?.(row.poster!)}>
+                    <i className="fa-solid fa-user mr-1" />
+                    {t.people.profile}
+                  </Button>
+                )}
                 {/* 動線の順（見に行く → 人に渡す）に、同じ大きさで並べる。文言は自分の投稿・マーカーの詳細とそろえる */}
-                <Button
-                  variant="secondary"
-                  className="w-20 shrink-0"
-                  disabled={!row.position}
-                  onClick={() => row.position && onJump(row.position)}
-                  title={t.form.jumpToMap}
-                >
-                  <i className="fa-solid fa-location-arrow mr-1" />
-                  {t.myPosts.jump}
-                </Button>
+                {!row.poster && (
+                  <Button
+                    variant="secondary"
+                    className="w-20 shrink-0"
+                    disabled={!row.position}
+                    onClick={() => row.position && onJump(row.position)}
+                    title={t.form.jumpToMap}
+                  >
+                    <i className="fa-solid fa-location-arrow mr-1" />
+                    {t.myPosts.jump}
+                  </Button>
+                )}
                 {onShare && row.markerId && (
                   <Button variant="secondary" className="w-20 shrink-0" onClick={() => onShare(row.markerId!)}>
                     <i className="fa-solid fa-share-nodes mr-1" />
