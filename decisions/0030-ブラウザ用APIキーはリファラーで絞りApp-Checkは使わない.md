@@ -51,5 +51,6 @@ Firebase のブラウザ用の API キー（`VITE_FIREBASE_API_KEY`）は公開�
 
 ## 確かめ方
 
-本番のキーで identitytoolkit の `GET /v1/projects` を呼び、上の 4 つの Referer では 200、Referer なし・別のサイトでは 403 になる
-（2026-09-26 に 7 / 7 件 OK）。公開サイトで Google ログインができる。
+`npm run keys:check`（`scripts/api-key-check.mjs`。読むだけ）が、キーの設定が上の表と一致し、identitytoolkit の `GET /v1/projects` が
+上の 4 つの Referer では 200、Referer なし・別のサイト・`127.0.0.1` では 403 になることを確かめる（2026-09-26 に 8 / 8 件 OK）。
+許可を変えるときは、スクリプトの `REFERRERS` とこの表を一緒に直す。公開サイトで Google ログインができる（2026-09-26 に利用者が確認）。

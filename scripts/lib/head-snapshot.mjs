@@ -21,8 +21,20 @@ const git = (cwd, args) => execFileSync('git', args, { cwd, encoding: 'utf8', st
  * （その場で型チェックやビルドをすると、未追跡の書きかけも対象に入るため）。
  */
 export function dirtyFiles(root, paths = []) {
-  const out = git(root, ['status', '--porcelain', '--untracked-files=all', '--', ...paths]);
-  return out ? out.split('\n').map((l) => l.slice(3)) : [];
+  // -z で読む。git() の trim が 1 行目の先頭の空白（作業ツリーだけの変更 " M"）を消し、パスの 1 文字目が欠けていた（2026-09-26）。
+  // -z なら非 ASCII のパスも引用符とエスケープ無しで返り、改名は「新しいパス、元のパス」の 2 項目になる
+  const out = execFileSync('git', ['status', '--porcelain', '-z', '--untracked-files=all', '--', ...paths], {
+    cwd: root,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const items = out.split('\0').filter(Boolean);
+  const files = [];
+  for (let i = 0; i < items.length; i += 1) {
+    files.push(items[i].slice(3));
+    if (/^[RC]/.test(items[i])) i += 1; // 改名・複写の元のパスは飛ばす
+  }
+  return files;
 }
 
 function unlinkModules(dir) {

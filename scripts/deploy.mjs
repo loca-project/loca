@@ -3,7 +3,7 @@
  *
  *   npm run deploy            （project/ で実行。ワークスペースのルートからでも委譲される）
  *
- * やること: コミット済みの HEAD を検証（check。ルール・アダプタを変えていれば test:rules も）→ push。
+ * やること: Actions の公開データのコミットの取り込み → コミット済みの HEAD を検証（check。ルール・アダプタを変えていれば test:rules も）→ push。
  * コミットはしない。未コミットの変更（別のチャットの書きかけかもしれない）は検証にも公開にも含めない。
  * push すると .github/workflows/deploy.yml が走り、Pages に反映される。
  *
@@ -16,6 +16,7 @@
 import { execFileSync } from 'node:child_process';
 import { checkHead, needsRuleTests } from './check-head.mjs';
 import { dirtyFiles } from './lib/head-snapshot.mjs';
+import { botDataPlan } from './lib/bot-data.mjs';
 
 const CWD = process.cwd();
 
@@ -79,6 +80,30 @@ function push(branch) {
   }
 }
 
+/** origin にだけある Actions の公開データのコミットを取り込む（判定は lib/bot-data.mjs）。それ以外が混ざっていたら止める。 */
+function takeBotData(branch) {
+  // origin にまだ無い枝（初回の push）や detached HEAD は取り込むものが無い
+  if (branch === 'HEAD' || !tryGit(['ls-remote', '--heads', 'origin', branch]).out) return;
+  if (!tryGit(['fetch', '-q', 'origin', branch]).ok) fail('origin を fetch できませんでした。');
+  const lines = (args) => tryGit(args).out.split('\n').filter(Boolean);
+  const plan = botDataPlan({
+    identities: lines(['log', '--format=%an|%ae|%cn|%ce', `HEAD..origin/${branch}`]),
+    files: lines(['diff', '--name-only', `HEAD...origin/${branch}`]),
+    dirty: dirtyFiles(CWD),
+    staged: lines(['diff', '--cached', '--name-only']),
+  });
+  if (plan.action === 'none') return;
+  if (plan.action === 'stop') fail(`origin/${branch} に手元に無いコミットがあります: ${plan.reason}。中身を確かめてから取り込んでください。`);
+  console.log(`\n${plan.reason}。`);
+  const args = plan.action === 'rebase' ? ['rebase', `origin/${branch}`] : ['merge', '--no-edit', `origin/${branch}`];
+  try {
+    git(args);
+  } catch {
+    const undone = tryGit([args[0], '--abort']).ok;
+    fail(`${args[0]} に失敗しました。${undone ? '取り込みは取り消しました' : `取り消し（git ${args[0]} --abort）にも失敗しました`}。git status を確かめてください。`);
+  }
+}
+
 // --- 1. git リポジトリか確認 -------------------------------------------------
 const top = tryGit(['rev-parse', '--show-toplevel']);
 if (!top.ok) {
@@ -128,8 +153,11 @@ if (dirty.length > 0) {
   console.log(`\n未コミットの変更 ${dirty.length} ファイルは公開しません:\n  ${dirty.slice(0, 20).join('\n  ')}`);
 }
 const branch = tryGit(['rev-parse', '--abbrev-ref', 'HEAD']).out;
-const ahead = tryGit(['rev-list', '--count', `origin/${branch}..HEAD`]).out;
+let ahead = tryGit(['rev-list', '--count', `origin/${branch}..HEAD`]).out;
 if (ahead === '0') fail(`push するコミットがありません（origin/${branch} と同じ）。先に自分の変更をコミットしてください。`);
+takeBotData(branch);
+// 取り込みのあとで数え直す（merge ならマージコミットの分が増える）
+ahead = tryGit(['rev-list', '--count', `origin/${branch}..HEAD`]).out || ahead;
 
 // --- 3. 品質チェック（HEAD で。落ちたら push しない）-------------------------
 try {
