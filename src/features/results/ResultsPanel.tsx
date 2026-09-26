@@ -105,8 +105,9 @@ export default function ResultsPanel({
                   )}
                 </div>
                 <span className="shrink-0 text-[11px] font-mono text-gray-600">{row.metric}</span>
+                {/* 幅は中身に合わせる（w-20 では iPhone の書体で「プロフィール」がはみ出した。2026-09-26） */}
                 {row.poster && (
-                  <Button variant="secondary" className="w-20 shrink-0" onClick={() => onOpenPoster?.(row.poster!)}>
+                  <Button variant="secondary" className="shrink-0" onClick={() => onOpenPoster?.(row.poster!)}>
                     <i className="fa-solid fa-user mr-1" />
                     {t.people.profile}
                   </Button>
