@@ -6,14 +6,13 @@
 import { useCallback, useState } from 'react';
 import type { Bounds, MarkerData, RankingFilter, RequestMarkerData } from '@/core/types';
 import { RANKING_BASE_LIMIT, TabMode } from '@/core/types';
-import { isLimitedByFilter, rankChannels, rankEquipment, rankPrefectures } from '@/core/logic/ranking';
+import { isLimitedByFilter, rankEquipment, rankPrefectures } from '@/core/logic/ranking';
 import { searchMarkersByBounds, searchMarkersByText } from '@/core/logic/search';
 import { rankRequestSpots } from '@/core/logic/requests';
 import { boundsOf } from '@/core/logic/geo';
 import { useServices } from '@/shared/hooks/useServices';
 import { useI18n } from '@/shared/hooks/useI18n';
 import {
-  rowsFromChannels,
   rowsFromGroups,
   rowsFromMarkers,
   rowsFromRequestMarkers,
@@ -84,16 +83,6 @@ export function useSearchAndRanking() {
       requestMarkers: RequestMarkerData[],
     ) => {
       const limited = isLimitedByFilter(filter) ? RANKING_BASE_LIMIT : undefined;
-
-      if (tab === TabMode.RANKING_CHANNEL) {
-        setResults({
-          open: true,
-          title: t.headers.channelRanking,
-          rows: rowsFromChannels(rankChannels(markers, filter)),
-          limitedTo: limited,
-        });
-        return;
-      }
 
       if (tab === TabMode.RANKING_EQUIPMENT) {
         setResults({

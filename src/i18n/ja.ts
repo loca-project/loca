@@ -126,6 +126,20 @@ export const ja = {
     channel: 'YouTube チャンネル',
   },
 
+  // 人のタブ（T88・ADR 0031）。地図にある動画の投稿者だけを探せる
+  people: {
+    search: '投稿者名',
+    placeholder: '名前の一部で探す',
+    noHit: '当てはまる投稿者はいません。',
+    empty: 'まだ投稿者がいません。',
+    byViews: '再生数',
+    byPosts: '投稿数',
+    recent: '最近',
+    stats: '動画 {posts} 本・{views} 回',
+    latest: '最新の投稿 {date}',
+    note: '地図に動画を投稿している人だけが出ます。名前を押すとプロフィールを開きます。',
+  },
+
   // 撮影リクエストへの回答（T43・ADR 0028）。「炎」は受け取ったリクエストの熱量
   answers: {
     formBanner: '撮影リクエスト {count} 件に応える投稿です。登録すると依頼者に「動画が届きました」と知らせます。',
@@ -162,7 +176,7 @@ export const ja = {
     post: '投稿',
     request: 'リクエスト',
     region: '地域別',
-    channel: 'CH別',
+    people: '人',
     gear: '機器別',
     collapse: 'メニューを閉じる',
     expand: 'メニューを開く',
@@ -171,7 +185,7 @@ export const ja = {
   headers: {
     mapSearch: '地図検索',
     regionRanking: '地域別ランキング',
-    channelRanking: 'チャンネルランキング',
+    people: '投稿者を探す',
     gearRanking: '機器別ランキング',
     requestRanking: '撮影リクエストランキング',
     newReg: '投稿',

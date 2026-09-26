@@ -63,20 +63,6 @@ export const DEFAULT_RANKING_FILTER: RankingFilter = {
 /** 1 画面に載せる上限。これを超える分はフィルタで絞ってもらう。 */
 export const RANKING_BASE_LIMIT = 100;
 
-/** チャンネル別ランキングの 1 行。 */
-export interface ChannelRankingRow {
-  channelTitle: string;
-  videoCount: number;
-  /** 再生数の合計（要件 4.3） */
-  views: number;
-  /** 最後に登録された時刻 */
-  latestAt: number;
-  /** 代表マーカー（地図ジャンプ用） */
-  sampleMarkerId: string;
-  lat: number;
-  lng: number;
-}
-
 /** 地域別・機器別ランキングの 1 行（再生数の合計で競い、同じなら件数）。 */
 export interface GroupRankingRow {
   label: string;

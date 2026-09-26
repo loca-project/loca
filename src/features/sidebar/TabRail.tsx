@@ -7,15 +7,15 @@ import React from 'react';
 import { TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
 
-type TabLabelKey = 'map' | 'post' | 'request' | 'region' | 'channel' | 'gear';
+type TabLabelKey = 'map' | 'people' | 'post' | 'request' | 'region' | 'gear';
 
 export const TAB_ICONS: { mode: TabMode; icon: string; labelKey: TabLabelKey }[] = [
-  // 並びは動線の順: 投稿 → 検索 → ランキング（リクエスト・地域・チャンネル・機器）
+  // 並びは動線の順: 投稿 → 検索 → 人 → ランキング（リクエスト・地域・機器）。人はチャンネル別の代わり（T88・ADR 0031）
   { mode: TabMode.POST, icon: 'fa-circle-plus', labelKey: 'post' },
   { mode: TabMode.MAP, icon: 'fa-magnifying-glass', labelKey: 'map' },
+  { mode: TabMode.PEOPLE, icon: 'fa-user', labelKey: 'people' },
   { mode: TabMode.RANKING_REQUEST, icon: 'fa-fire', labelKey: 'request' },
   { mode: TabMode.RANKING_REGION, icon: 'fa-map', labelKey: 'region' },
-  { mode: TabMode.RANKING_CHANNEL, icon: 'fa-tv', labelKey: 'channel' },
   { mode: TabMode.RANKING_EQUIPMENT, icon: 'fa-camera', labelKey: 'gear' },
 ];
 

@@ -4,7 +4,6 @@
  */
 
 import type {
-  ChannelRankingRow,
   GroupRankingRow,
   LatLng,
   MarkerData,
@@ -33,16 +32,6 @@ export function rowsFromMarkers(markers: MarkerData[]): ResultRow[] {
     markerId: m.id,
     position: { lat: m.lat, lng: m.lng },
     thumbnailUrl: m.thumbnailUrl,
-  }));
-}
-
-export function rowsFromChannels(channels: ChannelRankingRow[]): ResultRow[] {
-  return channels.map((c) => ({
-    id: c.channelTitle,
-    title: c.channelTitle,
-    subtitle: formatDate(c.latestAt),
-    metric: `${formatCount(c.views)} 回・${formatCount(c.videoCount)} 本`,
-    position: { lat: c.lat, lng: c.lng },
   }));
 }
 

@@ -6,7 +6,6 @@
  */
 
 import type {
-  ChannelRankingRow,
   GroupRankingRow,
   MarkerData,
   LengthFilter,
@@ -144,23 +143,6 @@ export function rankEquipment(markers: MarkerData[], f: RankingFilter, now = Dat
     (m) => [m.equipment?.manufacturer, m.equipment?.series, m.equipment?.model].filter(Boolean).join(' / '),
     f.limit,
   );
-}
-
-/** チャンネル別ランキング: 同名チャンネルの本数と再生数を合算し、再生数順（要件 4.3）。 */
-export function rankChannels(
-  markers: MarkerData[],
-  f: RankingFilter,
-  now = Date.now(),
-): ChannelRankingRow[] {
-  return groupBy(applyFilters(markers, f, now), (m) => m.channelTitle, f.limit).map((row) => ({
-    channelTitle: row.label,
-    videoCount: row.count,
-    views: row.views,
-    latestAt: row.latestAt,
-    sampleMarkerId: row.sampleMarkerId,
-    lat: row.lat,
-    lng: row.lng,
-  }));
 }
 
 /** フィルタ適用中に件数制限の注記を出すべきか（要件 4.1）。 */

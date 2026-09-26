@@ -133,6 +133,19 @@ export const en: DeepPartial<Dictionary> = {
     channel: 'YouTube channel',
   },
 
+  people: {
+    search: 'Poster name',
+    placeholder: 'Search by part of a name',
+    noHit: 'No matching posters.',
+    empty: 'No posters yet.',
+    byViews: 'Views',
+    byPosts: 'Videos',
+    recent: 'Recent',
+    stats: '{posts} videos · {views} views',
+    latest: 'Latest post {date}',
+    note: 'Only people who have posted videos on the map appear. Tap a name to open their profile.',
+  },
+
   answers: {
     formBanner: 'This post answers {count} shooting request(s). The requesters will be told a video has arrived.',
     notice: 'A video arrived for your shooting request ({count})',
@@ -168,7 +181,7 @@ export const en: DeepPartial<Dictionary> = {
     post: 'Post',
     request: 'Requests',
     region: 'Region',
-    channel: 'Channel',
+    people: 'People',
     gear: 'Gear',
     collapse: 'Collapse menu',
     expand: 'Expand menu',
@@ -177,7 +190,7 @@ export const en: DeepPartial<Dictionary> = {
   headers: {
     mapSearch: 'Map search',
     regionRanking: 'Regional ranking',
-    channelRanking: 'Channel ranking',
+    people: 'Find posters',
     gearRanking: 'Equipment ranking',
     requestRanking: 'Shooting request ranking',
     newReg: 'Post',

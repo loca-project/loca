@@ -3,7 +3,7 @@
  * 投稿は「投稿」タブに分けた（指摘 9）。地図タブでは地図のクリックで投稿画面に移らない。
  */
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { MapMode, TabMode } from '@/core/types';
 import { useI18n } from '@/shared/hooks/useI18n';
 import { Button, Segmented } from '@/shared/components/Controls';
@@ -14,6 +14,9 @@ import RankingFilters from '@/features/sidebar/RankingFilters';
 import RequestForm from '@/features/sidebar/RequestForm';
 import RequestView from '@/features/sidebar/RequestView';
 import type { LocaApp } from './useLocaApp';
+
+// 人のタブは開いたときに読む（初期読み込みの JS を 260 kB 以内に保つ。T62・T88）
+const PeoplePanel = lazy(() => import('@/features/people/PeoplePanel'));
 
 export interface SidebarHandlers {
   onSearch: () => void;
@@ -48,7 +51,7 @@ interface SidebarContentProps {
 
 export function sidebarTitle(app: LocaApp, t: ReturnType<typeof useI18n>['t']): string {
   if (app.tab === TabMode.RANKING_REGION) return t.headers.regionRanking;
-  if (app.tab === TabMode.RANKING_CHANNEL) return t.headers.channelRanking;
+  if (app.tab === TabMode.PEOPLE) return t.headers.people;
   if (app.tab === TabMode.RANKING_EQUIPMENT) return t.headers.gearRanking;
   if (app.tab === TabMode.RANKING_REQUEST) return t.headers.requestRanking;
   if (app.tab === TabMode.POST) return app.editing ? t.headers.editMarker : t.headers.newReg;
@@ -123,6 +126,14 @@ export default function SidebarContent({
           />
         )}
       </div>
+    );
+  }
+
+  if (app.tab === TabMode.PEOPLE) {
+    return (
+      <Suspense fallback={<p className="text-[11px] text-gray-400">{t.details.loading}</p>}>
+        <PeoplePanel markers={app.catalog.markers} onOpen={app.setPoster} />
+      </Suspense>
     );
   }
 
