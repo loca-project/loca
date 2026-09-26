@@ -67,22 +67,25 @@ async function save(file, before, after, syncedAt) {
 }
 
 const syncedAt = Date.now();
-const [markerRows, requestRows] = await Promise.all([
+// いいねの件数は誰でも読める（ADR 0024）。動画ごとの件数を markers.json の likes に入れる（T92）
+const [markerRows, requestRows, likeRows] = await Promise.all([
   listCollection(config, 'markers'),
   listCollection(config, 'requests'),
+  listCollection(config, 'likeCounts'),
 ]);
 const [currentMarkers, currentSpots] = await Promise.all([readList('markers.json'), readList('requests.json')]);
 
-const markers = mergeMarkers(markerRows, currentMarkers);
+const markers = mergeMarkers(markerRows, currentMarkers, likeRows);
 await fillPlaces(markers.markers);
 const spots = mergeRequests(requestRows, currentSpots);
 await fillPlaces(spots);
 
-console.log(`Firestore markers ${markerRows.length} 件（公開 ${markers.live}・論理削除 ${markers.deleted}）、requests ${requestRows.length} 件`);
+console.log(`Firestore markers ${markerRows.length} 件（公開 ${markers.live}・論理削除 ${markers.deleted}）、requests ${requestRows.length} 件、likeCounts ${likeRows.length} 件`);
 console.log(`地名の問い合わせ ${lookups} 件`);
 const summaryRows = [
   ['Firestore の markers', `${markerRows.length} 件（公開 ${markers.live}・論理削除 ${markers.deleted}）`],
   ['Firestore の requests', `${requestRows.length} 件`],
+  ['Firestore の likeCounts', `${likeRows.length} 件`],
   ['地名の問い合わせ', `${lookups} 件`],
 ];
 await save('markers.json', currentMarkers, markers.markers, syncedAt);

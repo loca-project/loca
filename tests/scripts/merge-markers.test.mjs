@@ -51,6 +51,21 @@ describe('mergeMarkers', () => {
     assert.equal(byId.b.prefecture, undefined);
   });
 
+  it('いいねの件数を likes に入れる。0 件・件数の無い動画は項目を出さない（T92）', () => {
+    const counts = [{ id: 'a', count: 3, ownerUid: 'u1' }, { id: 'b', count: 0, ownerUid: 'u1' }, { id: 'gone', count: 5 }];
+    const r = mergeMarkers([fs('a'), fs('b'), fs('c')], [], counts);
+    const byId = Object.fromEntries(r.markers.map((m) => [m.id, m]));
+    assert.equal(byId.a.likes, 3);
+    assert.equal('likes' in byId.b, false);
+    assert.equal('likes' in byId.c, false);
+    assert.equal('ownerUid' in byId.a && byId.a.ownerUid, 'u1');
+  });
+
+  it('Firestore の行にある likes は出さず、件数の文書の値だけを使う', () => {
+    const [m] = mergeMarkers([fs('a', { likes: 99 })], []).markers;
+    assert.equal('likes' in m, false);
+  });
+
   it('登録の新しい順に並ぶ', () => {
     const r = mergeMarkers([fs('old', { createdAt: 1 }), fs('mid', { createdAt: 5 }), fs('new', { createdAt: 9 })], []);
     assert.deepEqual(r.markers.map((m) => m.id), ['new', 'mid', 'old']);

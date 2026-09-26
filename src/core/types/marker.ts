@@ -97,6 +97,8 @@ export interface MarkerData {
   deleted?: boolean;
   /** 応えた撮影リクエストの ID（作成のときだけ付く。ADR 0028） */
   answers?: string[];
+  /** Loca のいいねの件数。毎晩の同期が公開データにだけ入れる（0 件は無い。最大 1 日遅れ。T92）。YouTube の高評価数（youtube.likeCount）とは別 */
+  likes?: number;
 }
 
 /** 新規登録時の入力（id とタイムスタンプは取り込み側で採番）。 */

@@ -4,6 +4,7 @@
  * - 論理削除（deleted: true）の行は含めない（要件 1.4）。
  * - 地名が空の行は、前回の markers.json で同じ座標に地名があれば引き継ぐ。
  * - 並びは登録の新しい順。
+ * - いいねの件数（likeCounts/{markerId} の count）を likes に入れる。0 件は項目ごと出さない（ユーザーのタブの並び。ADR 0031・T92）。
  */
 
 /** 公開する項目だけに絞る（Firestore の行に余計な項目が混ざっても出さない）。 */
@@ -16,8 +17,9 @@ const PUBLIC_KEYS = [
 
 const pick = (row) => Object.fromEntries(PUBLIC_KEYS.filter((k) => row[k] !== undefined).map((k) => [k, row[k]]));
 
-export function mergeMarkers(firestoreRows, currentMarkers) {
+export function mergeMarkers(firestoreRows, currentMarkers, likeCounts = []) {
   const previous = new Map(currentMarkers.map((m) => [m.id, m]));
+  const likes = new Map(likeCounts.map((c) => [c.id, c.count]));
 
   const live = firestoreRows.filter((r) => r.deleted !== true).map((row) => {
     const m = pick(row);
@@ -25,6 +27,8 @@ export function mergeMarkers(firestoreRows, currentMarkers) {
     if (!m.prefecture && prev?.prefecture && prev.lat === m.lat && prev.lng === m.lng) {
       Object.assign(m, { prefecture: prev.prefecture, city: prev.city ?? '' });
     }
+    const count = likes.get(m.id);
+    if (Number.isInteger(count) && count > 0) m.likes = count;
     return m;
   });
 

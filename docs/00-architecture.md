@@ -106,7 +106,8 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
       "prefecture": "東京都", "city": "台東区",
       "ownerUid": "<Firebase の uid>", "createdBy": "user-xxxxxx",
       "createdAt": 1758400000000, "updatedAt": 1758400000000,
-      "answers": ["<撮影リクエストの ID>"]
+      "answers": ["<撮影リクエストの ID>"],
+      "likes": 3
     }
   ]
 }
@@ -114,6 +115,7 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 
 `requests.json` も同じ形で、撮影リクエストの地点と、その内訳（`entries`: `id`・熱量・季節・時間帯・撮り方・機器・`ownerUid`。季節・時間帯・撮り方は動画のタグと同じキー）を持つ。
 `answers` は撮影リクエストに応えた動画だけが持つ（応えたリクエストの `id`。ADR 0028）。
+`likes` は Loca のいいねの件数で、同期が `likeCounts` から入れる（1 件以上の動画だけ。購読では届かないので最大 1 日遅れ。画面は手元の値を引き継ぐ。T92）。
 `syncedAt` は「同期で Firestore を読み始めた時刻」で、画面はそれより後に `updatedAt` が変わった行だけを購読する。
 
 ## ランキングの基準

@@ -13,6 +13,13 @@ import { setHealth } from '@/runtime/health';
 import { onLocalChange } from '@/shared/localChanges';
 import { useServices } from './useServices';
 
+/**
+ * いいねの件数（likes）は公開データにしか無い（T92）。購読や保存で届いたマーカーには無いので、手元の値を引き継ぐ。
+ */
+function keepLikes(next: MarkerData, prev: MarkerData | undefined): MarkerData {
+  return next.likes === undefined && prev?.likes !== undefined ? { ...next, likes: prev.likes } : next;
+}
+
 export interface Catalog {
   markers: MarkerData[];
   requestMarkers: RequestMarkerData[];
@@ -84,7 +91,7 @@ export function useCatalog(): Catalog {
           const byId = new Map(prev.map((m) => [m.id, m]));
           for (const m of changed) {
             if (m.deleted) byId.delete(m.id);
-            else byId.set(m.id, m);
+            else byId.set(m.id, keepLikes(m, byId.get(m.id)));
           }
           return [...byId.values()];
         });
@@ -140,7 +147,7 @@ export function useCatalog(): Catalog {
 
   const reload = useCallback(() => setNonce((n) => n + 1), []);
   const upsertMarker = useCallback((marker: MarkerData) => {
-    setMarkers((prev) => [marker, ...prev.filter((m) => m.id !== marker.id)]);
+    setMarkers((prev) => [keepLikes(marker, prev.find((m) => m.id === marker.id)), ...prev.filter((m) => m.id !== marker.id)]);
   }, []);
   const removeMarker = useCallback((id: string) => {
     setMarkers((prev) => prev.filter((m) => m.id !== id));
