@@ -77,9 +77,26 @@ export function pickSearchHit(hits: SearchHit[], query: string): SearchHit | und
   return preferred ?? hits.find((h) => title(h).includes(query)) ?? hits[0];
 }
 
+/**
+ * 応答を待つ上限（ミリ秒）。上限が無いと、API が応答しないときにボタンが「確認中」のまま戻らない
+ * （2026-09-26、住所検索 msearch.gsi.go.jp が接続だけ受けて応答しなかった）。
+ */
+export const GSI_TIMEOUT_MS = 10_000;
+
+/** 待ち時間の上限を超えたことを表す（利用者への文言を分けるため）。 */
+export class GsiTimeoutError extends UpstreamError {}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
-async function getJson(url: string): Promise<any> {
-  const res = await fetch(url, { headers: { Accept: 'application/json' } });
+export async function getJson(url: string, timeoutMs = GSI_TIMEOUT_MS): Promise<any> {
+  let res: Response;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(timeoutMs) });
+  } catch (e) {
+    if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) {
+      throw new GsiTimeoutError('国土地理院 API が応答しません', e);
+    }
+    throw e;
+  }
   if (!res.ok) throw new UpstreamError(`国土地理院 API エラー (${res.status})`);
   return res.json();
 }
@@ -120,6 +137,10 @@ export const gsiGeocodeAdapter: GeocodePort = {
     try {
       data = await getJson(`${SEARCH_URL}?q=${encodeURIComponent(query)}`);
     } catch (e) {
+      // 応答しないのは「見つからない」とは別なので、時間をおくよう伝える
+      if (e instanceof GsiTimeoutError) {
+        throw new UpstreamError('国土地理院の住所検索が応答しません。時間をおいて試してください。', e);
+      }
       throw new UpstreamError('場所が見つかりませんでした。', e);
     }
     const coords = Array.isArray(data) ? pickSearchHit(data, query)?.geometry?.coordinates : null;
