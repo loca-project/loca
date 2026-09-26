@@ -6,8 +6,8 @@
 |---|---|
 | ホスティング | GitHub Pages |
 | 地図描画 | MapLibre GL JS |
-| 地図タイル | 地理院タイル（淡色地図。APIキー・申請不要、出典の明示が条件） |
-| 地名 | 国土地理院の逆ジオコーダ・住所検索（APIキー不要。非公式） |
+| 地図タイル | OpenStreetMap の標準タイル（APIキー・請求先不要。OSM 財団の利用規約を守る。ADR 0032） |
+| 地名 | OpenStreetMap の Nominatim（地名検索・逆ジオコーディング。APIキー不要。全利用者で 1 秒 1 回まで。ADR 0032） |
 | 動画情報 | YouTube oEmbed（APIキー不要） |
 | 定期処理 | GitHub Actions |
 | データベース | Firebase Firestore（Spark・請求先なし）。書き込みはすべてここ。閲覧の土台は毎晩作り直す JSON |
@@ -72,7 +72,7 @@ Loca/                               ワークスペース（git の外）
 | `CatalogPort` | 公開データの読み取り | `static`（public/data/*.json） |
 | `MapPort` | 地図の描画・ピン・情報ウィンドウ・矩形描画 | `maplibre` |
 | `VideoMetaPort` | 動画メタデータの取得 | `oembed` |
-| `GeocodePort` | 座標 ⇄ 地名 | `gsi`（国土地理院） |
+| `GeocodePort` | 座標 ⇄ 地名 | `nominatim`（OpenStreetMap） |
 | `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
 | `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・炎の読み取り（動画ごと・投稿者の合計。T82）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
@@ -141,8 +141,8 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 | 依存 | 落ちたとき |
 |---|---|
 | GitHub Pages | サイト全体が見られない（代替なし） |
-| 地理院タイル | 地図が灰色になる。ピンと閲覧は続く。画面上部の帯で知らせる |
-| 国土地理院の地名 API | 地名の取得と地名検索が使えない。登録は地名なしで続行（予備なし・ADR 0011） |
+| OpenStreetMap のタイル | 地図が灰色になる。ピンと閲覧は続く。画面上部の帯で知らせる |
+| Nominatim | 地名の取得と地名検索が使えない。10 秒で諦めて理由を出す。登録は地名なしで続行（予備なし・ADR 0032） |
 
 不調は画面上部の帯（`HealthNotice`）で知らせる。黙って劣化させない。Firestore が使えないときは閲覧だけで動く。
 新しい版が公開されたときも、同じ帯で開いたままのタブに再読み込みを促す（`version.json`。ADR 0022）。
@@ -152,7 +152,7 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 22 項目チェック（2026-09-25）
+npm run verify      # 設計上の約束を 24 項目チェック（2026-09-26）
 npm run check       # 上記 3 つをまとめて
 ```
 
@@ -169,3 +169,4 @@ npm run check       # 上記 3 つをまとめて
 - `version.json` の版が `index.html` の入口と一致（ADR 0022）。`feed.xml`（新着マーカーの RSS。T47）が RSS 2.0 で、公開データの新着 50 件までを載せている
 - `firestore.rules` が `rules/` の部品と一致（ADR 0020）。ルールのコレクションがすべて `reset-data` の消す・残すに入っている
 - 機器の分類が src・ルール（2 か所）・マスタ・同期で一致（ADR 0018・0025）
+- 地図と地名の使い方が OpenStreetMap の規約どおり（タイルの URL・出典・Referer を止めていない・国土地理院の API を呼ぶコードが無い。ADR 0032）

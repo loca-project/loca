@@ -1,7 +1,7 @@
 /**
- * MapLibre GL JS + 地理院タイルによる地図アダプタ（ADR 0011）。
+ * MapLibre GL JS + OpenStreetMap の標準タイルによる地図アダプタ（ADR 0032）。
  *
- * 地理院タイルは API キー不要・申請不要（出典の明示のみ）で、
+ * OSM のタイルは API キー不要・請求先不要（OSM 財団の利用規約に従うだけ）で、
  * GitHub Pages のような静的配信からそのまま使える。予備のタイルは持たない。
  * タイルを 1 枚も読めなかったときだけ、その旨を画面に出す。
  */
@@ -15,12 +15,12 @@ import { createPinElement } from './pinElement';
 import { PinLayer } from './pinLayer';
 import { setHealth } from '@/runtime/health';
 import {
-  GSI_SOURCE,
+  OSM_SOURCE,
   RECT_FILL,
   RECT_LINE,
   RECT_SOURCE,
   boundsToFeatureCollection,
-  gsiStyle,
+  osmStyle,
 } from './maplibreStyle';
 
 type MapLibreModule = typeof import('maplibre-gl');
@@ -59,19 +59,19 @@ export class MapLibreAdapter implements MapPort {
 
   /**
    * タイルを 1 枚も読めていない状態でのエラーだけを「地図を取得できない」とみなす。
-   * 日本の範囲外など、個別のタイルが無いだけの 404 では知らせない。
+   * 一部のタイルだけが読めないときは知らせない。
    */
   private watchTiles(map: MlMap): void {
     let loaded = false;
     map.on('data', (e) => {
-      if (e.dataType === 'source' && 'sourceId' in e && e.sourceId === GSI_SOURCE && 'tile' in e) {
+      if (e.dataType === 'source' && 'sourceId' in e && e.sourceId === OSM_SOURCE && 'tile' in e) {
         loaded = true;
         setHealth({ mapUnavailable: false });
       }
     });
     map.on('error', (e) => {
-      if (loaded || (e as { sourceId?: string }).sourceId !== GSI_SOURCE) return;
-      console.warn('[loca] 地理院タイルを取得できませんでした', e.error);
+      if (loaded || (e as { sourceId?: string }).sourceId !== OSM_SOURCE) return;
+      console.warn('[loca] OpenStreetMap のタイルを取得できませんでした', e.error);
       setHealth({ mapUnavailable: true });
     });
   }
@@ -92,7 +92,7 @@ export class MapLibreAdapter implements MapPort {
 
     const map = new lib.Map({
       container,
-      style: gsiStyle() as never,
+      style: osmStyle() as never,
       bounds: [
         [JAPAN_BOUNDS.west, JAPAN_BOUNDS.south],
         [JAPAN_BOUNDS.east, JAPAN_BOUNDS.north],

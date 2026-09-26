@@ -219,7 +219,7 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 
 | 確認項目 | 期待 |
 |---|---|
-| 地図が表示される | 地理院タイル（淡色地図）が出る。右下に「地理院タイル」の出典 |
+| 地図が表示される | OpenStreetMap の地図が出る。右下に「© OpenStreetMap contributors」の出典 |
 | ピンが出る | ピンと、重なったものをまとめた白い円の数字の合計が markers.json と requests.json の件数ぶん（ADR 0023） |
 | ピンをクリック | サイドメニューがマーカー情報になる |
 | ランキングタブ → 適用 | 結果パネルに件数順で並ぶ |
@@ -233,7 +233,7 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 |---|---|
 | `Permission to <owner>/<repo>.git denied to <別名>` / 403 | Windows に**別の GitHub アカウント**の資格情報がキャッシュされている。下記参照 |
 | 404 になる | Settings → Pages の Source が「GitHub Actions」か確認 |
-| 地図が灰色のまま | 画面上部に地図タイルの帯が出ていれば地理院タイルに到達できていない。帯が無ければ地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
+| 地図が灰色のまま | 画面上部に地図タイルの帯が出ていれば OpenStreetMap のタイルに到達できていない。帯が無ければ地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
 | ピンが出ない | `project/public/data/markers.json` が空。`npm run seed` で復旧できる |
 | ログインが出ない・投稿タブが「受け付けていません」 | Firebase の設定値が空。本番はリポジトリの Variables、ローカルは `.env.local` の `VITE_FIREBASE_*` を確認する |
 | ログインに失敗する（identitytoolkit が 403 `API_KEY_HTTP_REFERRER_BLOCKED` を返す） | 開いている URL が API キーのリファラーの許可に無い（別のポート・`127.0.0.1`・独自ドメイン）。許可の一覧は [ADR 0030](../decisions/0030-ブラウザ用APIキーはリファラーで絞りApp-Checkは使わない.md) |

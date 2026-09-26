@@ -5,7 +5,7 @@ export interface RuntimeHealth {
   generatedAt: number;
   /** 公開データを 1 件も読めなかったか */
   dataUnavailable: boolean;
-  /** 地図タイル（国土地理院）を 1 枚も読めなかったか */
+  /** 地図タイル（OpenStreetMap）を 1 枚も読めなかったか */
   mapUnavailable: boolean;
   /** このタブより新しい版が公開されているか（T56） */
   updateAvailable: boolean;

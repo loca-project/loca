@@ -14,9 +14,9 @@ export type Prefecture = (typeof PREFECTURES)[number];
 /**
  * 都道府県コード（01〜47）から都道府県名を引く。
  *
- * 国土地理院の市町村コードの先頭 2 桁がこれにあたる。市町村コード表に無い
- * 新しい市町村でも、都道府県までは確実に引ける。PREFECTURES の並びは
- * 都道府県コード順なので、番号をそのまま添字に使える。
+ * ISO 3166-2 のコード（JP-13）の数字の部分がこれにあたる（ADR 0032）。
+ * OpenStreetMap の逆ジオコーディングは東京都の都道府県名を返さないので、このコードで引く。
+ * PREFECTURES の並びは都道府県コード順なので、番号をそのまま添字に使える。
  */
 export function prefectureFromCode(code?: string): string {
   if (!code || !/^\d{1,2}$/.test(code.trim())) return '';

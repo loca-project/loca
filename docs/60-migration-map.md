@@ -155,6 +155,19 @@
 
 > **2026-09-24 追記**: GitHub Issue 経由の投稿・撮影リクエスト・通報は廃止した（T22）。この文書の Issue に関する記述は経緯として残している。今の書き込みは Firestore（`docs/00-architecture.md`）。
 
+## 2026-09-26 地図と地名を OpenStreetMap に統一（ADR 0032）
+
+2026-09-26 に国土地理院の住所検索が応答しなくなったため、ADR 0011 を置き換えた。
+
+| 変更 | 内容 |
+|---|---|
+| 削除 `src/adapters/geocode/gsi.ts` | 住所検索の候補の選び方（`pickSearchHit`）と市町村コード表（`muni.js`）も不要に |
+| 追加 `src/adapters/geocode/nominatim.ts` | 地名検索と逆ジオコーディング。1.1 秒おきに 1 件ずつ・結果をブラウザに保存・10 秒で諦める |
+| 変更 `src/adapters/map/maplibreStyle.ts` | 地理院タイル（淡色地図）から OpenStreetMap の標準タイルへ。出典は © OpenStreetMap contributors |
+| 変更 `scripts/lib/enrich.mjs`・`sync-firestore.mjs` | 同期の地名の補いも Nominatim に。15 秒おき・1 回 8 件まで（定期実行は 1 分 4 回の規約） |
+| 変更 `PlaceMeta.source` | `gsi` → `osm` |
+| 追加 verify の検査 | タイルの URL・出典・Referer を止めていないこと・国土地理院の API を呼ぶコードが無いこと |
+
 ## 2026-09-24 タグの作り直し（ADR 0014）
 
 移植元の感情タグは持ち込まない。コードの切り替えは T37〜T39 で行う。

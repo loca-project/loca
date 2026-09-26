@@ -5,7 +5,7 @@
  *   npm run data:sync:check        書かずに件数だけ出す
  *
  * 合わせ方は lib/merge-markers.mjs と lib/merge-requests.mjs。
- * 地名が空の行・地点は国土地理院で補う（1 回 50 件まで）。
+ * 地名が空の行・地点は OpenStreetMap の Nominatim で補う（1 回 8 件まで・15 秒おき。定期実行は 1 分に 4 回までの規約。ADR 0032）。
  * syncedAt は「読み始めた時刻」。アプリはこれより後の変更だけを onSnapshot で購読する。
  * 読んでいる間の変更は両方に入りうるが、同じ ID で上書き・重複除外されるだけで欠けはしない。
  *
@@ -23,7 +23,8 @@ import { writeSummary } from './lib/summary.mjs';
 
 const DATA = path.join(process.cwd(), 'public', 'data');
 const CHECK_ONLY = process.argv.includes('--check');
-const MAX_PLACE_LOOKUPS = 50;
+/** 地名はふつう投稿のときにブラウザが埋める。ここは失敗したときの補いなので少なくてよい（8 件で約 2 分） */
+const MAX_PLACE_LOOKUPS = 8;
 
 const config = await firestoreConfig();
 if (!config) {

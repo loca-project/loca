@@ -387,7 +387,7 @@ export const en: DeepPartial<Dictionary> = {
     degraded: 'Attention',
     generatedAt: 'Generated',
     dataUnavailable: 'Could not load the published data. Please reload in a moment.',
-    mapUnavailable: 'Map tiles (GSI Japan) could not be loaded. Please reload later.',
+    mapUnavailable: 'Map tiles (OpenStreetMap) could not be loaded. Please reload later.',
     updateAvailable: 'A new version is available. Reload so that posting and saving work correctly.',
     reload: 'Reload',
   },

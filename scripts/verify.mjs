@@ -168,6 +168,19 @@ const srcEps = Number(/SAME_SPOT_EPS\s*=\s*([\d.]+)/.exec(
 record('撮影リクエストの地点のしきい値が scripts と src で一致', scriptEps === srcEps,
   `scripts=${scriptEps} / src=${srcEps}`);
 
+// 8d. OpenStreetMap の利用規約のうち、機械で確かめられるもの（ADR 0032）
+//     タイルは tile.openstreetmap.org をそのまま使い、出典を出す。Web ページは Referer を送る（止める設定をしない）。
+//     国土地理院の API（2026-09-26 に住所検索が止まった）を呼ぶコードが戻っていないことも見る。
+const styleText = await readFile(path.join(ROOT, 'src', 'adapters', 'map', 'maplibreStyle.ts'), 'utf8');
+const indexHtml = await readFile(path.join(ROOT, 'index.html'), 'utf8');
+const osmProblems = [
+  !styleText.includes("'https://tile.openstreetmap.org/{z}/{x}/{y}.png'") && 'タイルの URL が規約の指定と違う',
+  !/OpenStreetMap<\/a> contributors/.test(styleText) && '地図の出典（© OpenStreetMap contributors）が無い',
+  /name=["']referrer["'][^>]*content=["']no-referrer/i.test(indexHtml) && 'index.html が Referer を止めている',
+  ...sources.filter((s) => /gsi\.go\.jp/.test(s.text)).map((s) => `${s.file} が国土地理院の API を呼んでいる`),
+].filter(Boolean);
+record('地図と地名の使い方が OpenStreetMap の規約どおり', osmProblems.length === 0, osmProblems.join('、'));
+
 // 9. ワークフローの決まり（名前・runner の固定・Actions の版・cron の対応。.claude/rules/20-github-actions.md）
 // scripts/ は子プロセスを shell: true で起動しない。引数配列と一緒に渡すと Node が DEP0190 を警告し、
 // Windows では引数がクォートされず空白入りの値（コミットメッセージ）が分かれる（T65）。npm は node + npm_execpath で起動する

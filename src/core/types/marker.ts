@@ -60,7 +60,8 @@ export interface VideoMeta {
 export interface PlaceMeta {
   prefecture: string;
   city: string;
-  source: 'gsi';
+  /** 地名の出典（ADR 0032）。以前の国土地理院の値 gsi は保存していないので残さない */
+  source: 'osm';
 }
 
 export interface MarkerData {

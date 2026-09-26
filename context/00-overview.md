@@ -17,8 +17,8 @@ Google AI Studio で作った「Chronos MAP」を移植し、サイト名を Loc
 |---|---|---|
 | ホスティング | GitHub Pages | 決定 |
 | 地図描画 | MapLibre GL JS | 決定 |
-| 地図タイル | 地理院タイル（淡色地図） | 決定 |
-| 地名 | 国土地理院の逆ジオコーダ・住所検索 | 決定 |
+| 地図タイル | OpenStreetMap の標準タイル（tile.openstreetmap.org） | 決定（ADR 0032。地理院タイルから変更） |
+| 地名 | OpenStreetMap の Nominatim（地名検索・逆ジオコーディング。日本語・英語） | 決定（ADR 0032。国土地理院から変更） |
 | 動画情報 | YouTube oEmbed（登録時）＋ YouTube Data API（毎晩・Actions だけ。ADR 0017） | 決定・実装済み |
 | 定期処理 | GitHub Actions | 決定 |
 | 動画本体 | 保存しない | 決定 |
@@ -54,7 +54,7 @@ Google AI Studio で作った「Chronos MAP」を移植し、サイト名を Loc
 | フレームワーク | React 18 + Vite 6 |
 | パッケージマネージャ | npm |
 | スタイル | Tailwind CSS 3（CDN ではなくビルドに含める）。書体は Inter（@fontsource）、サイト名だけ Fraunces の 4 文字（ADR 0026） |
-| 地図 | MapLibre GL JS + 地理院タイル |
+| 地図 | MapLibre GL JS + OpenStreetMap のタイル |
 | データ | `project/public/data/*.json`（GitHub リポジトリ上） |
 | テスト | `npm run check`（型・ビルド・設計検証の 3 点） |
 

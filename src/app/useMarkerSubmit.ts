@@ -2,7 +2,7 @@
  * マーカーの登録・更新・削除。
  *
  * Firestore に保存する（ADR 0010）。Firebase の設定が無い構成（services.markerStore が null）では投稿できない。
- * 入力を検証し、動画情報（oEmbed）と地名（国土地理院）を取得してから保存する。
+ * 入力を検証し、動画情報（oEmbed）と地名（OpenStreetMap の Nominatim）を取得してから保存する。
  */
 
 import { useCallback } from 'react';

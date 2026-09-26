@@ -36,27 +36,29 @@ export function boundsToFeatureCollection(bounds: Bounds | null): RectFeatureCol
   };
 }
 
-export const GSI_SOURCE = 'gsi-pale';
+export const OSM_SOURCE = 'osm';
 
 /**
- * 地理院タイル（淡色地図）のスタイル（ADR 0011）。
+ * OpenStreetMap の標準タイルのスタイル（ADR 0032）。
  *
- * - 淡色地図はズーム 2〜18 で配信される（z0・z1 は 404 を実測）。19 以上は 18 を拡大表示する
- * - 出典の明示と地理院タイル一覧へのリンクが利用条件
+ * - 使い方は OSM 財団のタイル利用規約（operations.osmfoundation.org/policies/tiles/）に従う:
+ *   URL は tile.openstreetmap.org をそのまま使う、出典を地図の右下に出す、見ている範囲だけを読む（先読み・保存をしない）。
+ *   Referer はブラウザが送る（Referrer-Policy で止めない）。キャッシュはブラウザの HTTP キャッシュに任せる
+ * - ズーム 0〜19 で配信される。稼働の保証（SLA）は無い
  * - 背景色を敷いておくので、タイルが読めない区画は灰色になり操作は続けられる
  */
-export function gsiStyle() {
+export function osmStyle() {
   return {
     version: 8 as const,
     sources: {
-      [GSI_SOURCE]: {
+      [OSM_SOURCE]: {
         type: 'raster' as const,
-        tiles: ['https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png'],
+        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
         tileSize: 256,
-        minzoom: 2,
-        maxzoom: 18,
+        minzoom: 0,
+        maxzoom: 19,
         attribution:
-          '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>',
+          '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
       },
     },
     layers: [
@@ -65,7 +67,7 @@ export function gsiStyle() {
         type: 'background' as const,
         paint: { 'background-color': '#e8edf3' },
       },
-      { id: GSI_SOURCE, type: 'raster' as const, source: GSI_SOURCE },
+      { id: OSM_SOURCE, type: 'raster' as const, source: OSM_SOURCE },
     ],
   };
 }

@@ -18,7 +18,7 @@ export const PREFECTURES = [
 
 /**
  * 都道府県コード（01〜47）から都道府県名を引く。
- * 国土地理院の市町村コードの先頭 2 桁がこれにあたる。
+ * ISO 3166-2 のコード（JP-13）の数字の部分がこれにあたる（ADR 0032）。
  */
 export function prefectureFromCode(code) {
   if (!code || !/^\d{1,2}$/.test(String(code).trim())) return '';

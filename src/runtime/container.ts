@@ -2,7 +2,7 @@
  * コンポジションルート。
  *
  * 配信先が GitHub Pages に決まったため、各層の実装は 1 つずつに固定した。
- * 地図と地名はすべて国土地理院に統一し、予備の実装は持たない（ADR 0011）。
+ * 地図と地名はすべて OpenStreetMap（タイルと Nominatim）に統一し、予備の実装は持たない（ADR 0032）。
  * 認証と保存は Firebase の設定値がそろったときだけ読み込む。無ければ auth・markerStore・requestStore は null で、閲覧だけで動く（ADR 0010）。
  */
 
@@ -21,7 +21,7 @@ import type {
 } from '@/ports';
 import { staticCatalogAdapter } from '@/adapters/staticData';
 import { oembedVideoAdapter } from '@/adapters/video/oembed';
-import { gsiGeocodeAdapter } from '@/adapters/geocode/gsi';
+import { nominatimGeocodeAdapter } from '@/adapters/geocode/nominatim';
 import { canUseFirebase } from './config';
 
 export interface Services {
@@ -68,7 +68,7 @@ export function getServices(): Promise<Services> {
       catalog: staticCatalogAdapter,
       map: new MapLibreAdapter(),
       video: oembedVideoAdapter,
-      geocode: gsiGeocodeAdapter,
+      geocode: nominatimGeocodeAdapter,
       ...write,
     };
   })();
