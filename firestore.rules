@@ -477,8 +477,13 @@ service cloud.firestore {
     }
 
     match /reports/{reportId} {
-      // まだ無い文書も読めるようにする（画面が「通報済みか」を確かめるため。無いことが分かるだけで漏れる情報は無い）
-      allow read: if signedIn() && (isAdmin() || resource == null || resource.data.reporterUid == request.auth.uid);
+      // まだ無い文書は、自分の ID（…_自分の uid）のときだけ読める（画面が「通報済みか」を確かめるため）。
+      // 他人の ID まで読めると、読めたかどうかで他人の通報の有無が分かってしまう（T71）。
+      // uid は正規表現につなぐので、英数字だけの uid（Google ログイン）に限る。管理者の判定（exists）は最後に回す
+      allow read: if signedIn() && (
+        (resource == null && request.auth.uid.matches('[A-Za-z0-9]+') && reportId.matches('.+_' + request.auth.uid))
+        || (resource != null && resource.data.reporterUid == request.auth.uid)
+        || isAdmin());
       allow create: if canWrite() && registered() && validReport(reportId);
       // 対応済みにする・消すのは管理者。本人は理由と詳細を置き換えて、確認待ちに戻せる
       allow update: if canWrite() && (isAdmin() || reportAgain());

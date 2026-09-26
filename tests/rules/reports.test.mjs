@@ -3,7 +3,7 @@
  */
 import { after, before, beforeEach, describe, it } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from 'firebase/firestore';
 import { seed, resetFirestore, setupEnv, storedMarker } from './helpers.mjs';
 
 let env;
@@ -74,6 +74,28 @@ describe('通報の閲覧と対応', () => {
     await assertSucceeds(getDoc(doc(as('bob'), 'reports', 'm1_bob')));
     await assertSucceeds(getDoc(doc(as('root'), 'reports', 'm1_bob')));
     await assertFails(getDoc(doc(as('alice'), 'reports', 'm1_bob')));
+  });
+
+  it('まだ無い通報は自分の ID のときだけ読める。他人の ID は有無が分からないよう拒否（T71）', async () => {
+    await assertSucceeds(getDoc(doc(as('alice'), 'reports', 'm1_alice')));
+    await assertFails(getDoc(doc(as('alice'), 'reports', 'm2_bob')));
+    await assertFails(getDoc(doc(as('alice'), 'reports', 'm1_xalice')));
+    await assertSucceeds(getDoc(doc(as('root'), 'reports', 'm2_bob')));
+    await assertFails(getDoc(doc(guest(), 'reports', 'm2_bob')));
+  });
+
+  it('英数字でない uid は、まだ無い通報を読めない（uid を正規表現につなぐため。T71）', async () => {
+    // uid「x_bob」が bob の形の ID を、uid「b.b」が「.」の一致で他人の ID を読めないこと
+    await assertFails(getDoc(doc(as('x_bob'), 'reports', 'm2_x_bob')));
+    await assertFails(getDoc(doc(as('b.b'), 'reports', 'm2_bob')));
+  });
+
+  it('一覧は自分の分だけ。他人の分・絞りなしは管理者だけ', async () => {
+    const reports = (uid) => collection(as(uid), 'reports');
+    await assertSucceeds(getDocs(query(reports('bob'), where('reporterUid', '==', 'bob'))));
+    await assertFails(getDocs(query(reports('alice'), where('reporterUid', '==', 'bob'))));
+    await assertFails(getDocs(reports('alice')));
+    await assertSucceeds(getDocs(reports('root')));
   });
 
   it('対応済みにできるのは管理者だけ', async () => {
