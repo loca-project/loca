@@ -244,6 +244,12 @@ describe('いいねの閲覧', () => {
     await assertFails(getDoc(doc(as('alice'), 'likes', 'm1_carol')));
   });
 
+  it('英数字でない uid は、まだ無いいいねを読めない（uid を正規表現につなぐため。T86）', async () => {
+    // 英数字でない uid は自分の形の ID でも読めない（割り切り）。uid「c.rol」は「.」の一致で他人の ID に届かない
+    await assertFails(getDoc(doc(as('x_bob'), 'likes', 'm2_x_bob')));
+    await assertFails(getDoc(doc(as('c.rol'), 'likes', 'm1_carol')));
+  });
+
   it('一覧は本人の分に絞ったときだけ。誰が付けたかをマーカーから引けない', async () => {
     await assertSucceeds(getDocs(query(collection(as('bob'), 'likes'), where('likerUid', '==', 'bob'))));
     await assertFails(getDocs(query(collection(as('alice'), 'likes'), where('markerId', '==', 'm1'))));

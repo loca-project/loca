@@ -56,9 +56,10 @@
 
     match /likes/{likeId} {
       // まだ無い文書は、自分の ID のときだけ読める（画面が「付けているか」を確かめるため）。
-      // 他人の ID まで許すと、読めたかどうかで「その人が付けたことがあるか」が分かってしまう
+      // 他人の ID まで許すと、読めたかどうかで「その人が付けたことがあるか」が分かってしまう。
+      // uid は正規表現につなぐので、英数字だけの uid（Google ログイン）に限る（T86）
       allow get: if signedIn() && (
-        (resource == null && likeId.matches('^.+_' + request.auth.uid + '$'))
+        (resource == null && request.auth.uid.matches('[A-Za-z0-9]+') && likeId.matches('^.+_' + request.auth.uid + '$'))
         || (resource != null && resource.data.likerUid == request.auth.uid)
         || isAdmin());
       // 一覧は本人の分だけ（アカウント削除でまとめて外すため）と管理者

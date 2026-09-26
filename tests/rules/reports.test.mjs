@@ -85,7 +85,7 @@ describe('通報の閲覧と対応', () => {
   });
 
   it('英数字でない uid は、まだ無い通報を読めない（uid を正規表現につなぐため。T71）', async () => {
-    // uid「x_bob」が bob の形の ID を、uid「b.b」が「.」の一致で他人の ID を読めないこと
+    // 英数字でない uid は自分の形の ID でも読めない（割り切り）。uid「b.b」は「.」の一致で他人の ID に届かない
     await assertFails(getDoc(doc(as('x_bob'), 'reports', 'm2_x_bob')));
     await assertFails(getDoc(doc(as('b.b'), 'reports', 'm2_bob')));
   });
