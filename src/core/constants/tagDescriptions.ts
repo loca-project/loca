@@ -91,3 +91,17 @@ export function tagDocument(key: string): string {
   const d = TAG_DESCRIPTIONS[key];
   return d ? `${d.ja} / ${d.en}` : key;
 }
+
+/**
+ * 説明文の指紋（FNV-1a 32 ビットの 16 進）。前もって計算した埋め込み（public/data/semantic-tags.json）が、
+ * 今の説明文から作ったものかを見分ける。違えば使わず、端末で計算し直す（T101）
+ */
+export function descriptionsFingerprint(): string {
+  const text = Object.keys(TAG_DESCRIPTIONS).map((k) => `${k}=${tagDocument(k)}`).join('\n');
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
+}

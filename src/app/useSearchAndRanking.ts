@@ -33,37 +33,22 @@ export interface ResultsState {
 const CLOSED: ResultsState = { open: false, title: '', rows: [] };
 
 export function useSearchAndRanking() {
-  const { map, geocode } = useServices();
+  const { map, geocode, edgeAi } = useServices();
   const { t, lang } = useI18n();
   const [results, setResults] = useState<ResultsState>(CLOSED);
   const [loading, setLoading] = useState(false);
 
   const close = useCallback(() => setResults(CLOSED), []);
 
-  /** 地図検索: 地名を座標に変換して地図を動かす。 */
-  const searchPlace = useCallback(
-    async (query: string): Promise<string | null> => {
-      if (!query.trim()) return null;
-      setLoading(true);
-      try {
-        const pos = await geocode.forward(query.trim());
-        map.setCenter(pos, 12);
-        return null;
-      } catch (e) {
-        return e instanceof Error ? e.message : String(e);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [geocode, map],
-  );
+  /** Edge AI で検索語をタグに読み替える。使えない・失敗したときは空（語の一致だけで続ける） */
+  const aiTagsFor = useCallback((query: string) => edgeAi.tagsFor(query).catch((): TagScore[] => []), [edgeAi]);
 
   /**
    * マーカー検索: 語の一致で絞り込む。件数制限は設けない。
    * AI 検索で読み替えたタグ（ADR 0033）があれば、そのタグを持つ動画を後ろに足し、題に読み替えを出す。
    */
-  const searchMarkers = useCallback(
-    (query: string, markers: MarkerData[], aiTags: TagScore[] = []) => {
+  const showMarkers = useCallback(
+    (query: string, markers: MarkerData[], aiTags: TagScore[]) => {
       const hits = searchMarkersWithTags(markers, query, aiTags);
       const labels = aiTags.map((tag) => tagLabel(tag.key, lang === 'en' ? 'en' : 'ja')).join('・');
       const title = labels ? `${t.headers.searchResults}（${interpolate(t.form.aiReadAs, { tags: labels })}）` : t.headers.searchResults;
@@ -73,6 +58,45 @@ export function useSearchAndRanking() {
       if (bounds) map.fitBounds(bounds, 80);
     },
     [map, t, lang],
+  );
+
+  /** マーカー検索: 語の一致を先に、Edge AI が読み替えたタグの動画をその後ろに並べる（T101） */
+  const searchMarkers = useCallback(
+    async (query: string, markers: MarkerData[]) => {
+      setLoading(true);
+      try {
+        showMarkers(query, markers, await aiTagsFor(query));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [showMarkers, aiTagsFor],
+  );
+
+  /**
+   * 地図検索: 地名を座標に変換して地図を動かす。地名が見つからないときだけ、Edge AI が読み替えたタグの動画を出す
+   * （地名を優先。T101）。どちらも無ければ理由を返す。
+   */
+  const searchPlace = useCallback(
+    async (query: string, markers: MarkerData[]): Promise<string | null> => {
+      if (!query.trim()) return null;
+      setLoading(true);
+      try {
+        const pos = await geocode.forward(query.trim());
+        map.setCenter(pos, 12);
+        return null;
+      } catch (e) {
+        const aiTags = await aiTagsFor(query);
+        if (aiTags.length) {
+          showMarkers(query, markers, aiTags);
+          return null;
+        }
+        return e instanceof Error ? e.message : String(e);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [geocode, map, aiTagsFor, showMarkers],
   );
 
   /** 範囲指定検索（要件 3.1.3）。矩形の内側だけを、件数制限なしで返す。 */

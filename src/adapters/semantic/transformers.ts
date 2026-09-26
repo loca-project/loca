@@ -1,7 +1,7 @@
 /**
  * transformers.js（ONNX Runtime Web）で埋め込みモデルをブラウザで動かす AI 検索のアダプタ（ADR 0033）。
  *
- * - モデルは AI 検索を使ったときに初めて読む。初期読み込みの JS には入れない（この部品ごと遅延 import する）
+ * - モデルは起動画面の間に src/runtime/edgeAi.ts が読む（T101）。初期読み込みの JS には入れない（この部品ごと遅延 import する）
  * - モデルのファイルは Hugging Face から取り、ブラウザのキャッシュ（Cache Storage）に残して 2 回目から使い回す
  * - モデルは models.ts の設定 1 件で決まる。ここは設定どおりに動かすだけ
  */
@@ -25,13 +25,17 @@ export function createTransformersSemantic(config: ModelConfig): SemanticPort {
     // 相対の URL は読み込む側のファイルの場所で解決されてずれるので、ページの場所から絶対の URL にする
     const onnx = tf.env.backends.onnx as { wasm?: { wasmPaths?: unknown } };
     if (onnx.wasm) onnx.wasm.wasmPaths = { mjs: new URL(ortMjs, document.baseURI).href, wasm: new URL(ortWasm, document.baseURI).href };
-    // ファイルごとの進み具合を合計して 0〜1 にする
+    // ファイルごとの進み具合を合計して 0〜1 にする。分母はモデルの見込みの大きさを下限にし、後から大きなファイルが
+    // 加わっても逆戻りしないようにする（小さな設定ファイルだけで 100% と出て、5% に戻った。2026-09-26）
+    const expected = config.modelMb * 1e6;
+    let shown = 0;
     const files = new Map<string, { loaded: number; total: number }>();
     const progress_callback = (p: { status?: string; file?: string; loaded?: number; total?: number }) => {
       if (p.status !== 'progress' || !p.file || !p.total) return;
       files.set(p.file, { loaded: p.loaded ?? 0, total: p.total });
       const sum = [...files.values()].reduce((a, f) => ({ loaded: a.loaded + f.loaded, total: a.total + f.total }), { loaded: 0, total: 0 });
-      onProgress?.(sum.total ? sum.loaded / sum.total : null);
+      shown = Math.max(shown, Math.min(1, sum.loaded / Math.max(sum.total, expected)));
+      onProgress?.(shown);
     };
     if (config.pooling === 'sentence_embedding') {
       const tokenizer = await tf.AutoTokenizer.from_pretrained(config.repo, { progress_callback });
@@ -56,8 +60,8 @@ export function createTransformersSemantic(config: ModelConfig): SemanticPort {
 
   function ready(onProgress?: LoadProgress): Promise<Embed> {
     loading ??= build(onProgress).catch((e) => {
-      loading = null; // 失敗を覚えたままにしない。次の検索で取り直す
-      throw new UpstreamError('AI 検索のモデルを読み込めませんでした。通信状況を確かめて、もう一度試してください。', e);
+      loading = null; // 失敗は起動の見張り（edgeAi.ts）に渡す。取り直すのはページの読み直しのとき
+      throw new UpstreamError('Edge AI のモデルを読み込めませんでした（ログ用）', e);
     });
     return loading;
   }

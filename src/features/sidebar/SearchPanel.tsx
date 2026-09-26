@@ -1,23 +1,14 @@
 /**
  * 検索モードのサイドメニュー（要件 3.1 / 3.1.3）。
  * 地図検索とマーカー検索をトグルで切り替え、範囲指定中は入力を無効化する。
- * マーカー検索では AI 検索（ADR 0033）を入れられる。既定は切で、入れている間は初回に読む大きさを案内する。
+ * どちらのモードでも Edge AI（ADR 0033）が働く。起動のときに準備するので、ここに切り替えは無い（T101）。
  */
 
 import React from 'react';
-import { Button, Checkbox, Field, Segmented, TextInput } from '@/shared/components/Controls';
-import { interpolate } from '@/core/logic/format';
+import { Button, Field, Segmented, TextInput } from '@/shared/components/Controls';
 import { useI18n } from '@/shared/hooks/useI18n';
 
 export type SearchTarget = 'map' | 'marker';
-
-/** AI 検索の状態（src/app/useAiSearch.ts の AiSearch と同じ形。features から app を import しないため型を分ける） */
-export interface SearchPanelAi {
-  enabled: boolean;
-  setEnabled: (on: boolean) => void;
-  sizeMb: number;
-  progress: number | null | undefined;
-}
 
 interface SearchPanelProps {
   target: SearchTarget;
@@ -25,7 +16,6 @@ interface SearchPanelProps {
   loading: boolean;
   drawing: boolean;
   hasRectangle: boolean;
-  ai: SearchPanelAi;
 
   onTargetChange: (t: SearchTarget) => void;
   onQueryChange: (q: string) => void;
@@ -40,7 +30,6 @@ export default function SearchPanel({
   loading,
   drawing,
   hasRectangle,
-  ai,
 
   onTargetChange,
   onQueryChange,
@@ -76,24 +65,9 @@ export default function SearchPanel({
         />
       </Field>
 
-      {target === 'marker' && (
-        <div>
-          <Checkbox checked={ai.enabled} onChange={ai.setEnabled}>
-            {t.form.aiSearch}
-          </Checkbox>
-          {ai.enabled && (
-            <p className="ml-6 mt-1 text-[11px] leading-relaxed text-gray-500">{interpolate(t.form.aiSearchNote, { mb: ai.sizeMb })}</p>
-          )}
-        </div>
-      )}
-
       <Button onClick={onSearch} disabled={loading || textDisabled}>
         <i className="fa-solid fa-magnifying-glass mr-1.5" />
-        {ai.progress !== undefined
-          ? interpolate(t.form.aiLoading, { pct: ai.progress === null ? '' : `${Math.round(ai.progress * 100)}%` })
-          : loading
-            ? t.form.processing
-            : t.form.search}
+        {loading ? t.form.processing : t.form.search}
       </Button>
 
       <div className="border-t border-gray-100 pt-3">

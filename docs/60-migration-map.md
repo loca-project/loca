@@ -175,8 +175,9 @@
 | 追加 `src/ports/semantic.ts` | `SemanticPort`（文の埋め込み）。モデルを差し替えても画面と検索の組み立ては変えない |
 | 追加 `src/adapters/semantic/models.ts`・`transformers.ts` | モデルの設定（1 件足して `ACTIVE_MODEL` を変えれば差し替え）と、ブラウザで動かす実装。ONNX Runtime は自サイトから配る |
 | 追加 `src/core/logic/semanticSearch.ts`・`constants/tagDescriptions.ts` | タグの読み替え（下限・幅）と並べ方、タグの説明文 |
-| 追加 `src/app/useAiSearch.ts`、変更 `SearchPanel.tsx` | マーカー検索の「AI で意味の近い動画も探す」（既定は切） |
+| 追加 `src/runtime/edgeAi.ts`（T101 で `src/app/useAiSearch.ts` から置き換え）、変更 `SearchPanel.tsx`・`useServices.tsx`・`src/runtime/container.ts`（`getServices(onProgress)`）・`src/app/useSearchAndRanking.ts`（地図・マーカーの両検索） | 起動画面の間に準備し、地図・マーカーの両方の検索で使う（T101。以前は「AI で意味の近い動画も探す」の切り替え。既定は切） |
 | 追加 `scripts/semantic-eval.mjs`・`scripts/data/semantic-cases.json` | モデルの採点（`npm run semantic:eval`） |
+| 追加 `scripts/semantic-vectors.mjs`・`scripts/lib/semantic-node.mjs`（採点と共有）・`public/data/semantic-tags.json` | タグの説明文の埋め込みを前もって計算（`npm run semantic:vectors`。T101） |
 | 変更 `src/core/logic/search.ts` | 日本語を 2 文字ずつ照合し、一致率 0.6 未満を除く（T99） |
 
 ## 2026-09-24 タグの作り直し（ADR 0014）

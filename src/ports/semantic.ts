@@ -1,10 +1,10 @@
 import type { TagPickRule } from '@/core/logic/semanticSearch';
 
-/** AI 検索に使う埋め込みモデルの素性（ADR 0033）。画面の案内とキャッシュの見分けに使う。 */
+/** AI 検索に使う埋め込みモデルの素性（ADR 0033）。前もって計算したタグの埋め込みとの照合に使う。 */
 export interface EmbeddingModelInfo {
-  /** 設定の名前（例: 'embeddinggemma-300m-q4'）。キャッシュのキーにも使う */
+  /** 設定の名前（例: 'embeddinggemma-300m-q4'）。public/data/semantic-tags.json の model と照合する */
   id: string;
-  /** 初回に読み込む大きさの目安（MB。画面に出す） */
+  /** 初回に読み込む大きさの目安（MB。文書用。画面には出さない。T101） */
   sizeMb: number;
   /** このモデルで採点して決めた、タグの採り方 */
   rule: TagPickRule;

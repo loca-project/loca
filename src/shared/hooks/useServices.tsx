@@ -12,10 +12,14 @@ const ServicesContext = createContext<Services | null>(null);
 export function ServicesProvider({ children }: { children: React.ReactNode }) {
   const [services, setServices] = useState<Services | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** 起動の進み具合（0〜1）。分からないときは null */
+  const [progress, setProgress] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    getServices()
+    getServices((ratio) => {
+      if (!cancelled && ratio !== null) setProgress(ratio);
+    })
       .then((s) => {
         if (!cancelled) setServices(s);
       })
@@ -41,7 +45,9 @@ export function ServicesProvider({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-3">
         <i className="fa-solid fa-location-dot animate-bounce text-3xl text-loca-500" />
-        <p className="text-xs text-gray-500">Loca を起動しています...</p>
+        <p className="text-xs text-gray-500">
+          Loca を起動しています...{progress !== null && ` ${Math.floor(progress * 100)}%`}
+        </p>
       </div>
     );
   }

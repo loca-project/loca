@@ -21,8 +21,7 @@ import type {
 } from '@/ports';
 import { staticCatalogAdapter } from '@/adapters/staticData';
 import { oembedVideoAdapter } from '@/adapters/video/oembed';
-import type { EmbeddingModelInfo, SemanticPort } from '@/ports/semantic';
-import { ACTIVE_MODEL, MODELS } from '@/adapters/semantic/models';
+import type { EdgeAi } from './edgeAi';
 import { canUseFirebase } from './config';
 
 export interface Services {
@@ -30,10 +29,8 @@ export interface Services {
   map: MapPort;
   video: VideoMetaPort;
   geocode: GeocodePort;
-  /** AI 検索のモデルの素性（読み込む前に大きさを案内するため。ADR 0033） */
-  semanticModel: EmbeddingModelInfo;
-  /** AI 検索。使ったときに初めて部品とモデルを読む（初期読み込みの JS に入れない） */
-  semantic: () => Promise<SemanticPort>;
+  /** Edge AI（AI 検索。ADR 0033）。起動のときに準備し、使えなければ unavailable（検索は語の一致だけで続く） */
+  edgeAi: EdgeAi;
   /** null なら書き込み機能（ログイン・保存）は無効。 */
   auth: AuthPort | null;
   /** auth と同じく、Firebase が使えないときは null。 */
@@ -58,18 +55,6 @@ const lazyGeocode: GeocodePort = {
   reverse: async (lat, lng) => (await nominatim()).reverse(lat, lng),
   forward: async (address) => (await nominatim()).forward(address),
 };
-let semantic: Promise<SemanticPort> | null = null;
-
-/** AI 検索の部品を遅延 import する。モデルは models.ts の ACTIVE_MODEL（差し替えはそこだけ） */
-function loadSemantic(): Promise<SemanticPort> {
-  semantic ??= import('@/adapters/semantic/transformers')
-    .then(({ createTransformersSemantic }) => createTransformersSemantic(MODELS[ACTIVE_MODEL]))
-    .catch((e) => {
-      semantic = null;
-      throw e;
-    });
-  return semantic;
-}
 
 type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore' | 'reportStore' | 'likeStore' | 'profileStore' | 'adminStore'>;
 
@@ -87,10 +72,15 @@ async function loadFirebase(): Promise<WriteServices> {
   }
 }
 
-export function getServices(): Promise<Services> {
+/**
+ * サービスを解決する。起動画面の進み具合（0〜1。分からなければ null）を onProgress で知らせる。
+ * Edge AI を先に準備してから、地図と Firebase をつなぐ（T101。どこで止まっているかを起動画面の % で分かるように）。
+ */
+export function getServices(onProgress?: (ratio: number | null) => void): Promise<Services> {
   if (services) return services;
 
   services = (async () => {
+    const edgeAi = await import('./edgeAi').then((m) => m.startEdgeAi((ratio) => onProgress?.(ratio)));
     // 地図と Firebase は重いので遅延 import する（初期バンドルに載せない）
     const [{ MapLibreAdapter }, write] = await Promise.all([import('@/adapters/map/maplibre'), loadFirebase()]);
     return {
@@ -98,8 +88,7 @@ export function getServices(): Promise<Services> {
       map: new MapLibreAdapter(),
       video: oembedVideoAdapter,
       geocode: lazyGeocode,
-      semanticModel: { id: MODELS[ACTIVE_MODEL].id, sizeMb: MODELS[ACTIVE_MODEL].sizeMb, rule: MODELS[ACTIVE_MODEL].rule },
-      semantic: loadSemantic,
+      edgeAi,
       ...write,
     };
   })();

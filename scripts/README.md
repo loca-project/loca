@@ -22,6 +22,7 @@
 - 撮影リクエストと熱量の記録（heatBudgets）が合っているかは `npm run heat:check`（読むだけ。食い違いがあれば終了コード 3。T70）。
   合わない持ち主のリクエストは、ルールが差分の一致を求めるため管理者でも取り下げられないことがある。
 - AI 検索のモデルを差し替えるときは `npm run semantic:eval [-- <名前>]` で採点する（日本語・英語の正解率、下限と幅の候補。ADR 0033。手順は `src/adapters/semantic/models.ts` の先頭）。
+  モデルかタグの説明文を変えたら `npm run semantic:vectors` でタグの埋め込みを作り直す（T101。合っていなければ test:core が落ちる）。
 - **`.ps1` は UTF-8 BOM 付きで保存する**（Shift-JIS 環境のため。詳細は `.claude/hooks/README.md`）。
 
 ## 一時スクリプトとの違い

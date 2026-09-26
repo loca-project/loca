@@ -45,7 +45,8 @@ Loca/                               ワークスペース（git の外）
    ├─ index.html / package.json / vite.config.ts
    ├─ firestore.rules                セキュリティルール（生成物。rules/*.rules をつなぐ。ADR 0020）
    ├─ rules/                         セキュリティルールの部品（tests/ がエミュレータで検査）
-   ├─ public/data/*.json             公開データ（Firestore から毎晩作り直す閲覧の土台。equipment.json は 3 時間ごと）
+   ├─ public/data/*.json             公開データ（Firestore から毎晩作り直す閲覧の土台。equipment.json は 3 時間ごと。
+   │                                 semantic-tags.json は Edge AI のタグの埋め込みで npm run semantic:vectors で作る。ADR 0033）
    ├─ scripts/                       検証・同期・公開・管理
    ├─ src/
    │  ├─ core/       依存ゼロ。型・定数・純粋ロジック
@@ -73,7 +74,7 @@ Loca/                               ワークスペース（git の外）
 | `MapPort` | 地図の描画・ピン・情報ウィンドウ・矩形描画 | `maplibre` |
 | `VideoMetaPort` | 動画メタデータの取得 | `oembed` |
 | `GeocodePort` | 座標 ⇄ 地名 | `nominatim`（OpenStreetMap） |
-| `SemanticPort` | 文の埋め込み（AI 検索で検索語をタグに読み替える） | `transformers`（ブラウザで EmbeddingGemma。使ったときだけ読む。モデルは `models.ts` で差し替え。ADR 0033） |
+| `SemanticPort` | 文の埋め込み（Edge AI で検索語をタグに読み替える） | `transformers`（ブラウザで EmbeddingGemma。起動画面の間に `src/runtime/edgeAi.ts` が準備する。モデルは `models.ts` で差し替え。ADR 0033・T101） |
 | `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
 | `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・炎の読み取り（動画ごと・投稿者の合計。T82）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
@@ -144,7 +145,7 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 | GitHub Pages | サイト全体が見られない（代替なし） |
 | OpenStreetMap のタイル | 地図が灰色になる。ピンと閲覧は続く。画面上部の帯で知らせる |
 | Nominatim | 地名の取得と地名検索が使えない。10 秒で諦めて理由を出す。登録は地名なしで続行（予備なし・ADR 0032） |
-| Hugging Face（AI 検索のモデル） | AI 検索だけ使えない。語の一致の結果を出し、理由を通知する（ADR 0033） |
+| Hugging Face（AI 検索のモデル） | Edge AI だけ使えない。起動は諦めて続け、語の一致の結果だけを出す（理由はコンソール。ADR 0033・T101） |
 
 不調は画面上部の帯（`HealthNotice`）で知らせる。黙って劣化させない。Firestore が使えないときは閲覧だけで動く。
 新しい版が公開されたときも、同じ帯で開いたままのタブに再読み込みを促す（`version.json`。ADR 0022）。

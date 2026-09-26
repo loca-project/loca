@@ -21,6 +21,8 @@ export interface ModelConfig extends EmbeddingModelInfo {
    * それを使わない版を選ぶ（EmbeddingGemma の 4 ビット版は GatherBlockQuantized が無く、model_no_gather を使う。2026-09-26）
    */
   modelFileName?: string;
+  /** モデルのファイル一式の大きさ（MB。起動画面の % の分母の下限。ONNX Runtime の .wasm は含まない） */
+  modelMb: number;
   /**
    * 文の数値の取り出し方。
    * - 'sentence_embedding': モデルが文のベクトルを直接返す（EmbeddingGemma など）
@@ -45,6 +47,7 @@ export const MODELS: Record<string, ModelConfig> = {
     modelFileName: 'model_no_gather',
     // 初回に読む合計: モデル一式 約 217 MB（onnx_data 194.6 MB・tokenizer.json 20.3 MB ほか）＋ ONNX Runtime の .wasm 26.9 MB
     sizeMb: 240,
+    modelMb: 217,
     pooling: 'sentence_embedding',
     queryPrefix: 'task: search result | query: ',
     documentPrefix: 'title: none | text: ',

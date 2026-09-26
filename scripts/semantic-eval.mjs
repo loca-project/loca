@@ -11,14 +11,10 @@
 
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { createServer } from 'vite';
+import { loadEmbedder, withAppModules } from './lib/semantic-node.mjs';
 
 const ROOT = process.cwd();
-const vite = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error', optimizeDeps: { noDiscovery: true } });
-try {
-  const { MODELS, ACTIVE_MODEL } = await vite.ssrLoadModule('/src/adapters/semantic/models.ts');
-  const { TAG_DESCRIPTIONS, tagDocument } = await vite.ssrLoadModule('/src/core/constants/tagDescriptions.ts');
-  const { rankTags, pickTags } = await vite.ssrLoadModule('/src/core/logic/semanticSearch.ts');
+await withAppModules(async ({ MODELS, ACTIVE_MODEL, TAG_DESCRIPTIONS, tagDocument, rankTags, pickTags }) => {
   const name = process.argv[2] ?? ACTIVE_MODEL;
   const config = MODELS[name];
   if (!config) {
@@ -27,18 +23,7 @@ try {
   }
   const cases = JSON.parse(await readFile(path.join(ROOT, 'scripts', 'data', 'semantic-cases.json'), 'utf8'));
 
-  const tf = await import('@huggingface/transformers');
-  tf.env.cacheDir = path.join(ROOT, 'node_modules', '.cache', 'semantic-models');
-  const opts = { dtype: config.dtype, model_file_name: config.modelFileName };
-  let embed;
-  if (config.pooling === 'sentence_embedding') {
-    const tok = await tf.AutoTokenizer.from_pretrained(config.repo);
-    const model = await tf.AutoModel.from_pretrained(config.repo, opts);
-    embed = async (texts) => (await model(tok(texts, { padding: true, truncation: true }))).sentence_embedding.normalize(2, -1).tolist();
-  } else {
-    const ex = await tf.pipeline('feature-extraction', config.repo, opts);
-    embed = async (texts) => (await ex(texts, { pooling: config.pooling, normalize: true })).tolist();
-  }
+  const embed = await loadEmbedder(config);
 
   const keys = Object.keys(TAG_DESCRIPTIONS);
   const vectors = await embed(keys.map((k) => config.documentPrefix + tagDocument(k)));
@@ -90,6 +75,5 @@ try {
     console.log(`  ${t.toFixed(2)}: ${kept.length}/${all.length}・正解 ${good}・地名 ${placeTops.filter((s) => s < t).length}/${placeTops.length}`);
   }
   console.log('\n確かめ方: 未使用の問題の正解率を ADR 0033 の表と比べ、地名を読み替えないが 100% になる下限を models.ts に書く');
-} finally {
-  await vite.close();
-}
+  console.log('モデルを変えたら npm run semantic:vectors でタグの埋め込みを作り直す');
+});

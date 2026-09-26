@@ -109,13 +109,18 @@ try {
   await send(ws, 'Network.enable', {}, sessionId);
   await send(ws, 'Page.enable', {}, sessionId);
   await send(ws, 'Page.navigate', { url: URL_TO_OPEN }, sessionId);
-  await sleep(12000);
 
   const run = async (expression) => {
     const r = await send(ws, 'Runtime.evaluate', { expression, returnByValue: true }, sessionId);
     if (r.exceptionDetails) throw new Error(r.exceptionDetails.text);
     return r.result.value;
   };
+  // 起動画面の間に Edge AI（初回は約 240 MB）を準備してから地図を出すので、固定の時間ではなく地図が出るまで待つ（T101）。
+  // 上限は 5 分。出たあと 6 秒おいてタイルを数える
+  const started = Date.now();
+  while (Date.now() - started < 300_000 && !(await run(`!!document.querySelector('canvas')`).catch(() => false))) await sleep(1000);
+  console.log(`地図が出るまで ${Math.round((Date.now() - started) / 1000)} 秒`);
+  await sleep(6000);
 
   check('タイトルが Loca', (await run('document.title')) === 'Loca');
   check('地図の canvas がある', (await run(`document.querySelectorAll('canvas').length`)) === 1);

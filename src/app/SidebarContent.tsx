@@ -14,7 +14,6 @@ import RankingFilters from '@/features/sidebar/RankingFilters';
 import RequestForm from '@/features/sidebar/RequestForm';
 import RequestView from '@/features/sidebar/RequestView';
 import type { LocaApp } from './useLocaApp';
-import type { AiSearch } from './useAiSearch';
 
 // ユーザーのタブは開いたときに読む（初期読み込みの JS を 260 kB 以内に保つ。T62・T88）
 const PeoplePanel = lazy(() => import('@/features/people/PeoplePanel'));
@@ -43,8 +42,6 @@ interface SidebarContentProps {
   app: LocaApp;
   handlers: SidebarHandlers;
   busy: boolean;
-  /** AI 検索（ADR 0033） */
-  ai: AiSearch;
   /** ログイン中のユーザーの uid。未ログインなら null */
   currentUid: string | null;
   /** ログイン中のユーザーが使った熱量。不明なら null */
@@ -69,7 +66,6 @@ export default function SidebarContent({
   app,
   handlers,
   busy,
-  ai,
   currentUid,
   heatUsed,
   needsLogin,
@@ -206,7 +202,6 @@ export default function SidebarContent({
       onTargetChange={app.setSearchTarget}
       onQueryChange={app.setSearchQuery}
       onSearch={handlers.onSearch}
-      ai={ai}
       onStartDrawing={handlers.onStartDrawing}
       onClearRectangle={handlers.onClearRectangle}
     />

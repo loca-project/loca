@@ -42,6 +42,7 @@
     "fs:read": "node scripts/fs-read.mjs",
     "heat:check": "node scripts/heat-check.mjs",
     "semantic:eval": "node scripts/semantic-eval.mjs",
+    "semantic:vectors": "node scripts/semantic-vectors.mjs",
     "keys:check": "node scripts/api-key-check.mjs",
     "size:breakdown": "node scripts/size-breakdown.mjs"
   },
