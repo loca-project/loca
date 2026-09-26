@@ -40,6 +40,7 @@
     "actions:warnings": "node scripts/actions-warnings.mjs",
     "probe": "node scripts/probe-run.mjs",
     "fs:read": "node scripts/fs-read.mjs",
+    "heat:check": "node scripts/heat-check.mjs",
     "keys:check": "node scripts/api-key-check.mjs",
     "size:breakdown": "node scripts/size-breakdown.mjs"
   },
