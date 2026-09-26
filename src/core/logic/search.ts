@@ -3,6 +3,7 @@
  * 意図的にランキング側とロジックを分離している（要件 1.2 / 3.1）。
  *
  * 語の一致だけで順位付けする。外部の推論モデルには依存しない。
+ * AI 検索の読み替え（ADR 0033）は semanticSearch.ts が、この結果の後ろに足す。
  */
 
 import type { Bounds, MarkerData } from '@/core/types';

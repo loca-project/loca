@@ -73,6 +73,10 @@ export default defineConfig(({ mode }) => {
             // Firebase は設定値があるときだけ遅延 import する。初期の vendor に混ぜない
             // （re2js・idb は Firestore と Auth だけが使う依存。混ざると初期読み込みが 150 kB 増える）
             if (/[\\/]node_modules[\\/](@firebase|firebase|re2js|idb)[\\/]/.test(id)) return 'vendor-firebase';
+            // AI 検索（ADR 0033）は使ったときだけ遅延 import する。初期の vendor に混ぜると 580 kB 増える（2026-09-26 実測）
+            if (/[\\/]node_modules[\\/](@huggingface|onnxruntime-web|onnxruntime-common|flatbuffers|guid-typescript|long|protobufjs)[\\/]/.test(id)) {
+              return 'vendor-ai';
+            }
             if (id.includes('react')) return 'vendor-react';
             return 'vendor';
           },

@@ -7,7 +7,9 @@ import { useCallback, useState } from 'react';
 import type { Bounds, MarkerData, RankingFilter, RequestMarkerData } from '@/core/types';
 import { RANKING_BASE_LIMIT, TabMode } from '@/core/types';
 import { isLimitedByFilter, rankEquipment, rankPrefectures } from '@/core/logic/ranking';
-import { searchMarkersByBounds, searchMarkersByText } from '@/core/logic/search';
+import { searchMarkersByBounds } from '@/core/logic/search';
+import { searchMarkersWithTags, type TagScore } from '@/core/logic/semanticSearch';
+import { tagLabel } from '@/core/constants/tags';
 import { rankRequestSpots } from '@/core/logic/requests';
 import { boundsOf } from '@/core/logic/geo';
 import { formatCount, interpolate } from '@/core/logic/format';
@@ -32,7 +34,7 @@ const CLOSED: ResultsState = { open: false, title: '', rows: [] };
 
 export function useSearchAndRanking() {
   const { map, geocode } = useServices();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [results, setResults] = useState<ResultsState>(CLOSED);
   const [loading, setLoading] = useState(false);
 
@@ -56,16 +58,21 @@ export function useSearchAndRanking() {
     [geocode, map],
   );
 
-  /** マーカー検索: 語の一致で絞り込む。件数制限は設けない。 */
+  /**
+   * マーカー検索: 語の一致で絞り込む。件数制限は設けない。
+   * AI 検索で読み替えたタグ（ADR 0033）があれば、そのタグを持つ動画を後ろに足し、題に読み替えを出す。
+   */
   const searchMarkers = useCallback(
-    (query: string, markers: MarkerData[]) => {
-      const hits = searchMarkersByText(markers, query);
-      setResults({ open: true, title: t.headers.searchResults, rows: rowsFromMarkers(hits) });
+    (query: string, markers: MarkerData[], aiTags: TagScore[] = []) => {
+      const hits = searchMarkersWithTags(markers, query, aiTags);
+      const labels = aiTags.map((tag) => tagLabel(tag.key, lang === 'en' ? 'en' : 'ja')).join('・');
+      const title = labels ? `${t.headers.searchResults}（${interpolate(t.form.aiReadAs, { tags: labels })}）` : t.headers.searchResults;
+      setResults({ open: true, title, rows: rowsFromMarkers(hits) });
 
       const bounds = boundsOf(hits.map((m) => ({ lat: m.lat, lng: m.lng })));
       if (bounds) map.fitBounds(bounds, 80);
     },
-    [map, t],
+    [map, t, lang],
   );
 
   /** 範囲指定検索（要件 3.1.3）。矩形の内側だけを、件数制限なしで返す。 */

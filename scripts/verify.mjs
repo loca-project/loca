@@ -47,6 +47,13 @@ const firebaseLeaks = sources.filter((s) => firebaseImport.test(s.text) && !s.fi
 record('Firebase SDK の import は src/adapters/firebase/ のみ', firebaseLeaks.length === 0,
   firebaseLeaks.map((l) => l.file).join(', '));
 
+// 1c. AI 検索の部品（transformers.js）を import するのは src/adapters/semantic/ だけ（ADR 0033）
+//     ほかから静的に import すると、約 590 kB が初期読み込みに入る
+const aiImport = /(from\s+|import\s*\(\s*)['"](@huggingface\/transformers|onnxruntime-web)/;
+const aiDir = `src${path.sep}adapters${path.sep}semantic${path.sep}`;
+const aiLeaks = sources.filter((s) => aiImport.test(s.text) && !s.file.startsWith(aiDir));
+record('AI 検索の部品の import は src/adapters/semantic/ のみ', aiLeaks.length === 0, aiLeaks.map((l) => l.file).join(', '));
+
 // 2. package.json にも残っていないこと
 const pkg = JSON.parse(await readFile(path.join(ROOT, 'package.json'), 'utf8'));
 const deps = Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.optionalDependencies });

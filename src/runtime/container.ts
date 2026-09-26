@@ -21,7 +21,8 @@ import type {
 } from '@/ports';
 import { staticCatalogAdapter } from '@/adapters/staticData';
 import { oembedVideoAdapter } from '@/adapters/video/oembed';
-import { nominatimGeocodeAdapter } from '@/adapters/geocode/nominatim';
+import type { EmbeddingModelInfo, SemanticPort } from '@/ports/semantic';
+import { ACTIVE_MODEL, MODELS } from '@/adapters/semantic/models';
 import { canUseFirebase } from './config';
 
 export interface Services {
@@ -29,6 +30,10 @@ export interface Services {
   map: MapPort;
   video: VideoMetaPort;
   geocode: GeocodePort;
+  /** AI 検索のモデルの素性（読み込む前に大きさを案内するため。ADR 0033） */
+  semanticModel: EmbeddingModelInfo;
+  /** AI 検索。使ったときに初めて部品とモデルを読む（初期読み込みの JS に入れない） */
+  semantic: () => Promise<SemanticPort>;
   /** null なら書き込み機能（ログイン・保存）は無効。 */
   auth: AuthPort | null;
   /** auth と同じく、Firebase が使えないときは null。 */
@@ -41,6 +46,30 @@ export interface Services {
 }
 
 let services: Promise<Services> | null = null;
+
+/**
+ * 地名検索・逆ジオコーディングは使ったときに Nominatim のアダプタを読む（初期読み込みの JS を 260 kB 以内に保つ。ADR 0032）。
+ * 中身は src/adapters/geocode/nominatim.ts の nominatimGeocodeAdapter と同じ。
+ */
+const nominatim = () => import('@/adapters/geocode/nominatim').then((m) => m.nominatimGeocodeAdapter);
+const lazyGeocode: GeocodePort = {
+  name: 'nominatim',
+  probe: async () => typeof fetch === 'function',
+  reverse: async (lat, lng) => (await nominatim()).reverse(lat, lng),
+  forward: async (address) => (await nominatim()).forward(address),
+};
+let semantic: Promise<SemanticPort> | null = null;
+
+/** AI 検索の部品を遅延 import する。モデルは models.ts の ACTIVE_MODEL（差し替えはそこだけ） */
+function loadSemantic(): Promise<SemanticPort> {
+  semantic ??= import('@/adapters/semantic/transformers')
+    .then(({ createTransformersSemantic }) => createTransformersSemantic(MODELS[ACTIVE_MODEL]))
+    .catch((e) => {
+      semantic = null;
+      throw e;
+    });
+  return semantic;
+}
 
 type WriteServices = Pick<Services, 'auth' | 'markerStore' | 'requestStore' | 'reportStore' | 'likeStore' | 'profileStore' | 'adminStore'>;
 
@@ -68,7 +97,9 @@ export function getServices(): Promise<Services> {
       catalog: staticCatalogAdapter,
       map: new MapLibreAdapter(),
       video: oembedVideoAdapter,
-      geocode: nominatimGeocodeAdapter,
+      geocode: lazyGeocode,
+      semanticModel: { id: MODELS[ACTIVE_MODEL].id, sizeMb: MODELS[ACTIVE_MODEL].sizeMb, rule: MODELS[ACTIVE_MODEL].rule },
+      semantic: loadSemantic,
       ...write,
     };
   })();

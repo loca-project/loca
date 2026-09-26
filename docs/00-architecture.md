@@ -73,6 +73,7 @@ Loca/                               ワークスペース（git の外）
 | `MapPort` | 地図の描画・ピン・情報ウィンドウ・矩形描画 | `maplibre` |
 | `VideoMetaPort` | 動画メタデータの取得 | `oembed` |
 | `GeocodePort` | 座標 ⇄ 地名 | `nominatim`（OpenStreetMap） |
+| `SemanticPort` | 文の埋め込み（AI 検索で検索語をタグに読み替える） | `transformers`（ブラウザで EmbeddingGemma。使ったときだけ読む。モデルは `models.ts` で差し替え。ADR 0033） |
 | `AuthPort` | Google ログイン・ログアウト・状態の購読 | `firebase-auth`（ポップアップ方式） |
 | `MarkerStorePort` | マーカーの作成・本人の更新・論理削除・差分の購読 | `firestore`（レートリミットの印・動画の索引と同じバッチで書く。ADR 0012） |
 | `RequestStorePort` | 撮影リクエストの作成・取り下げ（論理削除）・届いた動画の受け取り（ADR 0028）・炎の読み取り（動画ごと・投稿者の合計。T82）・差分の購読 | `firestore-requests`（熱量の印と同じバッチで書く。受け取りは炎の集計とトランザクションで書く） |
@@ -136,13 +137,14 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 
 ## 可用性
 
-サーバーが無いので「落ちる」対象が少ない。残る依存は 3 つだけ。
+サーバーが無いので「落ちる」対象が少ない。残る依存は 4 つだけ。
 
 | 依存 | 落ちたとき |
 |---|---|
 | GitHub Pages | サイト全体が見られない（代替なし） |
 | OpenStreetMap のタイル | 地図が灰色になる。ピンと閲覧は続く。画面上部の帯で知らせる |
 | Nominatim | 地名の取得と地名検索が使えない。10 秒で諦めて理由を出す。登録は地名なしで続行（予備なし・ADR 0032） |
+| Hugging Face（AI 検索のモデル） | AI 検索だけ使えない。語の一致の結果を出し、理由を通知する（ADR 0033） |
 
 不調は画面上部の帯（`HealthNotice`）で知らせる。黙って劣化させない。Firestore が使えないときは閲覧だけで動く。
 新しい版が公開されたときも、同じ帯で開いたままのタブに再読み込みを促す（`version.json`。ADR 0022）。
@@ -152,13 +154,14 @@ Firebase SDK は `src/adapters/firebase/index.ts` から遅延 import し、初�
 ```
 npm run typecheck   # 型
 npm run build       # ビルド
-npm run verify      # 設計上の約束を 24 項目チェック（2026-09-26）
-npm run check       # 上記 3 つをまとめて
+npm run verify      # 設計上の約束を 25 項目チェック（2026-09-26）
+npm run check       # 上記 3 つとテスト（test:scripts・test:core）をまとめて
 ```
 
 `npm run verify` が見ているもの（出力の各行が 1 項目）:
 
-- 廃止した依存が無い（src と package.json）。Firebase SDK の import は `src/adapters/firebase/` だけ
+- 廃止した依存が無い（src と package.json）。Firebase SDK の import は `src/adapters/firebase/` だけ。AI 検索の部品（transformers.js・onnxruntime-web）の import は `src/adapters/semantic/` だけ（ADR 0033）
+- scripts の子プロセスに `shell: true` が無い（T65）
 - `features/` と `core/` に地図 SDK の直接 import が無い。`import.meta.env` を読むのは `runtime/config.ts` だけ
 - ソースに API キーが直書きされていない。`.env.example` 以外の `.env*` が git に無く、`.env.example` に値が無い
 - すべてのソースが 400 行以内（CP-2）

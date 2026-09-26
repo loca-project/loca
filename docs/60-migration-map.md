@@ -16,7 +16,7 @@
 | `App.tsx` | 1544 | `src/App.tsx`, `src/app/AppShell.tsx`, `useLocaApp.ts`, `SidebarContent.tsx`, `usePins.ts`, `useMarkerSubmit.ts`, `useSearchAndRanking.ts`, `UserMenu.tsx` | 状態・描画・操作を分離 |
 | `services/firebase.ts` | 1535 | `src/adapters/firebase/*`（9 ファイル）＋ `src/adapters/local/*`（10 ファイル） | 1 実装 → 2 実装に増やしたうえで分割 |
 | `services/externalApis.ts` | 144 | `src/adapters/video/*`（3）、`src/adapters/geocode/*`（4） | YouTube と地図を別ポートに分離 |
-| `services/edgeAi.ts` | 290 | `src/adapters/semantic/*`（4） | tfjs を任意化し keyword 実装を既定に |
+| `services/edgeAi.ts` | 290 | `src/adapters/semantic/models.ts`・`transformers.ts`、`src/core/logic/semanticSearch.ts` | 2026-09-22 に tfjs ごと削除し、2026-09-26 に transformers.js で作り直した（ADR 0033） |
 | `types.ts` | 200 | `src/core/types/*`（7） | 関心ごとに分割 |
 | `constants.ts` | 301 | `src/core/constants/*`（6）＋ `src/i18n/*`（3） | **API キーの直書きは持ち込まない** |
 | `components/ResultsView.tsx` | 499 | `src/features/results/ResultsPanel.tsx`, `resultRow.ts` | 行の形を 1 種類に正規化 |
@@ -51,7 +51,7 @@
 | `NetworkRestrictions.tsx` | 作らない |
 | `UrlManagement.tsx` | 作らない |
 | `Parameters.tsx` | 未移植 |
-| `AiManagement.tsx`, `AIProcess.tsx` | 未移植（Edge AI 検索は T30） |
+| `AiManagement.tsx`, `AIProcess.tsx` | 未移植（AI の品質管理の画面）。Edge AI 検索は 2026-09-26 に作り直した（ADR 0033・T30） |
 | `RecurringTask.tsx` | `scripts/refresh-youtube.mjs`・`sync-firestore.mjs`・`purge-deleted.mjs`（Actions）と `JobsTab.tsx` に移管 |
 | （新規） | `ReportsTab.tsx`、`RequestsTab.tsx`（撮影リクエストの管理。2026-09-25）。`ExportTab.tsx` は 2026-09-25 に廃止し、書き出しは投稿動画・撮影リクエストのタブへ |
 
@@ -85,7 +85,7 @@
 
 | 項目 | 理由 | どうするか |
 |---|---|---|
-| AI 品質管理 UI（`AiManagement`, `AIProcess`） | Gemini API 前提で、配信先とキー運用が未定 | 未移植（Edge AI 検索は T30） |
+| AI 品質管理 UI（`AiManagement`, `AIProcess`） | Gemini API 前提で、配信先とキー運用が未定 | 未移植。Edge AI 検索は Gemini を使わず、ブラウザの埋め込みモデルで作り直した（ADR 0033・T30） |
 | パラメータ管理 UI（`Parameters`） | 何を設定項目にするかが未確定 | 未移植 |
 | IP 単位の遮断 | 静的配信ではクライアントが IP を判定できない | 管理画面に台帳のみ。遮断は配信先の WAF |
 | サーバー側 API プロキシ | サーバーを前提にできない | 配信先決定後に追加 |
@@ -167,6 +167,17 @@
 | 変更 `scripts/lib/enrich.mjs`・`sync-firestore.mjs` | 同期の地名の補いも Nominatim に。15 秒おき・1 回 8 件まで（定期実行は 1 分 4 回の規約） |
 | 変更 `PlaceMeta.source` | `gsi` → `osm` |
 | 追加 verify の検査 | タイルの URL・出典・Referer を止めていないこと・国土地理院の API を呼ぶコードが無いこと |
+
+## 2026-09-26 AI 検索（ADR 0033）
+
+| 変更 | 内容 |
+|---|---|
+| 追加 `src/ports/semantic.ts` | `SemanticPort`（文の埋め込み）。モデルを差し替えても画面と検索の組み立ては変えない |
+| 追加 `src/adapters/semantic/models.ts`・`transformers.ts` | モデルの設定（1 件足して `ACTIVE_MODEL` を変えれば差し替え）と、ブラウザで動かす実装。ONNX Runtime は自サイトから配る |
+| 追加 `src/core/logic/semanticSearch.ts`・`constants/tagDescriptions.ts` | タグの読み替え（下限・幅）と並べ方、タグの説明文 |
+| 追加 `src/app/useAiSearch.ts`、変更 `SearchPanel.tsx` | マーカー検索の「AI で意味の近い動画も探す」（既定は切） |
+| 追加 `scripts/semantic-eval.mjs`・`scripts/data/semantic-cases.json` | モデルの採点（`npm run semantic:eval`） |
+| 変更 `src/core/logic/search.ts` | 日本語を 2 文字ずつ照合し、一致率 0.6 未満を除く（T99） |
 
 ## 2026-09-24 タグの作り直し（ADR 0014）
 

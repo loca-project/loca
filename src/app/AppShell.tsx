@@ -34,6 +34,7 @@ import { readSharedView, useShareUrl } from './useShareUrl';
 import { useMarkerSubmit } from './useMarkerSubmit';
 import { useRequestSubmit } from './useRequestSubmit';
 import { useSearchAndRanking } from './useSearchAndRanking';
+import { useAiSearch } from './useAiSearch';
 import { useRangeSelect } from './useRangeSelect';
 import { answerTargets } from '@/core/logic/answers';
 import AnswerNotice from '@/features/profile/AnswerNotice';
@@ -46,6 +47,7 @@ export default function AppShell() {
   const { submit, remove, loading: submitting } = useMarkerSubmit();
   const requestSubmit = useRequestSubmit(auth.user?.uid ?? null);
   const search = useSearchAndRanking();
+  const ai = useAiSearch();
 
   // 地図に出すのは画面下の地図フィルタで絞った後のもの（ADR 0015）
   // 共有された URL の絞り込みとマーカーで始め、変えたら URL に映す（T42）
@@ -100,8 +102,9 @@ export default function AppShell() {
       if (error) toast.error(error);
       return;
     }
-    search.searchMarkers(app.searchQuery, app.catalog.markers);
-  }, [app, search, toast, closeMobileSidebar]);
+    const aiTags = await ai.tagsFor(app.searchQuery).catch((e: Error) => (toast.error(e.message), []));
+    search.searchMarkers(app.searchQuery, app.catalog.markers, aiTags);
+  }, [app, search, ai, toast, closeMobileSidebar]);
 
   const handleSubmitMarker = useCallback(async () => {
     if (!app.tempPos) {
@@ -282,7 +285,8 @@ export default function AppShell() {
       <SidebarPanel open={app.sidebarOpen} title={sidebarTitle(app, t)}>
         <SidebarContent
           app={app}
-          busy={busy}
+          busy={busy || ai.progress !== undefined}
+          ai={ai}
           currentUid={auth.user?.uid ?? null}
           needsLogin={auth.enabled && !auth.user}
           onSignIn={handleSignIn}
