@@ -110,7 +110,7 @@
 
 - **IP 単位のレートリミットとアクセス遮断**: 作らない。静的配信では IP を判定できない。遮断はホスティング側の責務。
 - **サーバー側 API プロキシ**: 現時点ではクライアントから直接外部 API を呼ぶ。
-- **App Check / reCAPTCHA**: 未実装（2026-09-25）。方針は T32 で決める。
+- **App Check / reCAPTCHA**: 使わない。reCAPTCHA が支払い方法の登録を求めるため。代わりにブラウザ用の API キーを HTTP リファラーで絞る（ADR 0030）。
 
 ---
 
@@ -138,6 +138,7 @@
 
 | 本章の記述 | 実装後 | 状態（2026-09-24） |
 |---|---|---|
+| 1.2 .env の変数定義 | `.env.example` の `VITE_FIREBASE_*` 4 つ。API キーはブラウザに配る公開値で、HTTP リファラーで絞る（ADR 0030） | 実装済み |
 | 1.1 Google 認証 | Firebase Auth の Google ログイン（ポップアップ方式） | 実装済み。プロフィール（ニックネームと同意の記録）は `users/{uid}`、ほかのユーザーに見せる任意の YouTube チャンネルは `publicProfiles/{uid}`（ADR 0029）。未登録では投稿できず、投稿者名はニックネーム（ADR 0019） |
 | 1.1 管理者モード | Firestore の `admins/{uid}` とセキュリティルールで判定 | ルールと管理者の登録（`npm run admin:add`）、管理者モードの画面（T27・T59〜T61）とも実装済み |
 | 1.3 定時バッチ | GitHub Actions が Firestore を読み、`markers.json`・`requests.json` を毎晩、`equipment.json` を 3 時間ごとに再生成（Cloud Functions は請求先が必須で使えない） | 実装済み（`sync-firestore.yml`・機器は `sync-equipment.yml`。YouTube API での更新は T24） |

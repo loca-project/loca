@@ -236,6 +236,7 @@ npm run smoke -- https://<owner>.github.io/<repo>/
 | 地図が灰色のまま | 画面上部に地図タイルの帯が出ていれば地理院タイルに到達できていない。帯が無ければ地図の表示位置がおかしい可能性（`maxBounds` の罠。[ADR 0007](../decisions/0007-maxBoundsを使わない.md) 参照）|
 | ピンが出ない | `project/public/data/markers.json` が空。`npm run seed` で復旧できる |
 | ログインが出ない・投稿タブが「受け付けていません」 | Firebase の設定値が空。本番はリポジトリの Variables、ローカルは `.env.local` の `VITE_FIREBASE_*` を確認する |
+| ログインに失敗する（identitytoolkit が 403 `API_KEY_HTTP_REFERRER_BLOCKED` を返す） | 開いている URL が API キーのリファラーの許可に無い（別のポート・`127.0.0.1`・独自ドメイン）。許可の一覧は [ADR 0030](../decisions/0030-ブラウザ用APIキーはリファラーで絞りApp-Checkは使わない.md) |
 | 公開データに消したはずの行が残る | 物理削除は購読に届かない。`gh workflow run sync-firestore.yml` で作り直す |
 | 管理者モードが出ない | 別のアカウントでログインしていることが多い。`npm run admin:accounts` で最後にログインしたアカウントを確かめる |
 | push が `Internal Server Error` で拒否される | GitHub 側の一時的な失敗。`npm run deploy` は未 push のコミットを 1 件ずつ push し直す（2026-09-24 に 2 件まとめてが 3 回失敗し、1 件ずつなら通った） |

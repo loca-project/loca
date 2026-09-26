@@ -25,7 +25,7 @@ Loca は **Geo（範囲指定検索・地名の取得）とユーザー認証を
 |---|---|---|
 | Authentication（Google ログイン） | ○ | 50,000 MAU |
 | Cloud Firestore | ○ | 保存 1 GiB / 読み取り 5 万回/日 / 書き込み 2 万回/日 / 削除 2 万回/日 / 転送 10 GiB/月 |
-| App Check | ○ | 上限あり |
+| App Check | ○ | 上限あり（2026-09-26 追記: 提供元の reCAPTCHA が支払い方法の登録を求めるため使わない。[ADR 0030](0030-ブラウザ用APIキーはリファラーで絞りApp-Checkは使わない.md)） |
 | Hosting | ○ | 使わない（GitHub Pages のまま） |
 | Cloud Functions | **✗** | — |
 | Cloud Storage | **✗**（2026-02-03 以降は Blaze 必須） | — |
