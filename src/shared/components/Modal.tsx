@@ -23,7 +23,10 @@ const SIZE_CLASS: Record<NonNullable<ModalProps['size']>, string> = {
   full: 'max-w-[96rem] w-[95vw]',
 };
 
-/** 画面中央に出すオーバーレイ。Esc と背景クリックで閉じる。 */
+/**
+ * 画面中央に出すオーバーレイ。Esc と背景クリックで閉じる。
+ * 高さは dvh（見えている高さ）で決める。vh はスマホのアドレスバーが引っ込んだときの高さなので、機種によって上下が切れた（T91）。
+ */
 export default function Modal({ open, title, onClose, children, footer, size = 'sm', fixedHeight = false }: ModalProps) {
   React.useEffect(() => {
     if (!open || !onClose) return undefined;
@@ -47,7 +50,7 @@ export default function Modal({ open, title, onClose, children, footer, size = '
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex ${fixedHeight ? 'h-[90vh]' : 'max-h-[90vh]'} w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${SIZE_CLASS[size]}`}
+        className={`flex ${fixedHeight ? 'h-[90dvh]' : 'max-h-[90dvh]'} w-full flex-col overflow-hidden rounded-xl bg-white shadow-2xl ${SIZE_CLASS[size]}`}
       >
         <header className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-3">
           <h2 className="text-sm font-bold text-gray-800">{title}</h2>
