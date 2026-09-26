@@ -1,19 +1,21 @@
 {
-  "generatedAt": 1790389694767,
-  "syncedAt": 1790389693789,
+  "generatedAt": 1790416232680,
+  "syncedAt": 1790416231245,
   "markers": [
     {
-      "id": "ZCg6qbJpPo56s2OilcI5",
+      "id": "FundW64ySNLwYkYdk9vg",
       "youtubeUrl": "https://www.youtube.com/watch?v=Firkhg9yU9g",
       "videoId": "Firkhg9yU9g",
-      "lat": 35.709587,
-      "lng": 140.350018,
+      "lat": 35.631457,
+      "lng": 140.062633,
       "tags": {
-        "mood": "lively",
+        "mood": "nostalgic",
+        "season": "spring",
+        "style": "aerial",
         "subject": "nature"
       },
       "youtube": {
-        "checkedAt": 1790389684907,
+        "checkedAt": 1790416219388,
         "durationSec": 8,
         "likeCount": 0,
         "publishedAt": 1763737574000,
@@ -29,15 +31,11 @@
       "channelTitle": "立神",
       "thumbnailUrl": "https://i.ytimg.com/vi/Firkhg9yU9g/hqdefault.jpg",
       "prefecture": "千葉県",
-      "city": "富里市",
-      "ownerUid": "QRNRZ9mihvQ4FAsiHLd2n1tKiLF3",
-      "createdBy": "TEST-C",
-      "createdAt": 1790337799539,
-      "updatedAt": 1790337799539,
-      "answers": [
-        "lbSqxT2yE5H3kJaBEWYs"
-      ],
-      "likes": 1
+      "city": "千葉市",
+      "ownerUid": "t66DuxCJGBd2PTVmrwpee9xl2zT2",
+      "createdBy": "管理者",
+      "createdAt": 1790401007396,
+      "updatedAt": 1790401007396
     }
   ]
 }
