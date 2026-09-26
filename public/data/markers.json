@@ -1,6 +1,6 @@
 {
-  "generatedAt": 1790381165076,
-  "syncedAt": 1790381163985,
+  "generatedAt": 1790389694767,
+  "syncedAt": 1790389693789,
   "markers": [
     {
       "id": "ZCg6qbJpPo56s2OilcI5",
@@ -13,7 +13,7 @@
         "subject": "nature"
       },
       "youtube": {
-        "checkedAt": 1790381150773,
+        "checkedAt": 1790389684907,
         "durationSec": 8,
         "likeCount": 0,
         "publishedAt": 1763737574000,
@@ -36,7 +36,8 @@
       "updatedAt": 1790337799539,
       "answers": [
         "lbSqxT2yE5H3kJaBEWYs"
-      ]
+      ],
+      "likes": 1
     }
   ]
 }
